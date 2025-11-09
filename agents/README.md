@@ -1,6 +1,7 @@
 ---
-# This is documentation, not an agent
+name: agents-readme
 type: documentation
+description: Documentation about the agents system (not an actual agent)
 ---
 
 # Agents
