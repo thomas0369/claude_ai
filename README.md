@@ -114,7 +114,14 @@ Scaffolding command for production-ready Preact apps with BSV blockchain integra
 
 **Usage:**
 ```bash
+# Auto-detect current directory (uses "Initialisierung [Projektname]")
+/thomas-setup
+
+# Or specify project name
 /thomas-setup my-bsv-app
+
+# Or with custom description
+/thomas-setup my-bsv-app "Custom project description"
 ```
 
 **Features:**
@@ -212,31 +219,124 @@ skills/frontend-dev-guidelines/
 
 ---
 
-### 5. **Dev Docs Workflow**
+### 5. **Worktree-First Workflow**
 
-Three-file system for maintaining context across sessions:
+Professional git workflow where main branch stays pristine and all work happens in isolated worktrees.
 
+**What are worktrees?**
+- Isolated working directories for different branches
+- No branch switching needed
+- Multiple features in parallel
+- Perfect for BSV deployments (main = production)
+
+**How it works:**
+
+1. **Start new feature** (auto-creates worktree):
 ```
-project/.dev-docs/
-├── plan.md      # Current plan and approach
-├── context.md   # Technical decisions and architecture
-└── tasks.md     # Active tasks and progress
+/dev-docs "implement user authentication"
+
+→ Detects you're on main branch
+→ Creates: ../my-project-worktrees/feature/20250109-user-authentication/
+→ Creates: .dev/ with plan.md, context.md, tasks.md
+→ Installs dependencies automatically
+→ Ready to code!
+```
+
+2. **Work in isolated environment:**
+```
+my-project/                          # Main repo (pristine)
+  └── .git/
+
+my-project-worktrees/
+  └── feature/20250109-user-authentication/
+      ├── .dev/                      # Dev-docs travel with code
+      │   ├── plan.md
+      │   ├── context.md
+      │   └── tasks.md
+      ├── src/
+      ├── package.json
+      └── node_modules/
+```
+
+3. **Finish and merge:**
+```bash
+git add .
+git commit -m "feat: user authentication"
+git push origin feature/20250109-user-authentication
+
+# Create PR, merge to main
+# Worktree can be removed after merge
+```
+
+**Benefits:**
+- ✅ Main branch always deployable
+- ✅ Dev-docs stay with code (auto-cleanup on merge)
+- ✅ No branch switching confusion
+- ✅ Dependencies isolated per feature
+- ✅ Easy to abandon/restart features
+- ✅ Perfect for BSV on-chain deployment
+
+**New project setup:**
+```
+/thomas-setup my-bsv-app
+
+→ Creates main repo (empty)
+→ Creates worktree: feature/initial-setup
+→ Runs setup in worktree
+→ Creates .dev/ with setup plan
+→ Professional workflow from day one!
 ```
 
 **Commands:**
-- `/dev-docs [feature-name]` - Create dev docs
+- `/dev-docs [feature]` - Auto-creates worktree + dev-docs
 - `/dev-docs-update` - Update docs before context reset
+- `/thomas-setup [name]` - Creates projects in worktrees by default
+
+**Hooks support:**
+- `00-enforce-worktree.js` - Forces worktree creation on protected branches
+- `pre-task-auto-worktree.js` - Auto-creates worktrees for tasks
+- `post-task-worktree-cleanup.js` - Auto-commits and updates tasks
+
+**See:** `commands/dev-docs.md`, `commands/thomas-setup.md`, `DEV-DOCS-WORKTREE-INTEGRATION-PLAN.md`
+
+---
+
+### 6. **Dev Docs Workflow**
+
+Three-file system for maintaining context across sessions, now integrated with worktrees:
+
+```
+# Worktree-style (preferred)
+../my-project-worktrees/feature/my-feature/
+└── .dev/              # Dev-docs travel with code
+    ├── plan.md        # Strategic plan and approach
+    ├── context.md     # Technical decisions and architecture
+    └── tasks.md       # Active tasks and progress
+
+# Legacy (for non-worktree projects)
+project/dev/active/my-feature/
+├── my-feature-plan.md
+├── my-feature-context.md
+└── my-feature-tasks.md
+```
+
+**Commands:**
+- `/dev-docs [feature-name]` - Create dev docs (auto-creates worktree if on main)
+- `/dev-docs-update` - Update docs before context reset (supports both styles)
 
 **When to use:**
 - Complex features spanning multiple sessions
 - Architectural changes
 - Onboarding new developers
 
+**Auto-cleanup:**
+When worktree is merged to main, `.dev/` is automatically removed (it's in .gitignore), keeping main branch clean.
+
 **See:** `commands/dev-docs.md`, `commands/dev-docs-update.md`
 
 ---
 
-### 6. **BSV Blockchain Integration**
+### 7. **BSV Blockchain Integration**
 
 Complete BSV blockchain development support.
 
@@ -265,7 +365,7 @@ npx react-onchain deploy --version-tag "1.0.0"
 
 ---
 
-### 7. **Deployment Workflow: Vercel → BSV On-Chain**
+### 8. **Deployment Workflow: Vercel → BSV On-Chain**
 
 Complete deployment strategy for development, testing, and permanent on-chain deployment.
 
@@ -346,7 +446,7 @@ OR $0.0002/year (using Vercel's free subdomain)
 
 ---
 
-### 8. **Custom Slash Commands**
+### 9. **Custom Slash Commands**
 
 Over 30 custom commands for common workflows.
 
@@ -367,7 +467,7 @@ Over 30 custom commands for common workflows.
 
 ---
 
-### 8. **Specialized Agents**
+### 10. **Specialized Agents**
 
 50+ specialized agents for deep expertise.
 
@@ -388,7 +488,7 @@ Agents are auto-invoked by commands or can be used directly via Task tool.
 
 ---
 
-### 9. **Hooks System**
+### 11. **Hooks System**
 
 Powerful automation via pre/post hooks.
 
@@ -402,15 +502,30 @@ Powerful automation via pre/post hooks.
    - `post-tool-use-tracker.sh` - Track edited files, suggest skills, detect repos
    - Builds `.claude/tsc-cache/` for build automation
 
-3. **Stop** (pre-stop)
+3. **PreTask** (before task execution)
+   - `00-enforce-worktree.js` - Forces worktree creation on protected branches
+   - `pre-task-auto-worktree.js` - Auto-creates worktrees with `.dev/` skeleton
+   - Creates `plan.md`, `context.md`, `tasks.md` automatically
+
+4. **PostTask** (after task completion)
+   - `post-task-worktree-cleanup.js` - Auto-commits changes, updates timestamps
+
+5. **Stop** (pre-stop)
    - `stop-build-check-enhanced.sh` - Run TypeScript checks before stopping
    - Prevents commits with type errors
+
+**Worktree automation:**
+- Protected branch detection (main/master/develop)
+- Auto-worktree creation with meaningful branch names
+- `.dev/` skeleton generation
+- Dependency installation
+- Timestamp updates on task completion
 
 **See:** `hooks/` directory, `THOMAS-QUICK-START.md`
 
 ---
 
-### 10. **Memory Bank System**
+### 12. **Memory Bank System**
 
 Long-term project memory across sessions.
 
