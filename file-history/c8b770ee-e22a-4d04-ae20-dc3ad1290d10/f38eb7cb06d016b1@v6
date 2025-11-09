@@ -1,0 +1,1413 @@
+# Thomas Setup Command (Optimized)
+
+Initialize a new project with the master CLAUDE.md architecture document for Thomas's tech stack, following official Preact + Vite best practices.
+
+## Purpose
+
+This command sets up a new project directory with:
+1. Master CLAUDE.md file documenting the full architecture
+2. Project structure for **Vite + Preact + Mantine + Konva + react-onchain**
+3. Official **@preact/preset-vite** configuration with all optimizations
+4. Ready-to-use configuration that leverages installed skills, hooks, agents, and commands
+
+## Instructions for Claude
+
+When the user runs `/thomas-setup [project-name]`, follow these steps:
+
+### Step 0: Detect Project Type (New vs Existing)
+
+First, determine if this is a new project or an existing one:
+
+```bash
+# Check if the project directory exists
+if [ -d "[project-path]" ]; then
+  echo "Existing project detected"
+  # Check for package.json to confirm it's an active project
+  if [ -f "[project-path]/package.json" ]; then
+    echo "Active project found - will migrate/update"
+  fi
+else
+  echo "New project - will create from scratch"
+fi
+```
+
+**If existing project found:**
+- Ask user: "Found existing project at [path]. Choose action:"
+  - **1. Migrate:** Keep existing code, add Claude infrastructure
+  - **2. Clean & Reset:** Backup old project, start fresh with Thomas setup
+  - **3. Cancel:** Don't make changes
+
+### Step 1: Verify Project Location
+
+**For NEW projects:**
+- Ask the user where they want to create the project:
+  - Default: `/mnt/c/App-Ideas-Workspace/[project-name]`
+  - Or let them specify a custom path
+
+**For EXISTING projects:**
+- User provides the existing project path
+- Or use current directory if already in project
+
+### Step 2: Backup (If Existing Project)
+
+**Only for existing projects - ALWAYS create backup first:**
+
+```bash
+# Create timestamped backup
+BACKUP_PATH="[project-path].backup-$(date +%Y%m%d-%H%M%S)"
+cp -r [project-path] "$BACKUP_PATH"
+echo "✅ Backup created at: $BACKUP_PATH"
+```
+
+### Step 3: Clean Up (If "Clean & Reset" chosen)
+
+**Only if user chose "Clean & Reset" option:**
+
+```bash
+# Keep these important files/directories
+KEEP_FILES=(".git" ".env" ".env.local" ".env.production" "node_modules" "dist" "build")
+
+# Create temporary directory for files to keep
+mkdir -p [project-path]/.thomas-setup-temp
+
+# Move important files to temp location
+for file in "${KEEP_FILES[@]}"; do
+  if [ -e "[project-path]/$file" ]; then
+    mv "[project-path]/$file" "[project-path]/.thomas-setup-temp/"
+  fi
+done
+
+# Remove all other files (we have backup!)
+find [project-path] -mindepth 1 -maxdepth 1 ! -name '.thomas-setup-temp' -exec rm -rf {} +
+
+# Restore kept files
+mv [project-path]/.thomas-setup-temp/* [project-path]/
+rmdir [project-path]/.thomas-setup-temp
+
+echo "✅ Project cleaned - kept: .git, .env*, node_modules"
+```
+
+### Step 4: Create/Update Project Directory Structure
+
+```bash
+mkdir -p [project-path]/{src/{components/{canvas,layout,onchain,common},features,hooks,utils,styles,config,types},public,docs,dev/active,.claude/memory-bank}
+cd [project-path]
+```
+
+This creates the official Preact project structure:
+- `src/` - Source code
+  - `components/` - Reusable UI components organized by domain
+  - `features/` - Feature-based modules
+  - `hooks/` - Custom hooks
+  - `utils/` - Utility functions
+  - `styles/` - Global styles and Mantine theme
+  - `config/` - Configuration files
+  - `types/` - TypeScript type definitions
+- `public/` - Static assets (Vite serves from root)
+- `docs/` - Project documentation
+- `dev/active/` - Task documentation directory (for /dev-docs command)
+- `.claude/` - Claude Code configuration
+- `.claude/memory-bank/` - Context persistence (auto-managed)
+
+### Step 5: Initialize Project with Official Preact Templates (If New Project)
+
+**For NEW projects only**, offer initialization options:
+
+```bash
+# Option 1: Use official create-preact (RECOMMENDED)
+# This is the official Preact scaffolding tool
+npm create preact@latest [project-name] -- --template default
+
+# Option 2: Use Vite's Preact TypeScript template
+npm create vite@latest [project-name] -- --template preact-ts
+
+# Option 3: Manual installation (for more control)
+npm init -y
+npm install preact
+npm install -D vite @preact/preset-vite typescript @types/node
+```
+
+**Then install additional dependencies:**
+
+```bash
+# UI Framework (Mantine)
+npm install @mantine/core @mantine/hooks @emotion/react
+
+# Canvas Graphics (Konva)
+npm install konva react-konva
+npm install -D @types/konva
+
+# Blockchain Integration
+npm install react-onchain
+
+# Development tools (if not already present)
+npm install -D eslint @typescript-eslint/eslint-plugin @typescript-eslint/parser
+```
+
+**Recommended approach:** Use official `create-preact` and then add Mantine, Konva, and react-onchain.
+
+### Step 6: Create Optimized Vite Configuration
+
+Create `vite.config.ts` with official **@preact/preset-vite** configuration:
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite';
+import preact from '@preact/preset-vite';
+
+export default defineConfig({
+  plugins: [
+    preact({
+      // ===== Hot Module Replacement (Prefresh) =====
+      // Enables lightning-fast HMR for instant feedback
+      prefreshEnabled: true,
+
+      // ===== Preact DevTools Integration =====
+      // Automatically enabled in development for debugging
+      devToolsEnabled: true,
+      devtoolsInProd: false,  // NEVER include in production
+
+      // ===== React Compatibility Layer =====
+      // Automatically aliases React imports to preact/compat
+      // Required for Mantine and react-konva
+      reactAliasesEnabled: true,
+
+      // ===== Optional: Custom Babel Configuration =====
+      // Uncomment if you need additional Babel plugins
+      // babel: {
+      //   plugins: [],
+      //   presets: [],
+      // },
+    })
+  ],
+
+  resolve: {
+    alias: {
+      '@': '/src',
+      '@components': '/src/components',
+      '@hooks': '/src/hooks',
+      '@utils': '/src/utils',
+      '@styles': '/src/styles',
+      '@config': '/src/config',
+      '@types': '/src/types',
+      '@features': '/src/features',
+      // React compatibility aliases are handled by @preact/preset-vite
+      // No need to manually add 'react': 'preact/compat'
+    },
+  },
+
+  // Optimize dependency pre-bundling
+  optimizeDeps: {
+    include: [
+      'preact',
+      'preact/compat',
+      'preact/hooks',
+      '@mantine/core',
+      '@mantine/hooks',
+      '@emotion/react',
+      'konva',
+      'react-konva',
+    ],
+    // Exclude packages that shouldn't be pre-bundled
+    exclude: [],
+  },
+
+  // Build optimizations
+  build: {
+    target: 'esnext',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,  // Remove console.logs in production
+        drop_debugger: true,
+      },
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor code for better caching
+          'preact-vendor': ['preact', 'preact/hooks'],
+          'mantine-vendor': ['@mantine/core', '@mantine/hooks'],
+          'konva-vendor': ['konva', 'react-konva'],
+        },
+      },
+    },
+    // Source maps for debugging production issues
+    sourcemap: true,
+  },
+
+  // Development server configuration
+  server: {
+    port: 3000,
+    open: true,
+    hmr: {
+      overlay: true,  // Show errors as overlay
+    },
+  },
+
+  // Preview server configuration
+  preview: {
+    port: 4173,
+  },
+});
+```
+
+**Key features from @preact/preset-vite:**
+- **Prefresh HMR**: Lightning-fast hot module replacement without full page reloads
+- **DevTools Bridge**: Automatic Preact DevTools integration in development
+- **React Compatibility**: Automatic aliasing of React imports to preact/compat (essential for Mantine and react-konva)
+- **Optimized Transforms**: Babel configuration for JSX/TSX transformation
+- **Production-Ready**: Optimized builds with code splitting and tree shaking
+
+### Step 7: Create TypeScript Configuration
+
+Create `tsconfig.json` optimized for Preact:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Path aliases */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@hooks/*": ["src/hooks/*"],
+      "@utils/*": ["src/utils/*"],
+      "@styles/*": ["src/styles/*"],
+      "@config/*": ["src/config/*"],
+      "@types/*": ["src/types/*"],
+      "@features/*": ["src/features/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
+```
+
+Create `tsconfig.node.json` for Node.js tooling:
+
+```json
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}
+```
+
+### Step 8: Create Master CLAUDE.md
+
+**For NEW projects or "Clean & Reset":**
+- Create fresh `CLAUDE.md` with the optimized template below
+
+**For "Migrate" mode (existing project):**
+- Check if CLAUDE.md already exists
+- If exists: Create `CLAUDE.md.backup` and update existing file
+- If not exists: Create new one
+- Analyze existing project to customize sections (detect actual tech stack)
+
+Create `CLAUDE.md` in the project root with this comprehensive architecture documentation:
+
+```markdown
+# [Project Name] - Master Architecture Document
+
+**Tech Stack:** Vite + Preact + Mantine + Konva + react-onchain
+**Build Tool:** Vite with @preact/preset-vite
+
+Last Updated: [Current Date]
+
+---
+
+## Quick Commands
+
+\`\`\`bash
+# Development
+npm run dev              # Start dev server (Vite + Prefresh HMR)
+npm run build            # Production build
+npm run preview          # Preview production build
+npm run lint             # Run ESLint
+npm run type-check       # TypeScript type checking
+
+# Testing
+npm test                 # Run tests
+npm run test:watch       # Watch mode
+npm run test:coverage    # Coverage report
+
+# PM2 Process Management (if using multiple services)
+pm2 start ecosystem.config.js   # Start all services
+pm2 logs                         # View consolidated logs
+pm2 restart all                  # Restart all services
+pm2 stop all                     # Stop all services
+pm2 monit                        # Resource monitoring
+\`\`\`
+
+---
+
+## Tech Stack Overview
+
+### Core Framework
+
+#### Vite (v5.x) - Next Generation Build Tool
+- **Lightning-fast HMR**: Instant feedback with Hot Module Replacement
+- **Native ES modules**: No bundling during development
+- **Optimized builds**: Rollup-based production bundling
+- **Plugin ecosystem**: Rich ecosystem with first-class Preact support
+- **Official preset**: `@preact/preset-vite` provides optimal configuration
+- Documentation: https://vitejs.dev/
+
+#### Preact (v10.x) - Fast 3KB React Alternative
+- **React-compatible API**: Drop-in replacement for React
+- **Tiny bundle size**: Only 3KB gzipped vs 40KB+ for React
+- **Faster performance**: Optimized virtual DOM implementation
+- **React compatibility layer**: `preact/compat` enables use of React libraries
+- **Prefresh HMR**: Fast Refresh for instant development feedback
+- **Official support**: First-class Vite integration via @preact/preset-vite
+- Documentation: https://preactjs.com/
+
+**Why Preact over React:**
+- 10x smaller bundle size (3KB vs 40KB)
+- Faster runtime performance
+- Same API - easy migration path
+- Compatible with React libraries via preact/compat
+
+### UI Framework
+
+#### Mantine (v7.x) - Modern React Component Library
+- **100+ components**: Comprehensive UI component library
+- **Built-in dark mode**: Automatic theme switching
+- **Emotion-based styling**: CSS-in-JS with excellent performance
+- **Accessibility-first**: WCAG 2.1 compliant components
+- **TypeScript**: Fully typed with excellent IntelliSense
+- **Hooks**: Extensive hooks library for common patterns
+- **Preact compatibility**: Works seamlessly via preact/compat
+- Documentation: https://mantine.dev/
+
+**Mantine Features:**
+- `MantineProvider` - Theme configuration and context
+- `@mantine/hooks` - Utility hooks (useMediaQuery, useLocalStorage, etc.)
+- `@mantine/form` - Form management with validation
+- Responsive grid system
+- Dark/light theme with CSS variables
+- Customizable theme tokens
+
+### Canvas & Graphics
+
+#### Konva (v9.x) - Canvas Library for Interactive Graphics
+- **Declarative API**: React-style canvas manipulation
+- **Event handling**: Full event system for canvas shapes
+- **Transformations**: Drag & drop, rotation, scaling
+- **Animations**: Tweening and complex animations
+- **Filters**: Image filters and effects
+- **High performance**: Optimized for complex scenes
+- **react-konva integration**: React/Preact wrapper
+- Documentation: https://konvajs.org/
+
+**Konva Hierarchy:**
+```
+Stage (Canvas container)
+└── Layer (Drawing layer)
+    ├── Group (Shape groups)
+    │   ├── Circle
+    │   ├── Rect
+    │   └── Text
+    └── Image
+```
+
+### Blockchain Integration
+
+#### react-onchain - Web3 Integration Utilities
+- **Wallet management**: Connect/disconnect wallet functionality
+- **Contract interactions**: Hooks for smart contract calls
+- **Transaction handling**: Send and track transactions
+- **Network awareness**: Detect and handle network switching
+- **Provider integration**: Web3 provider abstraction
+- Repository: https://github.com/danwag06/react-onchain
+
+**Note:** This is a custom library. Verify compatibility and consider alternatives like:
+- `wagmi` - React hooks for Ethereum
+- `@web3-react/core` - Web3 React framework
+- `ethers.js` + custom hooks
+
+---
+
+## Project Structure
+
+\`\`\`
+[project-name]/
+├── src/
+│   ├── components/        # Reusable UI components
+│   │   ├── canvas/       # Konva-based canvas components
+│   │   │   ├── Canvas.tsx
+│   │   │   ├── Shape.tsx
+│   │   │   └── index.ts
+│   │   ├── layout/       # Layout components (Mantine)
+│   │   │   ├── AppShell.tsx
+│   │   │   ├── Header.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   └── index.ts
+│   │   ├── onchain/      # Web3/blockchain components
+│   │   │   ├── WalletButton.tsx
+│   │   │   ├── NetworkIndicator.tsx
+│   │   │   └── index.ts
+│   │   └── common/       # Shared components
+│   │       ├── Button.tsx
+│   │       ├── Card.tsx
+│   │       └── index.ts
+│   ├── features/          # Feature-based modules
+│   │   └── [feature-name]/
+│   │       ├── components/
+│   │       ├── hooks/
+│   │       ├── utils/
+│   │       ├── types.ts
+│   │       └── index.ts
+│   ├── hooks/             # Custom React/Preact hooks
+│   │   ├── useWallet.ts  # Blockchain wallet hooks
+│   │   ├── useCanvas.ts  # Canvas-related hooks
+│   │   ├── useTheme.ts   # Theme management
+│   │   └── index.ts
+│   ├── utils/             # Utility functions
+│   │   ├── format.ts
+│   │   ├── validation.ts
+│   │   └── index.ts
+│   ├── styles/            # Global styles (Mantine theme)
+│   │   ├── theme.ts      # Mantine theme configuration
+│   │   ├── global.css
+│   │   └── index.ts
+│   ├── config/            # Configuration files
+│   │   ├── constants.ts
+│   │   ├── env.ts
+│   │   └── index.ts
+│   ├── types/             # TypeScript type definitions
+│   │   ├── api.ts
+│   │   ├── models.ts
+│   │   └── index.ts
+│   ├── App.tsx            # Root component
+│   ├── main.tsx           # Entry point
+│   └── vite-env.d.ts      # Vite type declarations
+├── public/                # Static assets (favicon.ico, robots.txt, etc.)
+├── dev/                   # Development documentation
+│   ├── README.md
+│   └── active/           # Active task documentation (created by /dev-docs)
+│       └── [task-name]/  # Per-task directories
+│           ├── [task]-plan.md     # Strategic plan
+│           ├── [task]-context.md  # Key files and decisions
+│           └── [task]-tasks.md    # Checklist of work
+├── docs/                  # Project documentation
+├── .claude/               # Claude Code configuration
+│   ├── skills/           # Symlink to ~/.claude/skills
+│   ├── agents/           # Symlink to ~/.claude/agents
+│   ├── hooks/            # Symlink to ~/.claude/hooks
+│   ├── commands/         # Symlink to ~/.claude/commands
+│   └── memory-bank/      # Automatic context persistence (managed by Claude Code)
+│       └── *.json        # Conversation history, file edits, decision logs
+├── CLAUDE.md              # This file - Master architecture document
+├── package.json
+├── package-lock.json
+├── vite.config.ts         # Vite configuration with @preact/preset-vite
+├── tsconfig.json          # TypeScript configuration
+├── tsconfig.node.json     # Node.js tooling TypeScript config
+├── .eslintrc.json         # ESLint configuration
+├── .gitignore
+├── ecosystem.config.js    # PM2 config (if multi-service)
+└── README.md
+\`\`\`
+
+---
+
+## Architecture Principles
+
+### 1. Component Organization
+- **Features-first structure**: Group by feature/domain, not by file type
+- **Colocation**: Keep related code together (components, hooks, utils in same feature folder)
+- **Barrel exports**: Use `index.ts` files for clean imports
+- **Single responsibility**: Each component has one clear purpose
+
+**Example feature structure:**
+\`\`\`
+features/game/
+├── components/
+│   ├── GameBoard.tsx
+│   ├── ScoreDisplay.tsx
+│   └── index.ts
+├── hooks/
+│   ├── useGameState.ts
+│   └── index.ts
+├── utils/
+│   ├── gameLogic.ts
+│   └── index.ts
+├── types.ts
+└── index.ts  # Exports all public APIs
+\`\`\`
+
+### 2. State Management
+
+**Hierarchy of state management solutions:**
+
+1. **Local state (useState, useReducer)** - First choice for component-local state
+2. **Context API** - For sharing state across component tree (theme, auth, etc.)
+3. **External library** - For complex global state (Zustand, Jotai, Redux)
+
+**Built-in providers:**
+- `MantineProvider` - Theme and component context
+- `Web3Provider` - Blockchain connection and wallet state
+
+**When to use external state management:**
+- Complex app with many shared state values
+- Need for advanced features (time-travel debugging, persistence)
+- State logic becomes too complex for Context
+
+**Recommended libraries:**
+- **Zustand** - Simple, unopinionated (1KB)
+- **Jotai** - Atomic state management
+- **Redux Toolkit** - For complex applications with devtools
+
+### 3. Styling Strategy
+
+**Primary approach: Mantine components + Mantine theme**
+
+\`\`\`tsx
+// Theme customization in App.tsx or main.tsx
+import { MantineProvider, createTheme } from '@mantine/core';
+
+const theme = createTheme({
+  colorScheme: 'dark',
+  primaryColor: 'blue',
+  fontFamily: 'Inter, sans-serif',
+  // Custom colors, spacing, etc.
+});
+
+export function App() {
+  return (
+    <MantineProvider theme={theme}>
+      {/* App content */}
+    </MantineProvider>
+  );
+}
+\`\`\`
+
+**Styling options (in order of preference):**
+
+1. **Mantine components** - Use built-in styled components when possible
+2. **Mantine theme** - Customize via `MantineProvider` and theme object
+3. **Emotion (via Mantine)** - For dynamic styles (Mantine uses Emotion)
+4. **CSS Modules** - For component-specific styles not covered by Mantine
+
+**Avoid:**
+- Inline styles (except for dynamic values)
+- Global CSS (except for resets and base styles)
+
+### 4. Canvas Layer (Konva)
+
+**Best practices:**
+
+- **Use react-konva**: React/Preact wrapper for Konva
+- **Follow Konva hierarchy**: Stage → Layer → Group → Shapes
+- **Performance optimization**:
+  - Use `listening={false}` for non-interactive shapes
+  - Use `perfectDrawEnabled={false}` for complex scenes (trades precision for performance)
+  - Group static shapes and cache them
+  - Limit the number of objects for complex scenes
+- **Event handling**: onClick, onDragStart, onDragEnd, onTransform, etc.
+- **Separate layers**: Use multiple layers for different z-index levels
+
+**Example:**
+\`\`\`tsx
+import { Stage, Layer, Circle, Rect } from 'react-konva';
+
+function Canvas() {
+  return (
+    <Stage width={800} height={600}>
+      {/* Background layer (static) */}
+      <Layer listening={false}>
+        <Rect width={800} height={600} fill="#f0f0f0" />
+      </Layer>
+
+      {/* Interactive layer */}
+      <Layer>
+        <Circle
+          x={100}
+          y={100}
+          radius={50}
+          fill="blue"
+          draggable
+          onDragEnd={(e) => console.log('Dragged to:', e.target.position())}
+        />
+      </Layer>
+    </Stage>
+  );
+}
+\`\`\`
+
+### 5. Blockchain Integration
+
+**Best practices:**
+
+- **Wallet connection**: Use react-onchain hooks or custom hooks
+- **Contract interactions**: Abstract into custom hooks for reusability
+- **Error handling**: Always handle transaction failures and user rejections
+- **Loading states**: Show pending transactions clearly with spinners/indicators
+- **Network awareness**: Display current network, handle network switching
+- **Gas estimation**: Provide gas estimates before transactions
+- **Transaction receipts**: Wait for confirmations and show status
+
+**Security considerations:**
+- Never store private keys in code
+- Validate all user inputs before sending to contracts
+- Use proper error boundaries for Web3 errors
+- Handle network errors gracefully (switch network, reconnect, etc.)
+
+---
+
+## Development Guidelines
+
+### Preact + Mantine Integration
+
+\`\`\`tsx
+// main.tsx - Entry point
+import { render } from 'preact';
+import { MantineProvider } from '@mantine/core';
+import '@mantine/core/styles.css';  // Import Mantine styles
+import App from './App';
+
+render(
+  <MantineProvider
+    theme={{
+      colorScheme: 'dark',
+      primaryColor: 'cyan',
+    }}
+  >
+    <App />
+  </MantineProvider>,
+  document.getElementById('app')!
+);
+\`\`\`
+
+\`\`\`tsx
+// App.tsx - Root component
+import { AppShell, Header, Container } from '@mantine/core';
+
+export default function App() {
+  return (
+    <AppShell
+      header={{ height: 60 }}
+      padding="md"
+    >
+      <AppShell.Header>
+        <Container>My App</Container>
+      </AppShell.Header>
+
+      <AppShell.Main>
+        {/* Your content */}
+      </AppShell.Main>
+    </AppShell>
+  );
+}
+\`\`\`
+
+### Konva Canvas Example
+
+\`\`\`tsx
+// src/components/canvas/GameCanvas.tsx
+import { Stage, Layer, Circle, Rect, Text } from 'react-konva';
+import { useState } from 'preact/hooks';
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+export function GameCanvas() {
+  const [position, setPosition] = useState<Position>({ x: 100, y: 100 });
+
+  return (
+    <Stage width={800} height={600}>
+      <Layer>
+        {/* Background */}
+        <Rect width={800} height={600} fill="#1a1a1a" />
+
+        {/* Draggable circle */}
+        <Circle
+          x={position.x}
+          y={position.y}
+          radius={50}
+          fill="cyan"
+          draggable
+          onDragEnd={(e) => {
+            setPosition(e.target.position());
+          }}
+        />
+
+        {/* Score text */}
+        <Text
+          x={10}
+          y={10}
+          text={`Position: (${Math.round(position.x)}, ${Math.round(position.y)})`}
+          fontSize={16}
+          fill="white"
+        />
+      </Layer>
+    </Stage>
+  );
+}
+\`\`\`
+
+### react-onchain Usage
+
+\`\`\`tsx
+// src/components/onchain/WalletButton.tsx
+import { useWallet } from 'react-onchain';
+import { Button } from '@mantine/core';
+
+export function WalletButton() {
+  const { address, connect, disconnect, isConnecting } = useWallet();
+
+  const handleClick = async () => {
+    try {
+      if (address) {
+        await disconnect();
+      } else {
+        await connect();
+      }
+    } catch (error) {
+      console.error('Wallet connection error:', error);
+    }
+  };
+
+  return (
+    <Button
+      onClick={handleClick}
+      loading={isConnecting}
+    >
+      {address
+        ? `Connected: ${address.slice(0, 6)}...${address.slice(-4)}`
+        : 'Connect Wallet'
+      }
+    </Button>
+  );
+}
+\`\`\`
+
+### Custom Hooks Example
+
+\`\`\`tsx
+// src/hooks/useCanvas.ts
+import { useState, useCallback } from 'preact/hooks';
+
+interface CanvasState {
+  scale: number;
+  position: { x: number; y: number };
+}
+
+export function useCanvas() {
+  const [state, setState] = useState<CanvasState>({
+    scale: 1,
+    position: { x: 0, y: 0 },
+  });
+
+  const zoom = useCallback((delta: number) => {
+    setState(prev => ({
+      ...prev,
+      scale: Math.max(0.1, Math.min(prev.scale + delta, 5)),
+    }));
+  }, []);
+
+  const pan = useCallback((dx: number, dy: number) => {
+    setState(prev => ({
+      ...prev,
+      position: {
+        x: prev.position.x + dx,
+        y: prev.position.y + dy,
+      },
+    }));
+  }, []);
+
+  const reset = useCallback(() => {
+    setState({ scale: 1, position: { x: 0, y: 0 } });
+  }, []);
+
+  return { ...state, zoom, pan, reset };
+}
+\`\`\`
+
+---
+
+## Key Dependencies
+
+\`\`\`json
+{
+  "dependencies": {
+    "preact": "^10.19.0",
+    "@mantine/core": "^7.5.0",
+    "@mantine/hooks": "^7.5.0",
+    "@emotion/react": "^11.11.0",
+    "konva": "^9.3.0",
+    "react-konva": "^18.2.0",
+    "react-onchain": "latest"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "@preact/preset-vite": "^2.8.0",
+    "typescript": "^5.3.0",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0"
+  }
+}
+\`\`\`
+
+---
+
+## Vite Configuration (Official @preact/preset-vite)
+
+The project uses the official **@preact/preset-vite** plugin, which provides:
+
+### Features Provided by @preact/preset-vite
+
+| Feature | Description | Default |
+|---------|-------------|---------|
+| **Prefresh (HMR)** | Fast Refresh for instant component updates | ✅ Enabled |
+| **DevTools Bridge** | Automatic Preact DevTools integration | ✅ Dev only |
+| **React Aliases** | Auto-alias React → preact/compat | ✅ Enabled |
+| **Optimized Babel** | JSX/TSX transformation with optimal settings | ✅ Enabled |
+
+### Configuration Options
+
+See `vite.config.ts` for full configuration. Key options:
+
+\`\`\`typescript
+preact({
+  prefreshEnabled: true,      // Enable HMR
+  devToolsEnabled: true,       // DevTools in development
+  devtoolsInProd: false,       // NEVER in production
+  reactAliasesEnabled: true,   // React compatibility
+})
+\`\`\`
+
+### Why @preact/preset-vite?
+
+- **Official support**: Maintained by Preact core team
+- **Optimal configuration**: Pre-configured with best practices
+- **Prefresh HMR**: Instant component updates without losing state
+- **React compatibility**: Seamless use of React libraries (Mantine, react-konva)
+- **DevTools integration**: Automatic Preact DevTools injection
+- **Future-proof**: Updated alongside Preact releases
+
+---
+
+## Available Claude Code Infrastructure
+
+This project has access to all installed skills, hooks, agents, and commands:
+
+### Skills (Auto-activated via hooks)
+- **skill-developer** - Create new skills
+- **frontend-dev-guidelines** - React/Preact patterns (auto-activated)
+- **backend-dev-guidelines** - If you add a backend
+- **route-tester** - API testing
+- **error-tracking** - Sentry integration
+
+### Hooks (Active in ~/.claude/settings.json)
+- **skill-activation-prompt** - Auto-suggests relevant skills based on context
+- **post-tool-use-tracker** - Tracks file changes for memory bank
+- **Optional**: error-handling-reminder, tsc-check, etc.
+
+### Agents (Available via Task tool)
+- **code-architecture-reviewer** - Review code structure and patterns
+- **frontend-error-fixer** - Debug frontend issues
+- **refactor-planner** - Plan refactoring work
+- **documentation-architect** - Generate documentation
+- And 6 more specialized agents
+
+### Slash Commands
+- **/dev-docs** - Create task documentation
+- **/dev-docs-update** - Update docs before context reset
+- **/thomas-setup** - This command (project initialization)
+- **/code-review** - Multi-aspect code review
+
+---
+
+## Memory Bank System
+
+**CRITICAL: Context Persistence Across Sessions**
+
+Every prompt interaction is automatically saved to the memory bank to enable seamless restarts and context continuity.
+
+### How It Works
+
+1. **Automatic Saving:**
+   - Every prompt you send is recorded
+   - All responses and file changes are tracked
+   - Project state is continuously maintained
+
+2. **Context Restoration:**
+   - When you restart Claude Code, the memory bank loads automatically
+   - Previous conversations and decisions are available
+   - No manual intervention needed
+
+3. **Memory Bank Location:**
+   - Stored in: \`.claude/memory-bank/\` (local to project)
+   - Contains conversation history, file edits, and decision logs
+   - Automatically managed by hooks (post-tool-use-tracker)
+
+### Best Practices
+
+**For Long Sessions:**
+- Use \`/dev-docs\` to create explicit task documentation
+- Update task files regularly to supplement memory
+- Memory bank provides conversation history, task docs provide strategic context
+
+**Before Context Resets:**
+- Run \`/dev-docs-update [task-name]\` to save current state
+- Memory bank preserves everything, but explicit docs help with strategic direction
+- Update CLAUDE.md if architecture changes
+
+**After Restart:**
+- Memory bank automatically loads
+- Review \`dev/active/\` for active tasks
+- Check last updated timestamps in task docs
+
+### Memory + Task Docs = Complete Persistence
+
+| System | Purpose | When to Use |
+|--------|---------|-------------|
+| **Memory Bank** | Conversation history, detailed interactions | Automatic - always active |
+| **Task Docs** (\`dev/active/\`) | Strategic plans, decision rationale | Large features, complex changes |
+| **CLAUDE.md** | Architecture, patterns, commands | Initial setup, major arch changes |
+
+The combination ensures you can pick up exactly where you left off, even after weeks.
+
+---
+
+## Getting Started Workflow
+
+1. **Initialize project:** Run \`/thomas-setup\` (creates this file and structure)
+2. **Install dependencies:** \`npm install\`
+3. **Start development:** \`npm run dev\`
+4. **Create features:** Use \`/dev-docs [feature-name]\` for large features
+5. **Get help:** Skills auto-activate based on what you're working on
+6. **Memory:** Automatically saved every prompt (no action needed)
+
+---
+
+## Common Patterns
+
+### Feature Development Flow
+1. **Plan** - Use planning mode or \`/dev-docs [feature-name]\`
+2. **Implement** - Edit files, skills auto-activate based on paths
+3. **Review** - Use agents for architecture review
+4. **Test** - Write tests, verify functionality
+5. **Update docs** - Update task docs and CLAUDE.md if needed
+
+### Debugging Workflow
+1. **Browser DevTools** - Check console for errors
+2. **Prefresh HMR** - Verify HMR is working (check Vite output)
+3. **Preact DevTools** - Install browser extension for component inspection
+4. **TypeScript** - Run \`npm run type-check\` for type errors
+5. **ESLint** - Run \`npm run lint\` for code quality issues
+6. **Agent assistance** - Use \`frontend-error-fixer\` agent for complex issues
+
+### Code Review Process
+1. Run \`code-architecture-reviewer\` agent
+2. Check TypeScript errors: \`npm run type-check\`
+3. Lint: \`npm run lint\`
+4. Review Mantine theme consistency
+5. Test Konva performance with large scenes
+6. Verify Web3 transactions in wallet/block explorer
+
+---
+
+## Performance Optimization
+
+### Vite
+- **Lazy loading**: Use dynamic imports for code splitting
+  \`\`\`tsx
+  const HeavyComponent = lazy(() => import('./HeavyComponent'));
+  \`\`\`
+- **Tree shaking**: Import only what you need
+  \`\`\`tsx
+  import { Button } from '@mantine/core';  // ✅ Tree-shakeable
+  import * as Mantine from '@mantine/core'; // ❌ Imports everything
+  \`\`\`
+- **Bundle analysis**: Use \`rollup-plugin-visualizer\` to analyze bundle
+- **Prefresh HMR**: Leverages fast refresh for instant updates
+
+### Preact
+- **memo()**: Memoize expensive components
+  \`\`\`tsx
+  import { memo } from 'preact/compat';
+  const ExpensiveComponent = memo(({ data }) => { /* ... */ });
+  \`\`\`
+- **useMemo/useCallback**: Avoid unnecessary recalculations
+- **Preact's advantages**: Already optimized, 3KB size
+
+### Mantine
+- **Individual imports**: Import components individually
+- **Theme customization**: Only include needed theme values
+- **CSS-in-JS**: Emotion provides automatic code splitting
+
+### Konva
+- **listening={false}**: For non-interactive shapes (20-30% performance gain)
+- **perfectDrawEnabled={false}**: When precision isn't critical
+- **Layer caching**: Cache static layers
+  \`\`\`tsx
+  <Layer ref={layerRef} listening={false}>
+    {/* Static background shapes */}
+  </Layer>
+  \`\`\`
+- **Limit objects**: Use virtualization for many objects
+- **Use Groups**: Group related shapes for easier management
+
+### react-onchain
+- **Cache contract instances**: Don't recreate on every render
+- **Batch calls**: Use multicall for reading multiple values
+- **Optimize provider calls**: Minimize RPC requests
+- **Handle errors**: Implement proper error boundaries for Web3 errors
+
+---
+
+## Testing Strategy
+
+### Unit Testing
+- **Vitest** (recommended for Vite projects)
+- Test utilities, hooks, and pure functions
+- Mock Konva and Web3 providers
+
+### Component Testing
+- **@testing-library/preact** - Component testing
+- Test user interactions and component behavior
+- Mock complex dependencies (Konva, Web3)
+
+### E2E Testing
+- **Playwright** or **Cypress** - End-to-end testing
+- Test complete user workflows
+- Visual regression testing for canvas elements
+
+### Example Test Setup
+
+\`\`\`bash
+npm install -D vitest @testing-library/preact @testing-library/jest-dom
+\`\`\`
+
+\`\`\`typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+import preact from '@preact/preset-vite';
+
+export default defineConfig({
+  plugins: [preact()],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.ts',
+  },
+});
+\`\`\`
+
+---
+
+## Resources
+
+### Official Documentation
+- **Vite**: https://vitejs.dev/
+- **Preact**: https://preactjs.com/
+- **@preact/preset-vite**: https://github.com/preactjs/preset-vite
+- **Prefresh**: https://github.com/preactjs/prefresh
+- **Mantine**: https://mantine.dev/
+- **Konva**: https://konvajs.org/
+- **react-konva**: https://konvajs.org/docs/react/
+- **react-onchain**: https://github.com/danwag06/react-onchain
+
+### Preact Resources
+- **Preact CLI**: https://preactjs.com/cli/
+- **Preact DevTools**: Browser extension for debugging
+- **Preact Signals**: Reactive state primitive (alternative to useState)
+- **Preact Router**: Lightweight routing solution
+
+### Claude Code Resources
+- **Skills directory**: ~/.claude/skills/
+- **Agents directory**: ~/.claude/agents/
+- **Infrastructure showcase**: ~/claude-code-infrastructure-showcase/
+- **PM2 setup**: ~/.claude/PM2-SETUP.md
+
+---
+
+## Troubleshooting
+
+### Vite Issues
+
+**Problem: "Failed to resolve import"**
+- Solution: Check path aliases in `vite.config.ts` and `tsconfig.json`
+
+**Problem: HMR not working**
+- Solution: Ensure `prefreshEnabled: true` in Vite config
+- Check for syntax errors in components
+
+**Problem: Slow build**
+- Solution: Use `optimizeDeps.include` to pre-bundle dependencies
+
+### Preact Issues
+
+**Problem: "Cannot use JSX without the React JSX runtime"**
+- Solution: Ensure `"jsxImportSource": "preact"` in tsconfig.json
+
+**Problem: React library not working**
+- Solution: Verify `reactAliasesEnabled: true` in @preact/preset-vite
+
+**Problem: DevTools not showing**
+- Solution: Install Preact DevTools browser extension
+- Ensure `devToolsEnabled: true` in config (development only)
+
+### Mantine Issues
+
+**Problem: Styles not applied**
+- Solution: Import Mantine CSS: `import '@mantine/core/styles.css';`
+
+**Problem: Theme not working**
+- Solution: Wrap app in `<MantineProvider theme={...}>`
+
+### Konva Issues
+
+**Problem: Canvas not rendering**
+- Solution: Ensure Stage has width/height
+- Check that shapes are inside Layer
+
+**Problem: Poor performance**
+- Solution: Use `listening={false}` and `perfectDrawEnabled={false}`
+- Limit number of shapes, use layer caching
+
+### Web3 Issues
+
+**Problem: "No provider found"**
+- Solution: Ensure MetaMask or Web3 provider is installed
+- Check provider initialization in app
+
+**Problem: Network mismatch**
+- Solution: Implement network switching logic
+- Show clear error messages to users
+
+---
+
+## PM2 Process Management (Optional)
+
+If this project has multiple services (e.g., frontend + backend), use PM2 for process management.
+
+See \`ecosystem.config.js\` for configuration and \`~/.claude/PM2-SETUP.md\` for complete guide.
+
+**Quick PM2 commands:**
+\`\`\`bash
+pm2 start ecosystem.config.js  # Start all services
+pm2 logs                        # View logs
+pm2 restart all                 # Restart services
+pm2 stop all                    # Stop services
+pm2 monit                       # Monitor resources
+\`\`\`
+
+---
+
+**Note:** This document should be updated as the project evolves. Use \`/dev-docs-update\` before context resets to maintain continuity.
+
+Last Updated: [Current Date]
+\`\`\`
+
+### Step 9: Create Symlinks to Global Claude Infrastructure
+
+Link the global Claude infrastructure to this project:
+
+```bash
+cd [project-path]/.claude
+ln -s ~/.claude/skills ./skills
+ln -s ~/.claude/agents ./agents
+ln -s ~/.claude/hooks ./hooks
+ln -s ~/.claude/commands ./commands
+```
+
+### Step 10: Create PM2 Configuration (If Multi-Service)
+
+If the project has multiple services (detected by multiple package.json files or explicit request), create `ecosystem.config.js`:
+
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [
+    {
+      name: '[project-name]-frontend',
+      script: 'npm',
+      args: 'run dev',
+      cwd: './',
+      autorestart: true,
+      watch: false,
+      max_restarts: 10,
+      min_uptime: '10s',
+      env: {
+        NODE_ENV: 'development',
+        PORT: 3000,
+      },
+      error_file: './logs/pm2-error.log',
+      out_file: './logs/pm2-out.log',
+      max_memory_restart: '500M',
+    },
+    // Add more services as needed
+  ],
+};
+```
+
+### Step 11: Create Initial Files (If New Project)
+
+Create essential starter files:
+
+**src/main.tsx:**
+```tsx
+import { render } from 'preact';
+import { MantineProvider } from '@mantine/core';
+import '@mantine/core/styles.css';
+import App from './App';
+import './styles/global.css';
+
+render(
+  <MantineProvider
+    theme={{
+      colorScheme: 'dark',
+      primaryColor: 'cyan',
+    }}
+  >
+    <App />
+  </MantineProvider>,
+  document.getElementById('app')!
+);
+```
+
+**src/App.tsx:**
+```tsx
+import { AppShell, Container, Title } from '@mantine/core';
+
+export default function App() {
+  return (
+    <AppShell padding="md">
+      <AppShell.Main>
+        <Container>
+          <Title order={1}>Welcome to [Project Name]</Title>
+          <p>Built with Vite + Preact + Mantine + Konva + react-onchain</p>
+        </Container>
+      </AppShell.Main>
+    </AppShell>
+  );
+}
+```
+
+**index.html:**
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>[Project Name]</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+```
+
+### Step 12: Confirm Completion
+
+Report back to the user with mode-specific summary:
+
+**For NEW projects:**
+- ✅ Project directory created at [project-path]
+- ✅ Official @preact/preset-vite configuration created
+- ✅ Vite config with Prefresh HMR, DevTools, and React compatibility
+- ✅ TypeScript configuration optimized for Preact
+- ✅ CLAUDE.md master document created
+- ✅ Claude infrastructure symlinked (skills, agents, hooks, commands)
+- ✅ Memory bank initialized
+- ✅ Dependencies installed (if requested)
+- 📋 Next steps: `cd [project-path] && npm install && npm run dev`
+
+**For MIGRATED existing projects:**
+- ✅ Backup created at [backup-path]
+- ✅ Claude infrastructure added to existing project
+- ✅ CLAUDE.md master document created/updated
+- ✅ Vite config analyzed/updated with @preact/preset-vite
+- ✅ dev/active/ directory structure added
+- ✅ .claude/memory-bank/ initialized
+- ⚠️ Review CLAUDE.md and update with your specific patterns
+- ⚠️ If not using Preact, update CLAUDE.md to match your stack
+- 📋 Next steps: Verify existing code still works, customize CLAUDE.md
+
+**For CLEAN & RESET projects:**
+- ✅ Backup created at [backup-path] (complete original project saved)
+- ✅ Project cleaned and reset with Thomas setup
+- ✅ Preserved: .git, .env files, node_modules
+- ✅ Official Preact + Vite setup with @preact/preset-vite
+- ✅ CLAUDE.md master document created
+- ✅ Claude infrastructure configured
+- ✅ Fresh structure with dev docs and memory bank
+- 📋 Next steps: Restore any needed code from backup, then `npm install && npm run dev`
+
+---
+
+## Key Improvements in Optimized Version
+
+### 1. Official @preact/preset-vite Integration
+- Uses official Preact team's Vite preset
+- Includes Prefresh (HMR) for instant component updates
+- Automatic React compatibility via preact/compat aliases
+- DevTools integration built-in
+
+### 2. Enhanced Vite Configuration
+- Production-ready build optimizations
+- Code splitting for vendor chunks
+- Source maps for debugging
+- Drop console.logs in production
+- Optimized dependency pre-bundling
+
+### 3. Comprehensive TypeScript Setup
+- Proper JSX configuration for Preact
+- Path aliases for clean imports
+- Separate config for Node.js tooling
+- Strict mode enabled
+
+### 4. Expanded CLAUDE.md Template
+- Official documentation links
+- Detailed @preact/preset-vite features explanation
+- Performance optimization strategies
+- Testing strategy section
+- Troubleshooting guide
+- Proper Preact/React compatibility notes
+
+### 5. Better Project Structure
+- Feature-based organization
+- Pre-defined component categories
+- Clear separation of concerns
+- Scalable folder structure
+
+### 6. Multiple Initialization Options
+- Official create-preact (recommended)
+- Vite's preact-ts template
+- Manual installation for full control

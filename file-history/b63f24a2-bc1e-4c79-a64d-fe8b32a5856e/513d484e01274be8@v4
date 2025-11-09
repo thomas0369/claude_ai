@@ -1,0 +1,368 @@
+/**
+ * TypeScript types and Zod validation schemas for ZEREZ data
+ *
+ * CRITICAL: Schemas are the single source of truth
+ * TypeScript types are derived from Zod schemas using z.infer
+ *
+ * Keep Zod schemas in sync with Python dataclasses:
+ * - scripts/zerez_graphql_client.py (ZEREZUnit dataclass)
+ * - scripts/zerez_detail_importer.py (ImportProgress)
+ * - scripts/zerez_pdf_matcher.py (PDFMatchResult)
+ */
+
+import { z } from 'zod';
+
+// ============================================================================
+// ZOD RUNTIME VALIDATION SCHEMAS
+// ============================================================================
+// These schemas provide runtime type safety at API boundaries to catch
+// Python-TypeScript type mismatches early with clear error messages.
+
+/**
+ * Zod schema for ZEREZUnit - matches the TypeScript interface exactly
+ * CRITICAL: Keep this in sync with both:
+ * - ZEREZUnit TypeScript interface above
+ * - scripts/zerez_graphql_client.py ZEREZUnit dataclass
+ */
+export const ZEREZUnitSchema = z.object({
+  // Core identifiers
+  id: z.string(),
+  unitCode: z.string().nullable().optional(),
+  modelName: z.string().nullable().optional(),
+  modelNumber: z.string().nullable().optional(),
+  certificateNumber: z.string().nullable().optional(),
+
+  // Power ratings (12 fields from detailed unit query)
+  maxActivePower: z.number().nullable().optional(),
+  ratedActivePower: z.number().nullable().optional(), // NEW: Bemessungswirkleistung
+  maxApparentPower: z.number().nullable().optional(), // NEW
+  ratedApparentPower: z.number().nullable().optional(), // NEW: Bemessungsscheinleistung
+  maxActivePowerRange: z.number().nullable().optional(),
+  minActivePowerRange: z.number().nullable().optional(),
+  maxApparentPowerRange: z.number().nullable().optional(),
+  minApparentPowerRange: z.number().nullable().optional(),
+  maxActivePower09: z.number().nullable().optional(), // NEW
+  hasActivePowerRange: z.boolean().nullable().optional(), // NEW
+  hasApparentPowerRange: z.boolean().nullable().optional(), // NEW
+  fastVoltageChangeTurnOffAtRatedPower: z.number().nullable().optional(), // NEW
+
+  // Electrical parameters (19 fields from detailed unit query)
+  ratedVoltage: z.number().nullable().optional(),
+  ratedCurrent: z.number().nullable().optional(), // Bemessungsstrom
+  shortCircuitPeakCurrent: z.number().nullable().optional(), // NEW: Stoßkurzschlussstrom
+  initialShortCircuitAlternatingCurrent: z.number().nullable().optional(), // NEW: Anfangs-Kurzschlusswechselstrom
+  fastVoltageChangeTurnOnAtRatedConditions: z.number().nullable().optional(), // NEW
+  fastVoltageChangeTurnOnWithoutSpecifications: z.number().nullable().optional(), // NEW
+  fastVoltageChangeWorstCaseDuringGeneratorStageSwitching: z.number().nullable().optional(), // NEW
+  operation1VoltageVariationFactor30: z.number().nullable().optional(), // NEW
+  operation1VoltageVariationFactor50: z.number().nullable().optional(), // NEW
+  operation1VoltageVariationFactor70: z.number().nullable().optional(), // NEW
+  operation1VoltageVariationFactor85: z.number().nullable().optional(), // NEW
+  operation2VoltageVariationFactor30: z.number().nullable().optional(), // NEW
+  operation2VoltageVariationFactor50: z.number().nullable().optional(), // NEW
+  operation2VoltageVariationFactor70: z.number().nullable().optional(), // NEW
+  operation2VoltageVariationFactor85: z.number().nullable().optional(), // NEW
+  operation3VoltageVariationFactor30: z.number().nullable().optional(), // NEW
+  operation3VoltageVariationFactor50: z.number().nullable().optional(), // NEW
+  operation3VoltageVariationFactor70: z.number().nullable().optional(), // NEW
+  operation3VoltageVariationFactor85: z.number().nullable().optional(), // NEW
+
+  // Flicker coefficients (5 fields from detailed unit query)
+  systemFlickerCoefficientCY30: z.number().nullable().optional(), // NEW: cΨ(30°)
+  systemFlickerCoefficientCY50: z.number().nullable().optional(), // NEW: cΨ(50°)
+  systemFlickerCoefficientCY70: z.number().nullable().optional(), // NEW: cΨ(70°)
+  systemFlickerCoefficientCY85: z.number().nullable().optional(), // NEW: cΨ(85°)
+  operationAllWorstCase: z.number().nullable().optional(), // NEW
+
+  // Operation 1 parameters (7 fields from detailed unit query)
+  operation1FlickerStepFactor30: z.number().nullable().optional(), // NEW
+  operation1FlickerStepFactor50: z.number().nullable().optional(), // NEW
+  operation1FlickerStepFactor70: z.number().nullable().optional(), // NEW
+  operation1FlickerStepFactor85: z.number().nullable().optional(), // NEW
+  operation1MaxNumberN120: z.number().nullable().optional(), // NEW
+  operation1MaxSwitchN10: z.number().nullable().optional(), // NEW
+  hasSwitchingOperation1: z.boolean().nullable().optional(), // NEW
+
+  // Operation 2 parameters (7 fields from detailed unit query)
+  operation2FlickerStepFactor30: z.number().nullable().optional(), // NEW
+  operation2FlickerStepFactor50: z.number().nullable().optional(), // NEW
+  operation2FlickerStepFactor70: z.number().nullable().optional(), // NEW
+  operation2FlickerStepFactor85: z.number().nullable().optional(), // NEW
+  operation2MaxNumberN120: z.number().nullable().optional(), // NEW
+  operation2MaxSwitchN10: z.number().nullable().optional(), // NEW
+  hasSwitchingOperation2: z.boolean().nullable().optional(), // NEW
+
+  // Operation 3 parameters (7 fields from detailed unit query)
+  operation3FlickerStepFactor30: z.number().nullable().optional(), // NEW
+  operation3FlickerStepFactor50: z.number().nullable().optional(), // NEW
+  operation3FlickerStepFactor70: z.number().nullable().optional(), // NEW
+  operation3FlickerStepFactor85: z.number().nullable().optional(), // NEW
+  operation3MaxNumberN120: z.number().nullable().optional(), // NEW
+  operation3MaxSwitchN10: z.number().nullable().optional(), // NEW
+  hasSwitchingOperation3: z.boolean().nullable().optional(), // NEW
+
+  // Classification
+  primaryEnergySource: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  unitTypeId: z.string().nullable().optional(),
+
+  // Certification
+  certificateId: z.string().nullable().optional(),
+  certificateIssueDate: z.string().nullable().optional(),
+  certificateAuthorityId: z.string().nullable().optional(),
+  certificateHolderId: z.string().nullable().optional(),
+  manufacturerId: z.string().nullable().optional(),
+  manufacturerName: z.string().nullable().optional(),
+  certificateAuthorityName: z.string().nullable().optional(), // Resolved via tenant() query
+  certificateValidityStatusName: z.string().nullable().optional(),
+  certificateNormIssueDateDescriptions: z.string().nullable().optional(),
+
+  // Status (required booleans with defaults in Python)
+  isVerified: z.boolean(),
+  isImported: z.boolean(),
+  // is4105 removed - replaced by certificateNorms filter (see certificateNormIssueDateDescriptions)
+
+  // Metadata
+  revision: z.number().nullable().optional(), // NEW
+  createdBy: z.string().nullable().optional(), // NEW
+  modifiedBy: z.string().nullable().optional(), // NEW
+  replacedByUnitId: z.string().nullable().optional(), // NEW
+  tenantId: z.string().nullable().optional(), // NEW
+  ledgerStartTransactionId: z.number().nullable().optional(), // NEW
+  ledgerEndTransactionId: z.number().nullable().optional(), // NEW
+  ledgerStartSequenceNumber: z.number().nullable().optional(), // NEW
+  ledgerEndSequenceNumber: z.number().nullable().optional(), // NEW
+
+  // Dates
+  createdAt: z.string().nullable().optional(),
+  modifiedAt: z.string().nullable().optional(),
+  validityStartDate: z.string().nullable().optional(),
+  validityEndDate: z.string().nullable().optional(),
+
+  // UI-only field (not from Python)
+  selected: z.boolean().optional(),
+});
+
+/**
+ * Zod schema for ZEREZ search response
+ */
+export const ZEREZSearchResponseSchema = z.object({
+  units: z.array(ZEREZUnitSchema),
+  totalCount: z.number(),
+});
+
+/**
+ * Zod schema for ImportProgress
+ */
+export const ImportProgressSchema = z.object({
+  total: z.number(),
+  downloaded: z.number(),
+  failed: z.number(),
+  current: z.string(),
+  errors: z.array(z.string()),
+});
+
+/**
+ * Zod schema for PDFMatchResult
+ */
+export const PDFMatchResultSchema = z.object({
+  zerezProduct: z.string(),
+  pdfMatch: z.string().nullable(),
+  confidence: z.number(),
+});
+
+/**
+ * Zod schema for PDF match response
+ */
+export const PDFMatchResponseSchema = z.object({
+  matches: z.array(PDFMatchResultSchema),
+});
+
+/**
+ * Zod schema for enum values response
+ */
+export const EnumValuesResponseSchema = z.object({
+  primaryEnergySource: z.array(z.string()),
+  category: z.array(z.string()),
+});
+
+/**
+ * Zod schema for API errors
+ */
+export const APIErrorSchema = z.object({
+  error: z.string(),
+  code: z.string().optional(),
+  details: z.unknown().optional(),
+  timestamp: z.string().optional(),
+});
+
+// ============================================================================
+// TYPESCRIPT TYPES (Derived from Zod Schemas)
+// ============================================================================
+// These types are automatically derived from the Zod schemas above
+// This ensures TypeScript types and runtime validation stay in sync
+
+/**
+ * ZEREZ Unit type - Python: zerez_graphql_client.py ZEREZUnit dataclass
+ * Derived from ZEREZUnitSchema - guaranteed to match runtime validation
+ */
+export type ZEREZUnit = z.infer<typeof ZEREZUnitSchema>;
+
+/**
+ * ZEREZ Search Response type
+ * Derived from ZEREZSearchResponseSchema
+ */
+export type ZEREZSearchResponse = z.infer<typeof ZEREZSearchResponseSchema>;
+
+/**
+ * Import Progress type - Python: zerez_detail_importer.py
+ * Derived from ImportProgressSchema
+ */
+export type ImportProgress = z.infer<typeof ImportProgressSchema>;
+
+/**
+ * PDF Match Result type - Python: zerez_pdf_matcher.py
+ * Derived from PDFMatchResultSchema
+ */
+export type PDFMatchResult = z.infer<typeof PDFMatchResultSchema>;
+
+/**
+ * PDF Match Response type
+ * Derived from PDFMatchResponseSchema
+ */
+export type PDFMatchResponse = z.infer<typeof PDFMatchResponseSchema>;
+
+/**
+ * Enum Values Response type
+ * Derived from EnumValuesResponseSchema
+ */
+export type EnumValuesResponse = z.infer<typeof EnumValuesResponseSchema>;
+
+/**
+ * API Error type
+ * Derived from APIErrorSchema
+ */
+export type APIError = z.infer<typeof APIErrorSchema>;
+
+// ============================================================================
+// VALIDATION UTILITIES
+// ============================================================================
+
+/**
+ * Validates ZEREZ units array and returns detailed error information
+ *
+ * @deprecated Use validateWithErrorHandling() from api-validation-helpers.ts instead.
+ * This utility is maintained only for backwards compatibility with test scripts.
+ * For production API routes, use the standardized validation helper pattern.
+ *
+ * @see {@link validateWithErrorHandling} for production use
+ * @param data Unknown data to validate
+ * @returns Validation result with typed data or error details
+ *
+ * @example
+ * ```typescript
+ * // Old pattern (deprecated):
+ * const result = validateZEREZUnits({ units: data });
+ *
+ * // New pattern (use this instead):
+ * import { validateWithErrorHandling } from '@/lib/api-validation-helpers';
+ * const result = validateWithErrorHandling(
+ *   ZEREZSearchResponseSchema,
+ *   { units: data },
+ *   {
+ *     operation: 'ZEREZ search',
+ *     logContext: { totalRecords: data.length },
+ *     sampleData: data[0]
+ *   }
+ * );
+ * if (!result.success) return result.response;
+ * // Use result.data with full type safety
+ * ```
+ */
+export function validateZEREZUnits(data: unknown): {
+  success: boolean;
+  data?: ZEREZUnit[];
+  error?: string;
+  details?: z.ZodIssue[];
+} {
+  try {
+    const result = ZEREZSearchResponseSchema.safeParse(data);
+
+    if (result.success) {
+      return {
+        success: true,
+        data: result.data.units,
+      };
+    } else {
+      return {
+        success: false,
+        error: 'ZEREZ data validation failed',
+        details: result.error.issues,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown validation error',
+    };
+  }
+}
+
+/**
+ * Validates a single ZEREZ unit
+ *
+ * @deprecated Use validateWithErrorHandling() from api-validation-helpers.ts instead.
+ * This utility is maintained only for backwards compatibility with test scripts.
+ * For production API routes, use the standardized validation helper pattern.
+ *
+ * @see {@link validateWithErrorHandling} for production use
+ * @param data Unknown data to validate
+ * @returns Validation result with typed data or error details
+ *
+ * @example
+ * ```typescript
+ * // Old pattern (deprecated):
+ * const result = validateZEREZUnit(data);
+ *
+ * // New pattern (use this instead):
+ * import { validateWithErrorHandling } from '@/lib/api-validation-helpers';
+ * const result = validateWithErrorHandling(
+ *   ZEREZUnitSchema,
+ *   data,
+ *   {
+ *     operation: 'unit validation',
+ *     logContext: { unitId: data.id }
+ *   }
+ * );
+ * if (!result.success) return result.response;
+ * // Use result.data with full type safety
+ * ```
+ */
+export function validateZEREZUnit(data: unknown): {
+  success: boolean;
+  data?: ZEREZUnit;
+  error?: string;
+  details?: z.ZodIssue[];
+} {
+  try {
+    const result = ZEREZUnitSchema.safeParse(data);
+
+    if (result.success) {
+      return {
+        success: true,
+        data: result.data,
+      };
+    } else {
+      return {
+        success: false,
+        error: 'ZEREZ unit validation failed',
+        details: result.error.issues,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown validation error',
+    };
+  }
+}

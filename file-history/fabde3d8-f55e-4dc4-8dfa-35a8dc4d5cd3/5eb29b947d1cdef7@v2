@@ -1,0 +1,397 @@
+# Testing Guide - C&I BESS Platform
+
+Complete guide for running and understanding the automated test suite.
+
+---
+
+## Quick Start
+
+```bash
+# 1. Start development server
+npm run dev
+
+# 2. Run all tests (in another terminal)
+npm run test:e2e
+
+# 3. View HTML report
+npm run test:e2e:report
+```
+
+---
+
+## Test Suites
+
+### 1. Comprehensive Platform Tests
+**File:** `tests/e2e/comprehensive-platform-test.spec.ts`
+**Duration:** ~1.5 minutes
+**Tests:** 21 (20 passed, 1 skipped)
+
+**Coverage:**
+- Homepage and navigation (3 tests)
+- Dashboard analytics (4 tests)
+- API routes (5 tests)
+- Export functionality (2 tests)
+- Error handling (3 tests)
+- Responsive design (3 tests)
+- Performance metrics (1 test)
+
+**Run individually:**
+```bash
+npm run test:e2e -- comprehensive-platform-test.spec.ts
+```
+
+### 2. ZEREZ Import Validation
+**File:** `tests/e2e/zerez-import-validation.spec.ts`
+**Duration:** ~3.7 minutes
+**Tests:** 4 (all passed)
+
+**Coverage:**
+- Filter configuration and preview
+- Import execution (merge mode)
+- All 3 import modes (replace, merge, add)
+- Data quality validation (100% success rate)
+
+**Run individually:**
+```bash
+npm run test:e2e -- zerez-import-validation.spec.ts
+```
+
+### 3. PDF Extraction Workflow
+**File:** `tests/e2e/pdf-extraction-test.spec.ts`
+**Duration:** ~24 seconds
+**Tests:** 11 (all passed)
+
+**Coverage:**
+- UI components (test-staging page)
+- API endpoint (/api/pdf/extract)
+- File upload simulation
+- DeepSeek integration
+- Staging system
+- Error handling
+
+**Run individually:**
+```bash
+npm run test:e2e -- pdf-extraction-test.spec.ts
+```
+
+---
+
+## Test Execution Modes
+
+### Development Mode (Recommended)
+```bash
+# Run tests with UI
+npm run test:e2e:headed
+
+# Debug mode (step through tests)
+npm run test:e2e:debug
+
+# Interactive UI mode
+npm run test:e2e:ui
+```
+
+### CI/CD Mode
+```bash
+# Run all tests headless (default)
+npm run test:e2e
+
+# Generate JSON results
+npm run test:e2e -- --reporter=json --output=test-results/results.json
+```
+
+### Selective Testing
+```bash
+# Run specific test file
+npm run test:e2e -- comprehensive-platform-test.spec.ts
+
+# Run specific test by name
+npm run test:e2e -- -g "should load homepage"
+
+# Run tests in specific directory
+npm run test:e2e -- tests/e2e/
+```
+
+---
+
+## Viewing Results
+
+### HTML Report (Interactive)
+```bash
+npm run test:e2e:report
+```
+Opens: `http://localhost:9323`
+
+**Features:**
+- Interactive test results
+- Screenshots and videos
+- Trace viewer
+- Error details
+
+### Markdown Reports
+1. **Comprehensive Report:** `test-results/COMPREHENSIVE_TEST_REPORT.md`
+   - Detailed analysis of all tests
+   - Performance metrics
+   - Recommendations
+
+2. **Quick Summary:** `TEST_SUMMARY.md`
+   - High-level overview
+   - Production readiness status
+
+### Screenshots and Videos
+- **Location:** `test-results/`
+- **Screenshots:** Captured on failure or explicitly
+- **Videos:** Recorded for failed tests
+- **Traces:** Full execution traces for debugging
+
+---
+
+## Test Configuration
+
+### Global Settings
+**File:** `playwright.config.ts`
+
+```typescript
+{
+  baseURL: 'http://localhost:3000',
+  timeout: 90000,           // 90 seconds per test
+  workers: 1,               // Sequential execution
+  retries: 0,               // No retries in dev
+  fullyParallel: false      // Run tests sequentially
+}
+```
+
+### Timeouts
+- Global test timeout: 90 seconds
+- Action timeout: 15 seconds
+- Expect timeout: 15 seconds
+- API timeout: Varies (15s-60s depending on endpoint)
+
+### Viewport
+- Desktop: 1920x1080 (default)
+- Mobile: 375x667 (responsive tests)
+- Tablet: 768x1024 (responsive tests)
+
+---
+
+## Writing New Tests
+
+### Test Structure
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Feature Name', () => {
+  test('should do something', async ({ page }) => {
+    // Navigate to page
+    await page.goto('/some-page');
+
+    // Interact with elements
+    await page.getByRole('button', { name: 'Click me' }).click();
+
+    // Assert results
+    await expect(page.getByText('Success')).toBeVisible();
+  });
+});
+```
+
+### Best Practices
+1. **Use semantic selectors:** `getByRole`, `getByText`, `getByLabel`
+2. **Wait for elements:** Use `expect(...).toBeVisible()` instead of `waitForTimeout`
+3. **Add console logs:** Help debug test failures
+4. **Take screenshots:** On important steps
+5. **Use page objects:** For complex workflows
+
+### Example: API Testing
+```typescript
+test('should call API endpoint', async ({ page }) => {
+  const response = await page.request.get('/api/endpoint');
+
+  expect(response.ok()).toBeTruthy();
+  expect(response.status()).toBe(200);
+
+  const data = await response.json();
+  expect(data).toHaveProperty('expectedField');
+});
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Server Not Running
+```
+Error: connect ECONNREFUSED ::1:3000
+```
+**Solution:** Start dev server first: `npm run dev`
+
+#### 2. Timeout Errors
+```
+TimeoutError: Timeout 15000ms exceeded
+```
+**Solutions:**
+- Increase timeout: `test.setTimeout(60000)`
+- Check if element exists: `isVisible({ timeout: 5000 })`
+- Wait for network: `page.waitForLoadState('networkidle')`
+
+#### 3. Flaky Tests
+**Solutions:**
+- Add explicit waits: `await page.waitForTimeout(1000)`
+- Wait for animations: `await page.waitForLoadState('networkidle')`
+- Use retry logic for slow operations
+
+#### 4. Element Not Found
+```
+Error: Locator not found
+```
+**Solutions:**
+- Verify selector: `page.locator('selector').screenshot()`
+- Check if hidden: `isVisible()` before interaction
+- Wait for element: `await expect(locator).toBeVisible()`
+
+### Debug Mode
+```bash
+# Run with browser visible
+npm run test:e2e:headed
+
+# Step through test
+npm run test:e2e:debug
+
+# Run with trace
+npm run test:e2e -- --trace on
+```
+
+### View Trace
+```bash
+npx playwright show-trace test-results/.../trace.zip
+```
+
+---
+
+## CI/CD Integration
+
+### GitHub Actions Example
+```yaml
+name: E2E Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+```
+
+### Environment Variables
+```bash
+# CI mode
+CI=true npm run test:e2e
+
+# Custom base URL
+BASE_URL=http://staging.example.com npm run test:e2e
+
+# Specific browser
+npm run test:e2e -- --project=chromium
+```
+
+---
+
+## Test Data Management
+
+### ZEREZ Import Tests
+- **Test Data:** 199 products (STORAGE_INVERTER, ≥90 kW)
+- **Database:** `public/data/zerez/products.json`
+- **Reset:** Delete file to start fresh
+
+### Staging System
+- **Directory:** `public/data/staging/`
+- **Test Files:** Created during PDF extraction tests
+- **Cleanup:** Delete staging files between test runs
+
+---
+
+## Performance Testing
+
+### Metrics Collected
+- Page Load Time
+- DOM Content Loaded
+- Response Time
+- Transfer Size
+
+### Thresholds
+- Page Load: < 10 seconds (target: < 1 second)
+- API Response: < 5 seconds (fast endpoints)
+- GraphQL Queries: < 30 seconds (complex queries)
+
+### Example
+```typescript
+test('should meet performance targets', async ({ page }) => {
+  await page.goto('/dashboard');
+
+  const metrics = await page.evaluate(() => {
+    const perfData = window.performance.timing;
+    return {
+      loadTime: perfData.loadEventEnd - perfData.navigationStart
+    };
+  });
+
+  expect(metrics.loadTime).toBeLessThan(10000); // 10 seconds
+});
+```
+
+---
+
+## Test Maintenance
+
+### Regular Tasks
+1. **Update screenshots** - Run tests in headed mode and verify visuals
+2. **Review skipped tests** - Determine if they can be re-enabled
+3. **Clean test data** - Reset ZEREZ database periodically
+4. **Update timeouts** - Adjust based on actual performance
+
+### When to Update Tests
+- After UI changes (update selectors)
+- After API changes (update payloads/responses)
+- After adding new features (add test coverage)
+- After fixing bugs (add regression tests)
+
+---
+
+## Additional Resources
+
+### Playwright Documentation
+- [Official Docs](https://playwright.dev)
+- [API Reference](https://playwright.dev/docs/api/class-playwright)
+- [Best Practices](https://playwright.dev/docs/best-practices)
+
+### Project Documentation
+- `README.md` - Project overview
+- `PROJECT_STRUCTURE.md` - Codebase structure
+- `.memory-bank/` - Development history
+
+---
+
+## Contact & Support
+
+For test-related questions:
+1. Review this guide
+2. Check test failure screenshots/videos
+3. Run tests in debug mode
+4. Review Playwright documentation
+
+---
+
+**Last Updated:** November 8, 2025
+**Test Suite Version:** 1.0.0
+**Playwright Version:** 1.56.1

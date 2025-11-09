@@ -1,0 +1,606 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elliott Wave Trading Bot - Signal Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #2c2c2c;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 1px solid #3a3a3a;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .signals-table-container {
+            background: #2c2c2c;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #3a3a3a;
+        }
+
+        .table-header {
+            display: flex;
+            padding: 15px 20px;
+            background: #252525;
+            font-weight: bold;
+            font-size: 13px;
+            color: #7f8c8d;
+            border-bottom: 2px solid #3a3a3a;
+        }
+
+        .signal-row {
+            display: flex;
+            padding: 15px 20px;
+            border-bottom: 1px solid #3a3a3a;
+            cursor: pointer;
+            transition: background 0.2s;
+            align-items: center;
+        }
+
+        .signal-row:hover {
+            background: #333;
+        }
+
+        .signal-row.expanded {
+            background: #2a2a2a;
+        }
+
+        .col-symbol { width: 9%; min-width: 80px; }
+        .col-strategy { width: 12%; min-width: 100px; }
+        .col-direction { width: 7%; min-width: 70px; }
+        .col-score { width: 7%; min-width: 70px; }
+        .col-entry { width: 11%; min-width: 90px; }
+        .col-sl { width: 11%; min-width: 90px; }
+        .col-tp { width: 11%; min-width: 90px; }
+        .col-rr { width: 7%; min-width: 60px; }
+        .col-timeframe { width: 8%; min-width: 70px; }
+        .col-timestamp { width: 12%; min-width: 100px; }
+        .col-expand { width: 5%; min-width: 40px; text-align: center; }
+
+        .direction-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .direction-long {
+            background: #1a5f1a;
+            color: #4ade80;
+        }
+
+        .direction-short {
+            background: #5f1a1a;
+            color: #f87171;
+        }
+
+        .strategy-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            background: #1e3a8a;
+            color: #93c5fd;
+            white-space: nowrap;
+            cursor: help;
+            position: relative;
+        }
+
+        .strategy-badge[data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: #2c2c2c;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 400;
+            white-space: pre-line;
+            z-index: 1000;
+            min-width: 200px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            line-height: 1.4;
+        }
+
+        .strategy-badge[data-tooltip]:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 2px;
+            border: 6px solid transparent;
+            border-top-color: #3a3a3a;
+            z-index: 1000;
+        }
+
+        .score-value {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .score-high {
+            color: #4ade80;
+        }
+
+        .score-medium {
+            color: #fbbf24;
+        }
+
+        .price-value {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .rr-value {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .expand-icon {
+            font-size: 18px;
+            transition: transform 0.3s;
+        }
+
+        .expand-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .chart-container {
+            display: none;
+            padding: 20px;
+            background: #1e1e1e;
+            border-top: 1px solid #3a3a3a;
+            min-height: 500px;
+        }
+
+        .chart-container.visible {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .no-signals {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .timestamp {
+            color: #7f8c8d;
+            font-size: 11px;
+        }
+
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .nav-link {
+            padding: 8px 20px;
+            background: #2c2c2c;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            color: #7f8c8d;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background: #3a3a3a;
+            color: #3498db;
+            border-color: #3498db;
+        }
+
+        .nav-link.active {
+            background: #1e3a8a;
+            color: #93c5fd;
+            border-color: #1e3a8a;
+        }
+
+        .footer {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #3a3a3a;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Elliott Wave Trading Signals</h1>
+
+        <div class="nav-bar">
+            <a href="index.html" class="nav-link active">Live Signals</a>
+            <a href="dashboard.html" class="nav-link">Strategy Performance</a>
+        </div>
+
+        <div class="subtitle" id="lastUpdate">Loading...</div>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-label">Total Signals</div>
+                <div class="stat-value" id="totalSignals">-</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Long Signals</div>
+                <div class="stat-value" id="longSignals">-</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Short Signals</div>
+                <div class="stat-value" id="shortSignals">-</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Avg Score</div>
+                <div class="stat-value" id="avgScore">-</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Avg R:R</div>
+                <div class="stat-value" id="avgRR">-</div>
+            </div>
+        </div>
+
+        <div class="signals-table-container" id="signalsContainer">
+            <div class="loading">Loading signals...</div>
+        </div>
+
+        <div class="footer">
+            <p>🤖 Elliott Wave Trading Bot - Signal Dashboard</p>
+            <p>Data from Capital.com API (Demo Mode)</p>
+        </div>
+    </div>
+
+    <script>
+        // Calculate Risk:Reward ratio
+        function calculateRR(entry, sl, tp, direction) {
+            const risk = Math.abs(entry - sl);
+            const reward = Math.abs(tp - entry);
+            if (risk === 0) return 0;
+            return reward / risk;
+        }
+
+        // Format price with appropriate decimals
+        function formatPrice(price, symbol) {
+            const decimals = symbol.includes('BTC') || symbol.includes('ETH') ? 2 : 5;
+            return parseFloat(price).toFixed(decimals);
+        }
+
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('de-DE', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Get score class based on value
+        function getScoreClass(score) {
+            if (score >= 100) return 'score-high';
+            if (score >= 80) return 'score-medium';
+            return 'score-value';
+        }
+
+        // Toggle chart visibility
+        function toggleChart(signalId) {
+            const chartContainer = document.getElementById(`chart-${signalId}`);
+            const expandIcon = document.getElementById(`icon-${signalId}`);
+            const row = document.getElementById(`row-${signalId}`);
+
+            if (chartContainer.classList.contains('visible')) {
+                chartContainer.classList.remove('visible');
+                expandIcon.classList.remove('rotated');
+                row.classList.remove('expanded');
+            } else {
+                // Close all other charts
+                document.querySelectorAll('.chart-container').forEach(c => c.classList.remove('visible'));
+                document.querySelectorAll('.expand-icon').forEach(i => i.classList.remove('rotated'));
+                document.querySelectorAll('.signal-row').forEach(r => r.classList.remove('expanded'));
+
+                // Open this chart
+                chartContainer.classList.add('visible');
+                expandIcon.classList.add('rotated');
+                row.classList.add('expanded');
+
+                // Load chart if not already loaded
+                loadChart(signalId, chartContainer);
+            }
+        }
+
+        // Load and render chart
+        async function loadChart(signalId, container) {
+            if (container.querySelector('.plotly-graph-div')) {
+                return; // Already loaded
+            }
+
+            // Show loading state
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;">Loading chart...</div>';
+
+            const signal = window.signalsData.charts[signalId];
+
+            try {
+                // Load detailed chart data (path adjusted for root location)
+                // Extract filename from data_file (remove "data/" prefix if present)
+                const filename = signal.data_file.replace(/^data\//, '');
+                const response = await fetch(`data/charts/data/${filename}`);
+                const chartData = await response.json();
+
+                // Create candlestick chart
+                const trace = {
+                    x: chartData.ohlcv.timestamps,
+                    open: chartData.ohlcv.open,
+                    high: chartData.ohlcv.high,
+                    low: chartData.ohlcv.low,
+                    close: chartData.ohlcv.close,
+                    type: 'candlestick',
+                    name: signal.symbol,
+                    increasing: {line: {color: '#26a69a'}},
+                    decreasing: {line: {color: '#ef5350'}}
+                };
+
+                // Add entry marker
+                const entryMarker = {
+                    x: [chartData.ohlcv.timestamps[chartData.ohlcv.timestamps.length - 1]],
+                    y: [signal.entry_price],
+                    mode: 'markers+text',
+                    marker: {
+                        symbol: signal.direction === 'long' ? 'triangle-up' : 'triangle-down',
+                        size: 15,
+                        color: signal.direction === 'long' ? 'lime' : 'red'
+                    },
+                    text: ['ENTRY'],
+                    textposition: 'top center',
+                    name: 'Entry Signal'
+                };
+
+                const layout = {
+                    title: `${signal.symbol} ${signal.timeframe.toUpperCase()} - Score: ${signal.score}/194`,
+                    height: 500,  // Explicit height to prevent collapse
+                    autosize: true,  // Enable responsive resizing
+                    paper_bgcolor: '#1e1e1e',
+                    plot_bgcolor: '#2c2c2c',
+                    font: {color: '#ffffff'},
+                    xaxis: {
+                        gridcolor: '#3a3a3a',
+                        rangeslider: {visible: false}
+                    },
+                    yaxis: {
+                        gridcolor: '#3a3a3a'
+                    },
+                    shapes: [
+                        // Stop Loss line
+                        {
+                            type: 'line',
+                            x0: chartData.ohlcv.timestamps[0],
+                            x1: chartData.ohlcv.timestamps[chartData.ohlcv.timestamps.length - 1],
+                            y0: signal.stop_loss,
+                            y1: signal.stop_loss,
+                            line: {color: 'red', width: 2, dash: 'dash'}
+                        },
+                        // Take Profit line
+                        {
+                            type: 'line',
+                            x0: chartData.ohlcv.timestamps[0],
+                            x1: chartData.ohlcv.timestamps[chartData.ohlcv.timestamps.length - 1],
+                            y0: signal.take_profit,
+                            y1: signal.take_profit,
+                            line: {color: 'green', width: 2, dash: 'dash'}
+                        }
+                    ],
+                    annotations: [
+                        {
+                            x: chartData.ohlcv.timestamps[chartData.ohlcv.timestamps.length - 1],
+                            y: signal.stop_loss,
+                            text: `SL: ${formatPrice(signal.stop_loss, signal.symbol)}`,
+                            showarrow: false,
+                            xanchor: 'left',
+                            bgcolor: 'rgba(255, 0, 0, 0.3)'
+                        },
+                        {
+                            x: chartData.ohlcv.timestamps[chartData.ohlcv.timestamps.length - 1],
+                            y: signal.take_profit,
+                            text: `TP: ${formatPrice(signal.take_profit, signal.symbol)}`,
+                            showarrow: false,
+                            xanchor: 'left',
+                            bgcolor: 'rgba(0, 255, 0, 0.3)'
+                        }
+                    ]
+                };
+
+                const config = {
+                    displayModeBar: true,
+                    displaylogo: false,
+                    responsive: true
+                };
+
+                // Clear loading state before rendering
+                container.innerHTML = '';
+                Plotly.newPlot(container, [trace, entryMarker], layout, config);
+
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="color: #e74c3c; padding: 20px; text-align: center;">
+                        <strong>Error loading chart:</strong><br>
+                        ${error.message}
+                        <br><br>
+                        <button onclick="loadChart(${signalId}, this.closest('.chart-container'))"
+                                style="padding: 8px 16px; background: #3498db; color: white;
+                                       border: none; border-radius: 4px; cursor: pointer;">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Load signals from index.json
+        async function loadSignals() {
+            try {
+                // Path adjusted for root location
+                const response = await fetch('data/charts/data/index.json');
+                const data = await response.json();
+
+                window.signalsData = data;
+
+                // Update stats
+                document.getElementById('totalSignals').textContent = data.total_charts;
+                const longCount = data.charts.filter(s => s.direction === 'long').length;
+                const shortCount = data.charts.filter(s => s.direction === 'short').length;
+                document.getElementById('longSignals').textContent = longCount;
+                document.getElementById('shortSignals').textContent = shortCount;
+
+                const avgScore = data.charts.reduce((sum, s) => sum + s.score, 0) / data.total_charts;
+                document.getElementById('avgScore').textContent = avgScore.toFixed(0);
+
+                const avgRR = data.charts.reduce((sum, s) =>
+                    sum + calculateRR(s.entry_price, s.stop_loss, s.take_profit, s.direction), 0
+                ) / data.total_charts;
+                document.getElementById('avgRR').textContent = `1:${avgRR.toFixed(2)}`;
+
+                document.getElementById('lastUpdate').textContent =
+                    `Last Updated: ${formatTimestamp(data.generated_at)}`;
+
+                // Build table
+                let tableHTML = `
+                    <div class="table-header">
+                        <div class="col-symbol">Symbol</div>
+                        <div class="col-strategy">Strategy</div>
+                        <div class="col-direction">Direction</div>
+                        <div class="col-score">Score</div>
+                        <div class="col-entry">Entry</div>
+                        <div class="col-sl">Stop Loss</div>
+                        <div class="col-tp">Take Profit</div>
+                        <div class="col-rr">R:R</div>
+                        <div class="col-timeframe">Timeframe</div>
+                        <div class="col-timestamp">Detected</div>
+                        <div class="col-expand"></div>
+                    </div>
+                `;
+
+                if (data.total_charts === 0) {
+                    tableHTML += '<div class="no-signals">No signals detected yet</div>';
+                } else {
+                    data.charts.forEach((signal, index) => {
+                        const rr = calculateRR(signal.entry_price, signal.stop_loss, signal.take_profit, signal.direction);
+                        const scoreClass = getScoreClass(signal.score);
+
+                        // Build tooltip for wave analysis
+                        let tooltip = '';
+                        if (signal.wave_analysis) {
+                            const wa = signal.wave_analysis;
+                            const confidence = (wa.wave_confidence * 100).toFixed(0);
+                            tooltip = `Wave ${wa.current_wave} - ${wa.wave_type}\nConfidence: ${confidence}%`;
+                        }
+
+                        tableHTML += `
+                            <div>
+                                <div class="signal-row" id="row-${index}" onclick="toggleChart(${index})">
+                                    <div class="col-symbol"><strong>${signal.symbol}</strong></div>
+                                    <div class="col-strategy">
+                                        <span class="strategy-badge" ${tooltip ? `data-tooltip="${tooltip}"` : ''}>${signal.strategy || 'Unknown'}</span>
+                                    </div>
+                                    <div class="col-direction">
+                                        <span class="direction-badge direction-${signal.direction}">${signal.direction}</span>
+                                    </div>
+                                    <div class="col-score">
+                                        <span class="${scoreClass}">${signal.score}/194</span>
+                                    </div>
+                                    <div class="col-entry price-value">${formatPrice(signal.entry_price, signal.symbol)}</div>
+                                    <div class="col-sl price-value">${formatPrice(signal.stop_loss, signal.symbol)}</div>
+                                    <div class="col-tp price-value">${formatPrice(signal.take_profit, signal.symbol)}</div>
+                                    <div class="col-rr rr-value">1:${rr.toFixed(2)}</div>
+                                    <div class="col-timeframe">${signal.timeframe.toUpperCase()}</div>
+                                    <div class="col-timestamp timestamp">${formatTimestamp(signal.timestamp)}</div>
+                                    <div class="col-expand"><span class="expand-icon" id="icon-${index}">▼</span></div>
+                                </div>
+                                <div class="chart-container" id="chart-${index}"></div>
+                            </div>
+                        `;
+                    });
+                }
+
+                document.getElementById('signalsContainer').innerHTML = tableHTML;
+
+            } catch (error) {
+                document.getElementById('signalsContainer').innerHTML =
+                    `<div class="no-signals">Error loading signals: ${error.message}</div>`;
+            }
+        }
+
+        // Load signals on page load
+        loadSignals();
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+# ==============================================================================
+# Core Trading Libraries (Required for all operations)
+# ==============================================================================
+ccxt>=4.2.0,<5.0.0              # Exchange API (Capital.com) - used in: capital_api.py
+pandas>=2.1.0,<3.0.0            # DataFrame operations - used in: all modules
+numpy>=1.26.0,<2.0.0            # Numerical calculations - IMPORTANT: NumPy 2.0 has breaking changes
+
+# ==============================================================================
+# Data Providers (Required for backtesting & data fetching)
+# ==============================================================================
+python-dateutil>=2.8.0,<3.0.0   # Date parsing - used in: forex_data_provider.py, screener.py
+yfinance>=0.2.0,<0.3.0          # Yahoo Finance data - used in: yfinance_data_provider.py (universal fallback)
+tradingview-scraper==0.4.8      # TradingView historical data - used in: tradingview_data_provider.py (optional)
+twelvedata>=1.2.0,<2.0.0        # Twelve Data API - used in: twelvedata_provider.py (primary provider)
+
+# ==============================================================================
+# Configuration (Required for runtime)
+# ==============================================================================
+python-dotenv>=1.0.0,<2.0.0     # Environment variables - used in: config.py
+
+# ==============================================================================
+# Visualization (Required by scripts/generate_dashboard.py)
+# ==============================================================================
+plotly>=5.17.0,<6.0.0           # Interactive charts - used in: scripts/generate_dashboard.py
+
+# ==============================================================================
+# Optimization (Required by scripts/optimize_parameters.py)
+# ==============================================================================
+optuna>=3.4.0,<5.0.0            # Bayesian optimization - used in: scripts/optimize_parameters.py
+
+# ==============================================================================
+# Utilities (Required for various operations)
+# ==============================================================================
+requests>=2.31.0,<3.0.0         # HTTP client - used in: scripts/send_telegram_alert.py
+pytz>=2023.3,<2025.0            # Timezone handling - used in: config.py, screener.py
+matplotlib>=3.8.0
+pyarrow>=22.0.0,<23.0.0         # Parquet file support - used in: data_cache.py
+Flask>=3.0.0,<4.0.0             # Web framework - used in: web_backend.py
+flask-cors>=4.0.0,<5.0.0        # CORS support - used in: web_backend.py

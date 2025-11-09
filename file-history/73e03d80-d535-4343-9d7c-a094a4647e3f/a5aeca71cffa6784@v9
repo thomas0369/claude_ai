@@ -1,0 +1,633 @@
+'use client';
+
+/**
+ * Block Puzzle Game - Konva.js Implementation (Responsive)
+ *
+ * Production-ready game component with fully responsive design
+ * Features:
+ * - Native drag and drop with Konva
+ * - Grid-based placement with validation
+ * - Line clearing (rows and columns)
+ * - Score tracking with combo multiplier
+ * - Block respawning
+ * - Debug mode with visual feedback
+ * - Level configuration support
+ * - Fully responsive (adapts to any screen size)
+ */
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Stage, Layer, Rect, Group, Text } from 'react-konva';
+import Konva from 'konva';
+import type { LevelConfig } from '@/lib/game/levels/levelService';
+
+// Game constants
+const GRID_SIZE = 8;
+
+// Responsive sizing constraints
+const MIN_CELL_SIZE = 35; // Minimum for mobile
+const MAX_CELL_SIZE = 60; // Maximum for large screens
+const GRID_OFFSET_RATIO = 0.08; // 8% of stage width/height for offsets
+const MIN_STAGE_WIDTH = 320; // Minimum viewport support
+
+interface BlockData {
+  id: string;
+  shape: number[][];
+  color: string;
+  x: number;
+  y: number;
+  originalX: number;
+  originalY: number;
+}
+
+export interface KonvaGameProps {
+  level: LevelConfig;
+  onScoreUpdate?: (score: number) => void;
+  onGameOver?: () => void;
+  onLevelComplete?: () => void;
+}
+
+/**
+ * Calculate responsive dimensions based on container width
+ */
+function calculateDimensions(containerWidth: number) {
+  const safeWidth = Math.max(containerWidth, MIN_STAGE_WIDTH);
+
+  // Calculate cell size based on available width
+  // Reserve space for offsets on both sides
+  const availableWidth = safeWidth - (safeWidth * GRID_OFFSET_RATIO * 2);
+  let cellSize = Math.floor(availableWidth / GRID_SIZE);
+
+  // Clamp cell size to min/max
+  cellSize = Math.max(MIN_CELL_SIZE, Math.min(MAX_CELL_SIZE, cellSize));
+
+  // Calculate actual dimensions
+  const gridOffsetX = Math.floor(safeWidth * GRID_OFFSET_RATIO);
+  const gridOffsetY = gridOffsetX;
+  const gridWidth = cellSize * GRID_SIZE;
+  const stageWidth = gridWidth + (gridOffsetX * 2);
+  const spawnY = gridOffsetY + gridWidth + Math.floor(cellSize * 1.5);
+  const stageHeight = spawnY + (cellSize * 4); // Space for 3 blocks
+
+  return {
+    cellSize,
+    gridOffsetX,
+    gridOffsetY,
+    stageWidth,
+    stageHeight,
+    spawnY,
+  };
+}
+
+export function KonvaGame({ level, onScoreUpdate }: KonvaGameProps) {
+  // Responsive dimensions state
+  const [dimensions, setDimensions] = useState(() => calculateDimensions(800)); // Default for SSR
+
+  // Game state
+  const [grid, setGrid] = useState<number[][]>(() =>
+    Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0))
+  );
+  const [blocks, setBlocks] = useState<BlockData[]>([]);
+  const [score, setScore] = useState(0);
+  const [comboCount, setComboCount] = useState(0);
+  const [activeBlocks, setActiveBlocks] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dragPreview, setDragPreview] = useState<{
+    row: number;
+    col: number;
+    shape: number[][];
+    isValid: boolean;
+  } | null>(null);
+
+  const stageRef = useRef<Konva.Stage>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const levelBlocksRef = useRef<typeof level.blocks>([]);
+  const initializedRef = useRef(false);
+  const onScoreUpdateRef = useRef(onScoreUpdate);
+
+  // Keep score callback ref up to date
+  useEffect(() => {
+    onScoreUpdateRef.current = onScoreUpdate;
+  }, [onScoreUpdate]);
+
+  // Handle responsive resize
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth || 800;
+        setDimensions(calculateDimensions(width));
+      }
+    };
+
+    // Set initial dimensions
+    updateDimensions();
+
+    // Add resize listener
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
+  // Initialize level blocks ONCE
+  useEffect(() => {
+    if (!initializedRef.current && level.blocks && level.blocks.length > 0) {
+      initializedRef.current = true;
+      levelBlocksRef.current = level.blocks;
+      spawnBlocks();
+      setIsLoading(false);
+    }
+  }, [level.levelNumber]); // Only re-initialize when level number changes
+
+  // Update score callback (using ref to prevent infinite loop)
+  useEffect(() => {
+    if (onScoreUpdateRef.current) {
+      onScoreUpdateRef.current(score);
+    }
+  }, [score]);
+
+  /**
+   * Spawn 3 random blocks from level configuration
+   */
+  const spawnBlocks = useCallback(() => {
+    if (!levelBlocksRef.current || levelBlocksRef.current.length === 0) {
+      console.warn('No blocks available to spawn');
+      return;
+    }
+
+    const newBlocks: BlockData[] = [];
+    const availableBlocks = levelBlocksRef.current;
+
+    // Calculate block spacing based on cell size
+    const blockSpacing = dimensions.cellSize * 2.5;
+    const startOffset = dimensions.gridOffsetX * 1.5;
+
+    for (let i = 0; i < 3; i++) {
+      // Get random block from level config
+      const blockConfig = availableBlocks[Math.floor(Math.random() * availableBlocks.length)];
+
+      const startX = startOffset + i * blockSpacing;
+
+      newBlocks.push({
+        id: `block-${Date.now()}-${i}`,
+        shape: blockConfig.shape,
+        color: blockConfig.color,
+        x: startX,
+        y: dimensions.spawnY,
+        originalX: startX,
+        originalY: dimensions.spawnY,
+      });
+    }
+
+    setBlocks(newBlocks);
+    setActiveBlocks(3);
+    console.log('✨ 3 new blocks spawned');
+  }, [dimensions]);
+
+  /**
+   * Convert world coordinates to grid position
+   * Uses floor for accurate top-left corner alignment
+   */
+  const worldToGrid = useCallback((worldX: number, worldY: number) => {
+    const gridX = worldX - dimensions.gridOffsetX;
+    const gridY = worldY - dimensions.gridOffsetY;
+
+    // Check if position is within grid bounds (with small tolerance)
+    if (gridX < 0 || gridY < 0 ||
+        gridX >= GRID_SIZE * dimensions.cellSize ||
+        gridY >= GRID_SIZE * dimensions.cellSize) {
+      return null;
+    }
+
+    // Use floor to detect which cell the top-left corner is in
+    // This gives accurate placement matching the visual position
+    const col = Math.floor(gridX / dimensions.cellSize);
+    const row = Math.floor(gridY / dimensions.cellSize);
+
+    // Ensure we're within bounds
+    if (row < 0 || col < 0 || row >= GRID_SIZE || col >= GRID_SIZE) {
+      return null;
+    }
+
+    return { row, col };
+  }, [dimensions]);
+
+  /**
+   * Check if a block can be placed at the given position
+   */
+  const canPlaceBlock = useCallback((row: number, col: number, shape: number[][]) => {
+    if (row < 0 || col < 0) return false;
+    if (row + shape.length > GRID_SIZE) return false;
+    if (col + shape[0].length > GRID_SIZE) return false;
+
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape[r].length; c++) {
+        if (shape[r][c] === 1 && grid[row + r][col + c] !== 0) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }, [grid]);
+
+  /**
+   * Check and clear completed lines (rows and columns)
+   */
+  const checkAndClearLines = useCallback((currentGrid: number[][]) => {
+    const newGrid = currentGrid.map(row => [...row]);
+    let linesCleared = 0;
+    const clearedRows: number[] = [];
+    const clearedCols: number[] = [];
+
+    // Check rows
+    for (let row = 0; row < GRID_SIZE; row++) {
+      if (newGrid[row].every(cell => cell !== 0)) {
+        newGrid[row].fill(0);
+        linesCleared++;
+        clearedRows.push(row);
+        console.log(`🎉 Row ${row} cleared!`);
+      }
+    }
+
+    // Check columns
+    for (let col = 0; col < GRID_SIZE; col++) {
+      const columnFilled = newGrid.every(row => row[col] !== 0);
+      if (columnFilled) {
+        for (let row = 0; row < GRID_SIZE; row++) {
+          newGrid[row][col] = 0;
+        }
+        linesCleared++;
+        clearedCols.push(col);
+        console.log(`🎉 Column ${col} cleared!`);
+      }
+    }
+
+    return { linesCleared, clearedRows, clearedCols, newGrid };
+  }, []);
+
+  /**
+   * Place a block on the grid
+   */
+  const placeBlock = useCallback((blockId: string, row: number, col: number, shape: number[][], color: string) => {
+    console.log(`🎨 Placing block at [${row}][${col}]`);
+
+    const newGrid = grid.map(row => [...row]);
+    const colorValue = parseInt(color.replace('#', ''), 16);
+    let cellsPlaced = 0;
+
+    // Place block cells on grid
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape[r].length; c++) {
+        if (shape[r][c] === 1) {
+          newGrid[row + r][col + c] = colorValue;
+          cellsPlaced++;
+        }
+      }
+    }
+
+    setGrid(newGrid);
+
+    // Remove the placed block
+    setBlocks(prev => prev.filter(b => b.id !== blockId));
+    const newActiveCount = activeBlocks - 1;
+    setActiveBlocks(newActiveCount);
+
+    // Add score for placed cells
+    const cellScore = cellsPlaced * 10;
+    setScore(prev => prev + cellScore);
+
+    // Check for completed lines
+    setTimeout(() => {
+      const { linesCleared, clearedRows, clearedCols, newGrid: clearedGrid } = checkAndClearLines(newGrid);
+
+      if (linesCleared > 0) {
+        setGrid(clearedGrid);
+
+        // Update combo and score
+        setComboCount(prev => {
+          const newCombo = prev + 1;
+          const lineScore = linesCleared * 100 * newCombo;
+          setScore(prevScore => prevScore + lineScore);
+
+          console.log('🎯 SCORE UPDATE', {
+            linesCleared,
+            combo: newCombo,
+            lineScore,
+            clearedRows,
+            clearedCols
+          });
+
+          return newCombo;
+        });
+      } else {
+        // Reset combo if no lines cleared
+        setComboCount(0);
+      }
+
+      // Spawn new blocks if all placed
+      if (newActiveCount === 0) {
+        console.log('🔄 All blocks placed, spawning new set...');
+        setTimeout(spawnBlocks, 500);
+      }
+    }, 100);
+  }, [grid, activeBlocks, spawnBlocks, checkAndClearLines]);
+
+  /**
+   * Handle drag move for a block - show preview of placement
+   */
+  const handleDragMove = useCallback((blockId: string) => (e: Konva.KonvaEventObject<DragEvent>) => {
+    const block = blocks.find(b => b.id === blockId);
+    if (!block) return;
+
+    const shape = e.target;
+    const x = shape.x();
+    const y = shape.y();
+
+    // Get grid position
+    const gridPos = worldToGrid(x, y);
+
+    if (gridPos) {
+      const { row, col } = gridPos;
+      const isValid = canPlaceBlock(row, col, block.shape);
+      setDragPreview({ row, col, shape: block.shape, isValid });
+    } else {
+      setDragPreview(null);
+    }
+  }, [blocks, worldToGrid, canPlaceBlock]);
+
+  /**
+   * Handle drag end for a block
+   * Improved with better positioning calculation and visual snapping
+   */
+  const handleDragEnd = useCallback((blockId: string) => (e: Konva.KonvaEventObject<DragEvent>) => {
+    const block = blocks.find(b => b.id === blockId);
+    if (!block) return;
+
+    // Clear drag preview
+    setDragPreview(null);
+
+    const shape = e.target;
+    const x = shape.x();
+    const y = shape.y();
+
+    console.log(`🎯 Block dropped at (${Math.round(x)}, ${Math.round(y)})`);
+
+    // Use the top-left corner for grid alignment
+    const gridPos = worldToGrid(x, y);
+
+    if (!gridPos) {
+      console.log('❌ Not on grid, returning to origin');
+      // Return to original position with animation
+      shape.to({
+        x: block.originalX,
+        y: block.originalY,
+        duration: 0.3,
+      });
+      return;
+    }
+
+    const { row, col } = gridPos;
+    console.log(`🎲 Calculated grid position: [${row}][${col}]`);
+
+    if (canPlaceBlock(row, col, block.shape)) {
+      console.log(`✅ Valid placement at [${row}][${col}]`);
+
+      // Snap to grid position visually before placing
+      const snapX = dimensions.gridOffsetX + col * dimensions.cellSize;
+      const snapY = dimensions.gridOffsetY + row * dimensions.cellSize;
+
+      console.log(`✨ Snapping to grid position: (${snapX}, ${snapY})`);
+
+      // Animate to exact grid position
+      shape.to({
+        x: snapX,
+        y: snapY,
+        duration: 0.15,
+        onFinish: () => {
+          placeBlock(blockId, row, col, block.shape, block.color);
+        }
+      });
+    } else {
+      console.log(`❌ Invalid placement at [${row}][${col}], returning to origin`);
+      // Return to original position with animation
+      shape.to({
+        x: block.originalX,
+        y: block.originalY,
+        duration: 0.3,
+      });
+    }
+  }, [blocks, worldToGrid, canPlaceBlock, placeBlock, dimensions]);
+
+  if (isLoading) {
+    return (
+      <div className="w-full flex flex-col items-center" ref={containerRef}>
+        <div className="flex items-center justify-center bg-white rounded-xl shadow-lg p-6 border border-gray-200" style={{ width: dimensions.stageWidth, height: dimensions.stageHeight }}>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-700 text-xl font-medium">Loading Game...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full flex flex-col items-center" ref={containerRef}>
+      {/* Konva Stage */}
+      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+        <Stage
+          width={dimensions.stageWidth}
+          height={dimensions.stageHeight}
+          ref={stageRef}
+        >
+          {/* Grid Layer */}
+          <Layer>
+            {/* Grid background */}
+            <Rect
+              x={dimensions.gridOffsetX}
+              y={dimensions.gridOffsetY}
+              width={GRID_SIZE * dimensions.cellSize}
+              height={GRID_SIZE * dimensions.cellSize}
+              fill="#f8fafc"
+              stroke="#cbd5e1"
+              strokeWidth={3}
+              cornerRadius={8}
+            />
+
+            {/* Grid cells */}
+            {Array.from({ length: GRID_SIZE }).map((_, row) =>
+              Array.from({ length: GRID_SIZE }).map((_, col) => {
+                const cellValue = grid[row][col];
+                const x = dimensions.gridOffsetX + col * dimensions.cellSize;
+                const y = dimensions.gridOffsetY + row * dimensions.cellSize;
+
+                return (
+                  <Group key={`cell-${row}-${col}`}>
+                    {/* Cell border */}
+                    <Rect
+                      x={x}
+                      y={y}
+                      width={dimensions.cellSize}
+                      height={dimensions.cellSize}
+                      stroke="#e2e8f0"
+                      strokeWidth={1.5}
+                    />
+
+                    {/* Filled cell */}
+                    {cellValue !== 0 && (
+                      <Rect
+                        x={x + 3}
+                        y={y + 3}
+                        width={dimensions.cellSize - 6}
+                        height={dimensions.cellSize - 6}
+                        fill={`#${cellValue.toString(16).padStart(6, '0')}`}
+                        cornerRadius={6}
+                        shadowColor="rgba(0,0,0,0.15)"
+                        shadowBlur={4}
+                        shadowOffset={{x: 0, y: 2}}
+                        shadowOpacity={0.3}
+                      />
+                    )}
+                  </Group>
+                );
+              })
+            )}
+
+            {/* Instruction text */}
+            <Text
+              text="Drag blocks onto the grid"
+              x={dimensions.gridOffsetX}
+              y={dimensions.spawnY - dimensions.cellSize}
+              fontSize={Math.max(14, Math.min(18, dimensions.cellSize * 0.3))}
+              fill="#64748b"
+              fontStyle="500"
+              width={dimensions.stageWidth - (dimensions.gridOffsetX * 2)}
+              align="center"
+            />
+          </Layer>
+
+          {/* Preview Layer - shows where block will be placed */}
+          <Layer>
+            {dragPreview && (
+              <>
+                {dragPreview.shape.map((row, r) =>
+                  row.map((cell, c) => {
+                    if (cell === 1) {
+                      const x = dimensions.gridOffsetX + (dragPreview.col + c) * dimensions.cellSize;
+                      const y = dimensions.gridOffsetY + (dragPreview.row + r) * dimensions.cellSize;
+
+                      return (
+                        <Rect
+                          key={`preview-${r}-${c}`}
+                          x={x + 3}
+                          y={y + 3}
+                          width={dimensions.cellSize - 6}
+                          height={dimensions.cellSize - 6}
+                          fill={dragPreview.isValid ? '#22c55e' : '#ef4444'}
+                          opacity={0.4}
+                          cornerRadius={6}
+                          listening={false}
+                          stroke={dragPreview.isValid ? '#16a34a' : '#dc2626'}
+                          strokeWidth={2}
+                        />
+                      );
+                    }
+                    return null;
+                  })
+                )}
+              </>
+            )}
+          </Layer>
+
+          {/* Blocks Layer */}
+          <Layer>
+            {blocks.map((block) => {
+              return (
+                <Group
+                  key={block.id}
+                  x={block.x}
+                  y={block.y}
+                  draggable
+                  onDragMove={handleDragMove(block.id)}
+                  onDragEnd={handleDragEnd(block.id)}
+                  onDragStart={() => {
+                    console.log(`🎯 Drag started: ${block.id}`);
+                  }}
+                  onMouseEnter={(e) => {
+                    const stage = e.target.getStage();
+                    if (stage) {
+                      stage.container().style.cursor = 'grab';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    const stage = e.target.getStage();
+                    if (stage) {
+                      stage.container().style.cursor = 'default';
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    const stage = e.target.getStage();
+                    if (stage) {
+                      stage.container().style.cursor = 'grabbing';
+                    }
+                  }}
+                  onMouseUp={(e) => {
+                    const stage = e.target.getStage();
+                    if (stage) {
+                      stage.container().style.cursor = 'grab';
+                    }
+                  }}
+                >
+                  {/* Render block shape */}
+                  {block.shape.map((row, r) =>
+                    row.map((cell, c) => {
+                      if (cell === 1) {
+                        const x = c * dimensions.cellSize;
+                        const y = r * dimensions.cellSize;
+
+                        return (
+                          <Rect
+                            key={`${r}-${c}`}
+                            x={x}
+                            y={y}
+                            width={dimensions.cellSize - 6}
+                            height={dimensions.cellSize - 6}
+                            fill={block.color}
+                            stroke="#ffffff"
+                            strokeWidth={3}
+                            cornerRadius={8}
+                            shadowColor="rgba(0,0,0,0.2)"
+                            shadowBlur={12}
+                            shadowOffset={{x: 0, y: 4}}
+                            shadowOpacity={0.4}
+                          />
+                        );
+                      }
+                      return null;
+                    })
+                  )}
+                </Group>
+              );
+            })}
+          </Layer>
+        </Stage>
+      </div>
+
+      {/* Info panel - Light design */}
+      <div className="mt-6 flex flex-wrap gap-4 text-gray-700 text-sm justify-center">
+        <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-5 py-3 rounded-lg border border-blue-200 shadow-sm">
+          <span className="text-gray-600 font-medium">Active Blocks:</span>{' '}
+          <span className="font-bold text-blue-600">{activeBlocks}</span>
+        </div>
+        {comboCount > 0 && (
+          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 px-5 py-3 rounded-lg border border-orange-200 shadow-sm animate-pulse">
+            <span className="text-gray-600 font-medium">Combo:</span>{' '}
+            <span className="font-bold text-orange-600">x{comboCount}</span>
+          </div>
+        )}
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-5 py-3 rounded-lg border border-green-200 shadow-sm">
+          <span className="text-gray-600 font-medium">Engine:</span>{' '}
+          <span className="font-bold text-green-600">Konva.js</span>
+        </div>
+      </div>
+    </div>
+  );
+}

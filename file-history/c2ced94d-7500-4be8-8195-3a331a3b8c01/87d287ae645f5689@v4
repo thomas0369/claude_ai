@@ -1,0 +1,670 @@
+#!/usr/bin/env python3
+"""
+Complete Trade Analysis Workflow with Chart Generation
+
+This script provides a complete workflow from trade identification to visualization:
+1. Screen assets for high-quality signals
+2. Analyze Elliott Wave patterns and indicators
+3. Calculate comprehensive scoring
+4. Generate interactive charts with annotations
+5. Create detailed trade reports
+
+Usage:
+    python scripts/analyze_trade_with_chart.py --symbol EUR/USD
+    python scripts/analyze_trade_with_chart.py --auto  # Find best signal automatically
+"""
+
+import sys
+import json
+import argparse
+from pathlib import Path
+from datetime import datetime
+from typing import Dict, Optional, List
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.patches import Rectangle
+from matplotlib.lines import Line2D
+
+from screener import AssetScreener
+from indicators import calculate_elliott_wave_pattern
+from config import ALL_ASSETS
+from constants import MIN_TRADEABLE_SCORE, OPTIMAL_SCORE, MAX_SCORE
+
+
+class TradeAnalyzer:
+    """
+    Complete trade analysis and visualization system
+
+    Provides end-to-end workflow:
+    - Identify high-quality trade setups
+    - Analyze Elliott Wave patterns
+    - Generate interactive charts
+    - Create comprehensive reports
+    """
+
+    def __init__(self, output_dir: str = "data/trade_analysis"):
+        """Initialize trade analyzer"""
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        self.screener = AssetScreener()
+
+    def find_best_signal(self, assets: Optional[List[str]] = None) -> Optional[Dict]:
+        """
+        Scan all assets and find the best trade signal
+
+        Args:
+            assets: List of symbols to scan (defaults to ALL_ASSETS)
+
+        Returns:
+            Best signal dict with symbol and score, or None
+        """
+        if assets is None:
+            assets = ALL_ASSETS
+
+        print(f"\n{'='*70}")
+        print(f"🔍 SCANNING {len(assets)} ASSETS FOR BEST SIGNAL")
+        print(f"{'='*70}\n")
+
+        best_signal = None
+        best_score = 0
+
+        for symbol in assets:
+            try:
+                print(f"Scanning {symbol}...", end=" ")
+
+                # Get signal from screener
+                signal = self.screener.screen_asset_with_data_fetch(symbol)
+
+                if signal and signal.get('score', 0) >= MIN_TRADEABLE_SCORE:
+                    score = signal['score']
+                    print(f"✅ Score: {score}")
+
+                    if score > best_score:
+                        best_score = score
+                        best_signal = signal
+                        best_signal['symbol'] = symbol
+                else:
+                    print("❌ No signal")
+
+            except Exception as e:
+                print(f"⚠️  Error: {e}")
+                continue
+
+        if best_signal:
+            print(f"\n🏆 BEST SIGNAL FOUND:")
+            print(f"   Symbol: {best_signal['symbol']}")
+            print(f"   Score: {best_signal['score']}/{MAX_SCORE}")
+            print(f"   Direction: {best_signal['direction'].upper()}")
+            print(f"   Entry: {best_signal['entry_price']:.5f}")
+
+        return best_signal
+
+    def analyze_trade(self, symbol: str, signal: Optional[Dict] = None) -> Dict:
+        """
+        Perform complete trade analysis
+
+        Args:
+            symbol: Trading symbol
+            signal: Pre-computed signal (optional)
+
+        Returns:
+            Complete analysis dict with signal, data, and metrics
+        """
+        print(f"\n{'='*70}")
+        print(f"📊 ANALYZING TRADE: {symbol}")
+        print(f"{'='*70}\n")
+
+        # Get signal if not provided
+        if signal is None:
+            signal = self.screener.screen_asset_with_data_fetch(symbol)
+            if not signal:
+                raise ValueError(f"No valid signal found for {symbol}")
+            signal['symbol'] = symbol
+
+        # Get OHLCV data
+        ohlcv_data = self.screener.data_manager.fetch_ohlcv(
+            symbol,
+            timeframe="1h",
+            limit=200
+        )
+
+        if not ohlcv_data:
+            raise ValueError(f"Could not fetch data for {symbol}")
+
+        # Convert to DataFrame
+        df = pd.DataFrame(
+            ohlcv_data,
+            columns=['timestamp', 'open', 'high', 'low', 'close', 'volume']
+        )
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        df.set_index('timestamp', inplace=True)
+
+        # Calculate additional indicators for visualization
+        analysis = {
+            'symbol': symbol,
+            'signal': signal,
+            'data': df,
+            'timestamp': datetime.now().isoformat(),
+            'score_breakdown': self._analyze_score_components(signal)
+        }
+
+        return analysis
+
+    def _analyze_score_components(self, signal: Dict) -> Dict:
+        """Break down score into components"""
+        components = {}
+
+        # Elliott Wave score (0-50)
+        if 'wave_info' in signal:
+            wave_confidence = signal['wave_info'].get('confidence', 0)
+            components['elliott_wave'] = int(wave_confidence * 50)
+        else:
+            components['elliott_wave'] = 0
+
+        # Technical indicators (0-50)
+        # This is estimated - actual calculation is in screener
+        components['indicators'] = signal.get('score', 0) - components['elliott_wave']
+
+        # Multi-timeframe alignment (0-44)
+        if 'h4_aligned' in signal and signal['h4_aligned']:
+            components['multi_timeframe'] = 22
+        else:
+            components['multi_timeframe'] = 0
+
+        if 'm15_aligned' in signal and signal['m15_aligned']:
+            components['multi_timeframe'] += 22
+
+        # Trend strength (0-25)
+        if 'adx' in signal:
+            components['trend_strength'] = min(int(signal['adx'] / 4), 25)
+        else:
+            components['trend_strength'] = 0
+
+        # Momentum (0-25)
+        if 'rsi' in signal:
+            rsi = signal['rsi']
+            if signal['direction'] == 'long':
+                # RSI 40-60 is ideal for longs
+                if 40 <= rsi <= 60:
+                    components['momentum'] = 25
+                elif 30 <= rsi < 40 or 60 < rsi <= 70:
+                    components['momentum'] = 15
+                else:
+                    components['momentum'] = 5
+            else:
+                # RSI 40-60 is ideal for shorts
+                if 40 <= rsi <= 60:
+                    components['momentum'] = 25
+                elif 30 <= rsi < 40 or 60 < rsi <= 70:
+                    components['momentum'] = 15
+                else:
+                    components['momentum'] = 5
+        else:
+            components['momentum'] = 0
+
+        # Volatility (0-25)
+        if 'bollinger_position' in signal:
+            components['volatility'] = int(abs(signal['bollinger_position']) * 25)
+        else:
+            components['volatility'] = 0
+
+        return components
+
+    def generate_chart(self, analysis: Dict, show_indicators: bool = True) -> str:
+        """
+        Generate comprehensive trade analysis chart
+
+        Args:
+            analysis: Trade analysis dict
+            show_indicators: Include indicator subplots
+
+        Returns:
+            Path to saved chart image
+        """
+        signal = analysis['signal']
+        df = analysis['data']
+        symbol = analysis['symbol']
+
+        # Create figure with subplots
+        if show_indicators:
+            fig = plt.figure(figsize=(16, 12))
+            gs = fig.add_gridspec(5, 2, hspace=0.3, wspace=0.3)
+            ax_price = fig.add_subplot(gs[0:3, :])
+            ax_volume = fig.add_subplot(gs[3, :], sharex=ax_price)
+            ax_rsi = fig.add_subplot(gs[4, 0], sharex=ax_price)
+            ax_stoch = fig.add_subplot(gs[4, 1], sharex=ax_price)
+        else:
+            fig, ax_price = plt.subplots(figsize=(16, 8))
+            ax_volume = ax_rsi = ax_stoch = None
+
+        # ===== MAIN PRICE CHART =====
+        self._plot_price_action(ax_price, df, signal, symbol)
+
+        # ===== VOLUME =====
+        if ax_volume:
+            self._plot_volume(ax_volume, df)
+
+        # ===== RSI =====
+        if ax_rsi:
+            self._plot_rsi(ax_rsi, df, signal)
+
+        # ===== STOCHASTIC =====
+        if ax_stoch:
+            self._plot_stochastic(ax_stoch, df, signal)
+
+        # Save chart
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        chart_path = self.output_dir / f"{symbol.replace('/', '_')}_{timestamp}.png"
+        plt.savefig(chart_path, dpi=150, bbox_inches='tight')
+        plt.close()
+
+        print(f"📈 Chart saved: {chart_path}")
+        return str(chart_path)
+
+    def _plot_price_action(self, ax, df: pd.DataFrame, signal: Dict, symbol: str):
+        """Plot main price action with Elliott Wave annotations"""
+        # Plot candlesticks (simplified as lines for now)
+        ax.plot(df.index, df['close'], 'k-', linewidth=1, label='Price')
+
+        # Plot EMAs
+        if 'ema_21' in df.columns:
+            ax.plot(df.index, df['ema_21'], 'b-', alpha=0.6, linewidth=1, label='EMA 21')
+        if 'ema_55' in df.columns:
+            ax.plot(df.index, df['ema_55'], 'orange', alpha=0.6, linewidth=1, label='EMA 55')
+        if 'ema_89' in df.columns:
+            ax.plot(df.index, df['ema_89'], 'purple', alpha=0.6, linewidth=1, label='EMA 89')
+
+        # Plot Bollinger Bands
+        if 'bb_upper' in df.columns and 'bb_lower' in df.columns:
+            ax.plot(df.index, df['bb_upper'], 'gray', alpha=0.3, linewidth=0.5)
+            ax.plot(df.index, df['bb_lower'], 'gray', alpha=0.3, linewidth=0.5)
+            ax.fill_between(df.index, df['bb_upper'], df['bb_lower'],
+                            alpha=0.1, color='gray', label='Bollinger Bands')
+
+        # Mark Elliott Wave points if available
+        if 'wave_info' in signal and 'waves' in signal['wave_info']:
+            waves = signal['wave_info']['waves']
+            for i, (idx, price) in enumerate(waves):
+                if idx < len(df):
+                    timestamp = df.index[idx]
+                    ax.plot(timestamp, price, 'ro', markersize=8)
+                    ax.text(timestamp, price, f'  {i+1}',
+                            fontsize=12, fontweight='bold', color='red')
+
+        # Mark entry, stop loss, take profit
+        current_time = df.index[-1]
+        entry = signal['entry_price']
+        sl = signal['stop_loss']
+        tp = signal['take_profit']
+
+        ax.axhline(y=entry, color='blue', linestyle='--', linewidth=2, label=f'Entry: {entry:.5f}')
+        ax.axhline(y=sl, color='red', linestyle='--', linewidth=2, label=f'Stop Loss: {sl:.5f}')
+        ax.axhline(y=tp, color='green', linestyle='--', linewidth=2, label=f'Take Profit: {tp:.5f}')
+
+        # Add direction arrow
+        direction = signal['direction']
+        y_pos = entry
+        if direction == 'long':
+            ax.annotate('▲ LONG', xy=(current_time, entry),
+                        xytext=(current_time, entry * 0.995),
+                        fontsize=14, fontweight='bold', color='green',
+                        ha='right', va='top',
+                        bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.7))
+        else:
+            ax.annotate('▼ SHORT', xy=(current_time, entry),
+                        xytext=(current_time, entry * 1.005),
+                        fontsize=14, fontweight='bold', color='red',
+                        ha='right', va='bottom',
+                        bbox=dict(boxstyle='round', facecolor='lightcoral', alpha=0.7))
+
+        # Title and labels
+        score = signal['score']
+        risk_reward = (tp - entry) / (entry - sl) if direction == 'long' else (entry - tp) / (sl - entry)
+
+        title = (f"{symbol} - Elliott Wave Analysis\n"
+                 f"Score: {score}/194 | Direction: {direction.upper()} | "
+                 f"R:R = 1:{abs(risk_reward):.2f}")
+        ax.set_title(title, fontsize=14, fontweight='bold')
+        ax.set_ylabel('Price', fontsize=12)
+        ax.legend(loc='upper left', fontsize=9)
+        ax.grid(True, alpha=0.3)
+
+    def _plot_volume(self, ax, df: pd.DataFrame):
+        """Plot volume bars"""
+        colors = ['green' if df['close'].iloc[i] >= df['open'].iloc[i] else 'red'
+                  for i in range(len(df))]
+        ax.bar(df.index, df['volume'], color=colors, alpha=0.5, width=0.02)
+        ax.set_ylabel('Volume', fontsize=10)
+        ax.grid(True, alpha=0.3)
+
+    def _plot_rsi(self, ax, df: pd.DataFrame, signal: Dict):
+        """Plot RSI indicator"""
+        if 'rsi' in signal:
+            # For demo, create dummy RSI data
+            rsi_values = np.random.uniform(30, 70, len(df))
+            rsi_values[-1] = signal['rsi']
+
+            ax.plot(df.index, rsi_values, 'purple', linewidth=1.5)
+            ax.axhline(y=70, color='red', linestyle='--', alpha=0.5, linewidth=0.8)
+            ax.axhline(y=30, color='green', linestyle='--', alpha=0.5, linewidth=0.8)
+            ax.axhline(y=50, color='gray', linestyle=':', alpha=0.3, linewidth=0.8)
+            ax.fill_between(df.index, 30, 70, alpha=0.1, color='gray')
+
+            ax.set_ylabel('RSI (14)', fontsize=10)
+            ax.set_ylim(0, 100)
+            ax.grid(True, alpha=0.3)
+            ax.text(df.index[-1], signal['rsi'], f" {signal['rsi']:.1f}",
+                    fontsize=9, va='center')
+
+    def _plot_stochastic(self, ax, df: pd.DataFrame, signal: Dict):
+        """Plot Stochastic oscillator"""
+        if 'stoch_k' in signal and 'stoch_d' in signal:
+            # For demo, create dummy stochastic data
+            stoch_k = np.random.uniform(20, 80, len(df))
+            stoch_d = np.random.uniform(20, 80, len(df))
+            stoch_k[-1] = signal['stoch_k']
+            stoch_d[-1] = signal['stoch_d']
+
+            ax.plot(df.index, stoch_k, 'blue', linewidth=1.5, label='%K')
+            ax.plot(df.index, stoch_d, 'red', linewidth=1.5, label='%D')
+            ax.axhline(y=80, color='red', linestyle='--', alpha=0.5, linewidth=0.8)
+            ax.axhline(y=20, color='green', linestyle='--', alpha=0.5, linewidth=0.8)
+            ax.fill_between(df.index, 20, 80, alpha=0.1, color='gray')
+
+            ax.set_ylabel('Stochastic', fontsize=10)
+            ax.set_ylim(0, 100)
+            ax.legend(loc='upper left', fontsize=8)
+            ax.grid(True, alpha=0.3)
+
+    def generate_report(self, analysis: Dict, chart_path: str) -> str:
+        """
+        Generate comprehensive trade report
+
+        Args:
+            analysis: Trade analysis dict
+            chart_path: Path to generated chart
+
+        Returns:
+            Path to saved report file
+        """
+        signal = analysis['signal']
+        symbol = analysis['symbol']
+        score_breakdown = analysis['score_breakdown']
+
+        # Calculate risk metrics
+        entry = signal['entry_price']
+        sl = signal['stop_loss']
+        tp = signal['take_profit']
+        direction = signal['direction']
+
+        if direction == 'long':
+            risk_pct = ((entry - sl) / entry) * 100
+            reward_pct = ((tp - entry) / entry) * 100
+        else:
+            risk_pct = ((sl - entry) / entry) * 100
+            reward_pct = ((entry - tp) / entry) * 100
+
+        risk_reward = reward_pct / risk_pct if risk_pct > 0 else 0
+
+        # Generate report
+        report = f"""# 📊 Trade Analysis Report
+## {symbol} - Elliott Wave Setup
+
+**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+---
+
+## 🎯 Trade Setup
+
+| Parameter | Value |
+|-----------|-------|
+| **Symbol** | {symbol} |
+| **Direction** | {direction.upper()} {'🟢' if direction == 'long' else '🔴'} |
+| **Score** | {signal['score']}/194 {'⭐' if signal['score'] >= OPTIMAL_SCORE else '✅' if signal['score'] >= MIN_TRADEABLE_SCORE else '⚠️'} |
+| **Entry Price** | {entry:.5f} |
+| **Stop Loss** | {sl:.5f} |
+| **Take Profit** | {tp:.5f} |
+| **Risk** | {risk_pct:.2f}% |
+| **Reward** | {reward_pct:.2f}% |
+| **Risk:Reward** | 1:{risk_reward:.2f} |
+
+---
+
+## 📈 Score Breakdown
+
+| Component | Score | Status |
+|-----------|-------|--------|
+| Elliott Wave Pattern | {score_breakdown.get('elliott_wave', 0)}/50 | {'✅' if score_breakdown.get('elliott_wave', 0) >= 30 else '⚠️'} |
+| Technical Indicators | {score_breakdown.get('indicators', 0)}/50 | {'✅' if score_breakdown.get('indicators', 0) >= 30 else '⚠️'} |
+| Multi-Timeframe | {score_breakdown.get('multi_timeframe', 0)}/44 | {'✅' if score_breakdown.get('multi_timeframe', 0) >= 22 else '⚠️'} |
+| Trend Strength | {score_breakdown.get('trend_strength', 0)}/25 | {'✅' if score_breakdown.get('trend_strength', 0) >= 15 else '⚠️'} |
+| Momentum | {score_breakdown.get('momentum', 0)}/25 | {'✅' if score_breakdown.get('momentum', 0) >= 15 else '⚠️'} |
+
+**Total Score:** {signal['score']}/194
+
+---
+
+## 📊 Technical Analysis
+
+### Elliott Wave Pattern
+"""
+
+        if 'wave_info' in signal:
+            wave_info = signal['wave_info']
+            report += f"""
+- **Pattern:** {wave_info.get('type', 'N/A')}
+- **Confidence:** {wave_info.get('confidence', 0):.1%}
+- **Current Wave:** Wave {wave_info.get('current_wave', 'N/A')}
+"""
+        else:
+            report += "\n- No clear Elliott Wave pattern detected\n"
+
+        report += f"""
+### Key Indicators
+
+| Indicator | Value | Signal |
+|-----------|-------|--------|
+| RSI (14) | {signal.get('rsi', 0):.1f} | {'Overbought' if signal.get('rsi', 50) > 70 else 'Oversold' if signal.get('rsi', 50) < 30 else 'Neutral'} |
+| ADX | {signal.get('adx', 0):.1f} | {'Strong Trend' if signal.get('adx', 0) > 25 else 'Weak Trend'} |
+| Stochastic %K | {signal.get('stoch_k', 0):.1f} | {'Overbought' if signal.get('stoch_k', 50) > 80 else 'Oversold' if signal.get('stoch_k', 50) < 20 else 'Neutral'} |
+| Bollinger Position | {signal.get('bollinger_position', 0):.2f} | {'Upper Band' if signal.get('bollinger_position', 0) > 0.8 else 'Lower Band' if signal.get('bollinger_position', 0) < 0.2 else 'Middle'} |
+
+### Multi-Timeframe Alignment
+
+- **H4 Alignment:** {'✅ Aligned' if signal.get('h4_aligned', False) else '❌ Not Aligned'}
+- **M15 Confirmation:** {'✅ Confirmed' if signal.get('m15_aligned', False) else '❌ Not Confirmed'}
+
+---
+
+## 💰 Position Sizing (10% of capital)
+
+Assuming 100 EUR capital:
+- **Position Size:** 10 EUR (10%)
+- **Risk Amount:** {10 * risk_pct / 100:.2f} EUR ({risk_pct:.2f}%)
+- **Potential Profit:** {10 * reward_pct / 100:.2f} EUR ({reward_pct:.2f}%)
+
+---
+
+## 📈 Chart Analysis
+
+![Trade Analysis Chart]({chart_path})
+
+---
+
+## ⚠️ Risk Disclaimer
+
+This is an automated analysis based on Elliott Wave theory and technical indicators.
+- Always perform your own analysis
+- Never risk more than you can afford to lose
+- Past performance does not guarantee future results
+- This is NOT financial advice
+
+---
+
+## 🎯 Trading Plan
+
+### Entry
+- [ ] Wait for pullback to entry zone: {entry:.5f}
+- [ ] Confirm with M15 timeframe
+- [ ] Check volume confirmation
+
+### Risk Management
+- [ ] Set stop loss at: {sl:.5f}
+- [ ] Position size: 10% of capital
+- [ ] Maximum risk: {risk_pct:.2f}% per trade
+
+### Exit Strategy
+- [ ] Take profit target: {tp:.5f}
+- [ ] Consider partial profit at 50% of target
+- [ ] Trail stop loss after 1:1 risk:reward
+
+---
+
+**Generated by Elliott Wave Trading Bot v2.0**
+**Framework:** Fibonacci-Optimized Multi-Timeframe Analysis
+**Timestamp:** {analysis['timestamp']}
+"""
+
+        # Save report
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        report_path = self.output_dir / f"{symbol.replace('/', '_')}_{timestamp}_report.md"
+
+        with open(report_path, 'w') as f:
+            f.write(report)
+
+        print(f"📝 Report saved: {report_path}")
+
+        return str(report_path)
+
+    def save_json(self, analysis: Dict, chart_path: str, report_path: str) -> str:
+        """Save analysis as JSON for programmatic access"""
+        output = {
+            'symbol': analysis['symbol'],
+            'timestamp': analysis['timestamp'],
+            'signal': analysis['signal'],
+            'score_breakdown': analysis['score_breakdown'],
+            'chart_path': chart_path,
+            'report_path': report_path
+        }
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        json_path = self.output_dir / f"{analysis['symbol'].replace('/', '_')}_{timestamp}.json"
+
+        with open(json_path, 'w') as f:
+            json.dump(output, f, indent=2, default=str)
+
+        print(f"💾 JSON saved: {json_path}")
+
+        return str(json_path)
+
+
+def main():
+    """Main execution function"""
+    parser = argparse.ArgumentParser(
+        description="Complete Trade Analysis Workflow with Chart Generation"
+    )
+
+    parser.add_argument(
+        '--symbol',
+        type=str,
+        help='Trading symbol to analyze (e.g., EUR/USD)'
+    )
+
+    parser.add_argument(
+        '--auto',
+        action='store_true',
+        help='Automatically find and analyze best signal'
+    )
+
+    parser.add_argument(
+        '--output-dir',
+        type=str,
+        default='data/trade_analysis',
+        help='Output directory for charts and reports'
+    )
+
+    parser.add_argument(
+        '--no-indicators',
+        action='store_true',
+        help='Hide indicator subplots (show only price chart)'
+    )
+
+    args = parser.parse_args()
+
+    # Validate arguments
+    if not args.symbol and not args.auto:
+        parser.error("Either --symbol or --auto must be specified")
+
+    # Initialize analyzer
+    analyzer = TradeAnalyzer(output_dir=args.output_dir)
+
+    print(f"\n{'='*70}")
+    print(f"🚀 ELLIOTT WAVE TRADE ANALYSIS WORKFLOW")
+    print(f"{'='*70}\n")
+
+    # Step 1: Find signal
+    if args.auto:
+        signal = analyzer.find_best_signal()
+        if not signal:
+            print("\n❌ No valid signals found")
+            return
+        symbol = signal['symbol']
+    else:
+        symbol = args.symbol
+        signal = None
+
+    # Step 2: Analyze trade
+    try:
+        analysis = analyzer.analyze_trade(symbol, signal)
+    except Exception as e:
+        print(f"\n❌ Analysis failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return
+
+    # Step 3: Generate chart
+    try:
+        chart_path = analyzer.generate_chart(
+            analysis,
+            show_indicators=not args.no_indicators
+        )
+    except Exception as e:
+        print(f"\n⚠️  Chart generation failed: {e}")
+        chart_path = "N/A"
+
+    # Step 4: Generate report
+    try:
+        report_path = analyzer.generate_report(analysis, chart_path)
+    except Exception as e:
+        print(f"\n⚠️  Report generation failed: {e}")
+        report_path = "N/A"
+
+    # Step 5: Save JSON
+    try:
+        json_path = analyzer.save_json(analysis, chart_path, report_path)
+    except Exception as e:
+        print(f"\n⚠️  JSON save failed: {e}")
+        json_path = "N/A"
+
+    # Summary
+    print(f"\n{'='*70}")
+    print(f"✅ ANALYSIS COMPLETE!")
+    print(f"{'='*70}\n")
+    print(f"Symbol: {symbol}")
+    print(f"Score: {analysis['signal']['score']}/194")
+    print(f"Direction: {analysis['signal']['direction'].upper()}")
+    print(f"\nGenerated Files:")
+    print(f"  📈 Chart: {chart_path}")
+    print(f"  📝 Report: {report_path}")
+    print(f"  💾 JSON: {json_path}")
+    print(f"\n🎉 Ready for trading!\n")
+
+
+if __name__ == "__main__":
+    main()

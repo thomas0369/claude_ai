@@ -1,0 +1,219 @@
+/**
+ * INTERACTIVE BOTTOM-RIGHT DRAG TEST
+ * Actually clicks and drags from the bottom-right corner in the browser
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Interactive Bottom-Right Drag Test', () => {
+  test('Click and drag blocks from bottom-right corner', async ({ page }) => {
+    console.log('\n🎮 INTERACTIVE BOTTOM-RIGHT DRAG TEST\n');
+    console.log('='.repeat(80));
+
+    test.setTimeout(120000);
+
+    // Capture console logs and errors
+    const logs: string[] = [];
+    const errors: string[] = [];
+
+    page.on('console', msg => {
+      const text = msg.text();
+      logs.push(text);
+      if (text.includes('POINTER') || text.includes('HIT AREA') || text.includes('WARNING')) {
+        console.log(`[BROWSER] ${text}`);
+      }
+    });
+
+    page.on('pageerror', error => {
+      const errorText = error.toString();
+      errors.push(errorText);
+      console.error(`[PAGE ERROR] ${errorText}`);
+    });
+
+    await page.goto('/play/1', { waitUntil: 'networkidle', timeout: 60000 });
+    await page.locator('canvas').waitFor({ state: 'visible', timeout: 30000 });
+    await page.waitForFunction(() => typeof (window as any).game !== 'undefined', { timeout: 40000 });
+    await page.waitForTimeout(8000);
+
+    console.log('✅ Game loaded\n');
+
+    // Get canvas offset and block positions
+    const blocksWithCanvasOffset = await page.evaluate(() => {
+      const game = (window as any).game;
+      const scene = game.scene.scenes[0];
+      const blockArray = Array.from(scene.blockPool.activeBlocks);
+
+      // Get canvas position in browser coordinates
+      const canvas = document.querySelector('canvas');
+      const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
+
+      return blockArray.map((block: any, idx: number) => {
+        const shape = block.blockData.shape;
+        const rows = shape.length;
+        const cols = shape[0]?.length || 0;
+        const width = cols * 30;
+        const height = rows * 30;
+
+        // Convert game coordinates to browser coordinates
+        const browserX = canvasRect.left + block.x;
+        const browserY = canvasRect.top + block.y;
+
+        return {
+          index: idx,
+          id: block.blockData.id,
+          gameX: block.x,
+          gameY: block.y,
+          browserX,
+          browserY,
+          width,
+          height,
+          bottomRight: {
+            x: browserX + width - 5,  // 5px from edge in BROWSER coordinates
+            y: browserY + height - 5
+          },
+          center: {
+            x: browserX + width / 2,
+            y: browserY + height / 2
+          },
+          canvasOffset: {
+            left: canvasRect.left,
+            top: canvasRect.top
+          }
+        };
+      });
+    });
+
+    const blocks = blocksWithCanvasOffset;
+
+    console.log(`Found ${blocks.length} blocks\n`);
+
+    for (const block of blocks) {
+      console.log('─'.repeat(80));
+      console.log(`\n📦 Testing Block: ${block.id}`);
+      console.log(`   Game Position: (${block.gameX}, ${block.gameY})`);
+      console.log(`   Browser Position: (${Math.round(block.browserX)}, ${Math.round(block.browserY)})`);
+      console.log(`   Canvas Offset: (${block.canvasOffset.left}, ${block.canvasOffset.top})`);
+      console.log(`   Size: ${block.width}x${block.height}`);
+      console.log(`   Center (browser): (${Math.round(block.center.x)}, ${Math.round(block.center.y)})`);
+      console.log(`   Bottom-Right (browser): (${Math.round(block.bottomRight.x)}, ${Math.round(block.bottomRight.y)})\n`);
+
+      // Test 1: Click at CENTER (should work)
+      console.log(`   Test 1: Clicking at CENTER (${block.center.x}, ${block.center.y})`);
+
+      await page.mouse.move(block.center.x, block.center.y);
+      await page.waitForTimeout(100);
+
+      // Check if mouse is over block
+      const centerDetected = logs.some(log =>
+        log.includes('MOUSE OVER') && log.includes(block.id)
+      );
+
+      if (centerDetected) {
+        console.log(`      ✅ Center is clickable\n`);
+      } else {
+        console.log(`      ❌ Center NOT clickable - CRITICAL ERROR!\n`);
+      }
+
+      // Clear logs
+      logs.length = 0;
+
+      // Test 2: Click at BOTTOM-RIGHT (user reported this fails)
+      console.log(`   Test 2: Clicking at BOTTOM-RIGHT (${block.bottomRight.x}, ${block.bottomRight.y})`);
+
+      await page.mouse.move(block.bottomRight.x, block.bottomRight.y);
+      await page.waitForTimeout(100);
+
+      const bottomRightDetected = logs.some(log =>
+        log.includes('MOUSE OVER') && log.includes(block.id)
+      );
+
+      if (bottomRightDetected) {
+        console.log(`      ✅ Bottom-right is clickable\n`);
+      } else {
+        console.log(`      ❌ Bottom-right NOT clickable - THIS IS THE BUG!\n`);
+
+        // Get detailed hit area info
+        const hitAreaInfo = await page.evaluate((blockId) => {
+          const game = (window as any).game;
+          const scene = game.scene.scenes[0];
+          const blockArray = Array.from(scene.blockPool.activeBlocks);
+          const block = blockArray.find((b: any) => b.blockData.id === blockId);
+
+          if (!block) return null;
+
+          return {
+            hasInput: !!block.input,
+            hasHitArea: !!block.input?.hitArea,
+            hitArea: block.input?.hitArea ? {
+              x: block.input.hitArea.x,
+              y: block.input.hitArea.y,
+              width: block.input.hitArea.width,
+              height: block.input.hitArea.height
+            } : null,
+            containerSize: {
+              width: block.width,
+              height: block.height
+            },
+            isDraggable: block.input?.draggable
+          };
+        }, block.id);
+
+        console.log(`\n      🔍 Hit Area Debug Info for ${block.id}:`);
+        console.log(`         Has Input: ${hitAreaInfo?.hasInput}`);
+        console.log(`         Has HitArea: ${hitAreaInfo?.hasHitArea}`);
+        console.log(`         HitArea: ${JSON.stringify(hitAreaInfo?.hitArea)}`);
+        console.log(`         Container Size: ${JSON.stringify(hitAreaInfo?.containerSize)}`);
+        console.log(`         Is Draggable: ${hitAreaInfo?.isDraggable}\n`);
+
+        throw new Error(`Block ${block.id} bottom-right corner is NOT clickable!`);
+      }
+
+      // Test 3: Actually TRY to drag from bottom-right
+      console.log(`   Test 3: Attempting drag from bottom-right corner`);
+
+      logs.length = 0; // Clear logs
+
+      const dragTarget = {
+        x: 300,
+        y: 300
+      };
+
+      await page.mouse.move(block.bottomRight.x, block.bottomRight.y);
+      await page.waitForTimeout(100);
+      await page.mouse.down();
+      await page.waitForTimeout(100);
+
+      const dragStartDetected = logs.some(log =>
+        log.includes('DRAG START') && log.includes(block.id)
+      );
+
+      if (dragStartDetected) {
+        console.log(`      ✅ Drag started successfully from bottom-right\n`);
+
+        // Complete the drag
+        await page.mouse.move(dragTarget.x, dragTarget.y, { steps: 10 });
+        await page.waitForTimeout(100);
+        await page.mouse.up();
+        await page.waitForTimeout(500);
+
+        console.log(`      ✅ Drag completed\n`);
+      } else {
+        console.log(`      ❌ Drag did NOT start from bottom-right - BUG CONFIRMED!\n`);
+
+        // Show what logs we DID get
+        console.log(`      📋 Logs received during drag attempt:`);
+        logs.slice(-5).forEach(log => console.log(`         ${log}`));
+
+        throw new Error(`Cannot drag block ${block.id} from bottom-right corner!`);
+      }
+    }
+
+    console.log('='.repeat(80));
+    console.log('✅ ALL BLOCKS ARE CLICKABLE AT BOTTOM-RIGHT CORNER!\n');
+
+    if (errors.length > 0) {
+      console.log('⚠️  Page errors detected:');
+      errors.forEach(err => console.log(`   ${err}`));
+    }
+  });
+});

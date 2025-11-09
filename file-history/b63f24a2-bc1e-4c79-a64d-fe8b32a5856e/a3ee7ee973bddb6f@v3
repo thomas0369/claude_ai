@@ -1,0 +1,104 @@
+/**
+ * Centralized unit formatting utilities
+ *
+ * Ensures consistent precision and unit display across the application.
+ * All formatters handle null/undefined gracefully by returning an empty string.
+ */
+
+export const UnitFormatters = {
+  /**
+   * Format power values in kilowatts
+   * @param kw - Power in kilowatts
+   * @param precision - Decimal places (default: 1)
+   * @returns Formatted string with unit (e.g., "100.5 kW") or empty string
+   *
+   * @example
+   * UnitFormatters.power(100.567) // "100.6 kW"
+   * UnitFormatters.power(0) // "0.0 kW"
+   * UnitFormatters.power(null) // ""
+   */
+  power(kw: number | null | undefined, precision: number = 1): string {
+    if (kw == null) return '';
+    return `${kw.toFixed(precision)} kW`;
+  },
+
+  /**
+   * Format voltage values
+   * @param volts - Voltage in volts
+   * @param precision - Decimal places (default: 0 for whole numbers)
+   * @returns Formatted string with unit (e.g., "400 V") or empty string
+   *
+   * @example
+   * UnitFormatters.voltage(400.7) // "401 V"
+   * UnitFormatters.voltage(230.5) // "231 V"
+   * UnitFormatters.voltage(null) // ""
+   */
+  voltage(volts: number | null | undefined, precision: number = 0): string {
+    if (volts == null) return '';
+    return `${volts.toFixed(precision)} V`;
+  },
+
+  /**
+   * Format current values in amperes
+   * @param amps - Current in amperes
+   * @param precision - Decimal places (default: 1)
+   * @returns Formatted string with unit (e.g., "16.5 A") or empty string
+   */
+  current(amps: number | null | undefined, precision: number = 1): string {
+    if (amps == null) return '';
+    return `${amps.toFixed(precision)} A`;
+  },
+
+  /**
+   * Format percentage values
+   * @param percent - Percentage value (0-100)
+   * @param precision - Decimal places (default: 1)
+   * @returns Formatted string with % symbol (e.g., "95.5%") or empty string
+   */
+  percent(percent: number | null | undefined, precision: number = 1): string {
+    if (percent == null) return '';
+    return `${percent.toFixed(precision)}%`;
+  },
+
+  /**
+   * Generic number formatter with null handling
+   * @param value - Numeric value
+   * @param precision - Decimal places (default: 0)
+   * @returns Formatted string or empty string
+   */
+  number(value: number | null | undefined, precision: number = 0): string {
+    if (value == null) return '';
+    return value.toFixed(precision);
+  },
+
+  /**
+   * Format string values with fallback
+   * @param value - String value
+   * @param fallback - Fallback text (default: empty string)
+   * @returns Original string or fallback
+   */
+  string(value: string | null | undefined, fallback: string = ''): string {
+    return value && value.trim() !== '' ? value : fallback;
+  },
+
+  /**
+   * Format ISO date strings to readable format
+   * @param date - ISO date string
+   * @param fallback - Fallback text (default: empty string)
+   * @returns Formatted date string (YYYY-MM-DD) or fallback
+   *
+   * @example
+   * UnitFormatters.date('2024-01-15T10:30:00Z') // "2024-01-15"
+   * UnitFormatters.date(null) // ""
+   */
+  date(date: string | null | undefined, fallback: string = ''): string {
+    if (!date) return fallback;
+    try {
+      // Extract just the date part (YYYY-MM-DD) from ISO string
+      const match = date.match(/^(\d{4}-\d{2}-\d{2})/);
+      return match ? match[1] : fallback;
+    } catch {
+      return fallback;
+    }
+  },
+};

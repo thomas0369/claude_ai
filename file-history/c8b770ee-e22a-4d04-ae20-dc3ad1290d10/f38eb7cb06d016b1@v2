@@ -1,0 +1,526 @@
+# Thomas Setup Command
+
+**Command:** `/thomas-setup`
+
+**Purpose:** Comprehensive project setup automation that configures all Claude Code infrastructure components for new or existing projects.
+
+---
+
+## What This Command Does
+
+When you run `/thomas-setup` in a project, Claude will automatically:
+
+1. **Analyze Project Structure**
+   - Detect if monorepo or single-service
+   - Identify frontend/backend locations
+   - Detect tech stack (React, Vue, Express, etc.)
+   - Find package.json files and service directories
+
+2. **Create CLAUDE.md**
+   - Project-specific configuration file
+   - Quick commands (build, start, test)
+   - Service locations and tech stack info
+   - Browser tools configuration
+   - PM2 commands (if multi-service)
+
+3. **Set Up PM2 (if applicable)**
+   - Create `ecosystem.config.js` for your services
+   - Configure all detected services (frontend, backend, workers)
+   - Set up proper log paths
+   - Create log directories
+   - Provide start/stop commands
+
+4. **Configure skill-rules.json**
+   - Update path patterns to match YOUR project structure
+   - Enable auto-activation for relevant skills
+   - Customize file triggers for your tech stack
+
+5. **Create Dev Docs Structure**
+   - Set up `dev/active/` directory for task documentation
+   - Create README with workflow instructions
+   - Prepare template files
+
+6. **Generate Project-Specific Agents (Optional)**
+   - Create custom agents tailored to your project
+   - E.g., "api-route-tester" for your specific API structure
+   - Include project-specific context and patterns
+
+7. **Set Up Git Hooks (Optional)**
+   - Pre-commit hooks for linting/formatting
+   - Integration with existing hooks
+
+---
+
+## Usage
+
+### For New Projects
+
+```markdown
+I'm starting a new project with:
+- Frontend: React + Vite at ./frontend
+- Backend: Express API at ./api
+- Database: PostgreSQL with Prisma
+
+/thomas-setup
+```
+
+### For Existing Projects
+
+```markdown
+I have an existing monorepo project at /home/thoma/my-project
+It has 3 services: auth, users, and notifications (all Express)
+And a React frontend
+
+Please analyze and set it up.
+
+/thomas-setup
+```
+
+### For Specific Components Only
+
+```markdown
+/thomas-setup --only pm2,claude-md
+
+Only set up PM2 and CLAUDE.md, skip the rest.
+```
+
+---
+
+## Execution Steps
+
+### Step 1: Project Analysis
+
+**Claude will:**
+- Ask clarifying questions if needed
+- Scan project directory structure
+- Identify all package.json files
+- Detect tech stack from dependencies
+- Find all service directories
+- Map out the project architecture
+
+**Output:**
+```
+📊 Project Analysis Results:
+- Type: Monorepo (4 services detected)
+- Frontend: React 18 + Vite (./apps/web)
+- Backend Services:
+  - auth-api (./services/auth) - Express + Prisma
+  - user-api (./services/users) - Express + Prisma
+  - worker (./services/worker) - Node.js
+- Database: PostgreSQL with Prisma ORM
+```
+
+### Step 2: CLAUDE.md Creation
+
+**Claude will create:**
+
+```markdown
+# [Project Name]
+
+## Project Structure
+- Monorepo with 3 backend services + 1 frontend
+- Backend: Node.js + Express + Prisma
+- Frontend: React 18 + Vite + TanStack Query
+- Database: PostgreSQL
+
+## Quick Commands
+
+### Development
+\`\`\`bash
+# Start all services
+pm2 start ecosystem.config.js
+
+# Stop all services
+pm2 stop all
+
+# View logs
+pm2 logs
+
+# Restart specific service
+pm2 restart auth-api
+\`\`\`
+
+### Build
+\`\`\`bash
+# Build all services
+pnpm build
+
+# Build specific service
+cd services/auth && pnpm build
+\`\`\`
+
+### Testing
+\`\`\`bash
+# Run all tests
+pnpm test
+
+# Test specific service
+cd services/auth && pnpm test
+\`\`\`
+
+## Service Locations
+
+- **auth-api**: `./services/auth` (Port 3001)
+- **user-api**: `./services/users` (Port 3002)
+- **worker**: `./services/worker`
+- **frontend**: `./apps/web` (Port 5173)
+
+## Database
+
+- **Type**: PostgreSQL
+- **ORM**: Prisma
+- **Migrations**: `cd services/auth && npx prisma migrate dev`
+- **Studio**: `cd services/auth && npx prisma studio`
+
+## Environment Variables
+
+Required in `.env`:
+\`\`\`
+DATABASE_URL=postgresql://localhost:5432/mydb
+JWT_SECRET=your-secret-here
+PORT=3001
+\`\`\`
+
+## Tech Stack
+
+### Backend
+- Node.js 22.x
+- Express.js
+- Prisma ORM
+- TypeScript
+
+### Frontend
+- React 18
+- Vite
+- TanStack Query
+- TanStack Router
+- MUI v7
+
+## Repository Pattern
+
+All database access goes through repositories:
+- `services/auth/src/repositories/`
+- `services/users/src/repositories/`
+
+## Error Handling
+
+All services use Sentry for error tracking.
+```
+
+### Step 3: PM2 Configuration
+
+**Claude will create `ecosystem.config.js`:**
+
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: 'auth-api',
+      script: 'npm',
+      args: 'start',
+      cwd: './services/auth',
+      error_file: './services/auth/logs/error.log',
+      out_file: './services/auth/logs/out.log',
+      env: {
+        NODE_ENV: 'development',
+        PORT: 3001
+      }
+    },
+    {
+      name: 'user-api',
+      script: 'npm',
+      args: 'start',
+      cwd: './services/users',
+      error_file: './services/users/logs/error.log',
+      out_file: './services/users/logs/out.log',
+      env: {
+        NODE_ENV: 'development',
+        PORT: 3002
+      }
+    },
+    {
+      name: 'worker',
+      script: 'npm',
+      args: 'run worker',
+      cwd: './services/worker',
+      error_file: './services/worker/logs/error.log',
+      out_file: './services/worker/logs/out.log',
+      env: {
+        NODE_ENV: 'development'
+      }
+    },
+    {
+      name: 'frontend',
+      script: 'npm',
+      args: 'run dev',
+      cwd: './apps/web',
+      error_file: './apps/web/logs/error.log',
+      out_file: './apps/web/logs/out.log',
+      env: {
+        NODE_ENV: 'development',
+        PORT: 5173
+      }
+    }
+  ]
+};
+```
+
+**Then create log directories:**
+```bash
+mkdir -p services/auth/logs
+mkdir -p services/users/logs
+mkdir -p services/worker/logs
+mkdir -p apps/web/logs
+```
+
+### Step 4: Update skill-rules.json
+
+**Claude will update `~/.claude/skills/skill-rules.json`:**
+
+Add project-specific path patterns:
+
+```json
+{
+  "skills": {
+    "backend-dev-guidelines": {
+      "fileTriggers": {
+        "pathPatterns": [
+          "/home/thoma/my-project/services/auth/**/*.ts",
+          "/home/thoma/my-project/services/users/**/*.ts",
+          "/home/thoma/my-project/services/worker/**/*.ts"
+        ]
+      }
+    },
+    "frontend-dev-guidelines": {
+      "fileTriggers": {
+        "pathPatterns": [
+          "/home/thoma/my-project/apps/web/**/*.tsx",
+          "/home/thoma/my-project/apps/web/**/*.ts"
+        ]
+      }
+    }
+  }
+}
+```
+
+### Step 5: Dev Docs Setup
+
+**Claude will create:**
+
+```bash
+mkdir -p dev/active
+```
+
+**Create `dev/README.md`:**
+```markdown
+# Development Documentation
+
+## Active Tasks
+
+Tasks in progress are stored in `dev/active/[task-name]/`
+
+Each task has three files:
+- `[task-name]-plan.md` - Strategic plan
+- `[task-name]-context.md` - Key files and decisions
+- `[task-name]-tasks.md` - Checklist of work
+
+## Usage
+
+Use the `/dev-docs` command to create new task documentation automatically.
+
+## Completed Tasks
+
+Move to `dev/completed/` when done.
+```
+
+### Step 6: Project-Specific Customizations
+
+**Claude will ask:**
+- Do you want project-specific agents created?
+- Should I set up Git hooks?
+- Any custom scripts to add to package.json?
+- Special environment setup needed?
+
+---
+
+## Command Options
+
+### Basic Usage
+```
+/thomas-setup
+```
+
+### With Options
+```
+/thomas-setup --only pm2,claude-md
+/thomas-setup --skip dev-docs
+/thomas-setup --project-path /path/to/project
+```
+
+### Available Flags
+- `--only <components>` - Only set up specific components (comma-separated)
+- `--skip <components>` - Skip specific components
+- `--project-path <path>` - Specify project path (defaults to current directory)
+- `--interactive` - Ask for confirmation at each step
+- `--dry-run` - Show what would be done without making changes
+
+### Component Names
+- `pm2` - PM2 ecosystem config
+- `claude-md` - CLAUDE.md file
+- `skill-rules` - Update skill-rules.json
+- `dev-docs` - Dev documentation structure
+- `agents` - Project-specific agents
+- `git-hooks` - Git hook setup
+
+---
+
+## Examples
+
+### Example 1: Full Setup for Monorepo
+
+```markdown
+I have a monorepo at /home/thoma/my-app with:
+- 3 Express backend services
+- 1 React frontend
+- Shared packages
+
+/thomas-setup
+```
+
+**Result:**
+- ✅ CLAUDE.md created with all services documented
+- ✅ ecosystem.config.js with all 4 services
+- ✅ skill-rules.json updated with correct paths
+- ✅ dev/active/ structure created
+- ✅ Log directories created
+
+### Example 2: Simple Single-Service App
+
+```markdown
+I have a simple Express API at /home/thoma/api-server
+
+/thomas-setup --skip pm2
+```
+
+**Result:**
+- ✅ CLAUDE.md created
+- ✅ skill-rules.json updated
+- ✅ dev/active/ structure created
+- ⏭️ PM2 skipped (not needed for single service)
+
+### Example 3: Only PM2 Config
+
+```markdown
+/thomas-setup --only pm2
+
+Just set up PM2, I already have CLAUDE.md configured.
+```
+
+**Result:**
+- ✅ ecosystem.config.js created
+- ✅ Log directories created
+- ⏭️ Everything else skipped
+
+---
+
+## What You Get
+
+After running `/thomas-setup`, your project will have:
+
+### ✅ Files Created
+```
+your-project/
+├── CLAUDE.md                    # Project-specific docs
+├── ecosystem.config.js          # PM2 configuration (if multi-service)
+├── dev/
+│   ├── README.md               # Dev docs guide
+│   └── active/                 # Active task documentation
+└── [services]/
+    └── logs/                   # Log directories for each service
+```
+
+### ✅ Updated Files
+- `~/.claude/skills/skill-rules.json` - Path patterns for your project
+
+### ✅ Ready to Use
+- PM2 commands work immediately
+- Skills auto-activate when editing your files
+- Dev docs workflow ready
+- All services documented
+
+---
+
+## Post-Setup
+
+After setup completes, Claude will provide:
+
+1. **Quick Start Commands**
+   ```bash
+   # Start all services
+   pm2 start ecosystem.config.js
+
+   # View CLAUDE.md
+   cat CLAUDE.md
+   ```
+
+2. **Next Steps Checklist**
+   - [ ] Review CLAUDE.md and customize if needed
+   - [ ] Test PM2 configuration: `pm2 start ecosystem.config.js`
+   - [ ] Verify skills activate when editing files
+   - [ ] Create your first dev doc: `/dev-docs`
+
+3. **Verification**
+   - Test skill activation by editing a backend file
+   - Check PM2 logs: `pm2 logs`
+   - View process list: `pm2 list`
+
+---
+
+## Troubleshooting
+
+### Skills not activating?
+- Check `~/.claude/skills/skill-rules.json` has correct absolute paths
+- Verify you're editing files matching the path patterns
+
+### PM2 services not starting?
+- Check `cwd` paths in ecosystem.config.js are correct
+- Verify `npm start` works manually in each service directory
+- Check logs: `pm2 logs [service-name]`
+
+### CLAUDE.md needs updates?
+- Edit it manually - it's just markdown
+- Rerun `/thomas-setup` to regenerate (backs up old version)
+
+---
+
+## Advanced: Automatic Detection
+
+Claude will automatically detect:
+
+- **Monorepo Tools**: Turborepo, Nx, Lerna, pnpm workspaces
+- **Frontend Frameworks**: React, Vue, Angular, Svelte, Next.js
+- **Backend Frameworks**: Express, NestJS, Fastify, Koa
+- **ORMs**: Prisma, TypeORM, Sequelize, Drizzle
+- **Package Managers**: pnpm, npm, yarn, bun
+- **Build Tools**: Vite, Webpack, Turbopack, esbuild
+
+All configurations will be tailored to what's detected.
+
+---
+
+## Implementation Details
+
+This command is implemented as a Claude Code slash command that:
+
+1. Uses the `Bash`, `Read`, `Glob`, and `Grep` tools to analyze the project
+2. Uses the `Write` and `Edit` tools to create/update configuration files
+3. Leverages the existing skills and agents from the infrastructure showcase
+4. Provides interactive prompts for clarification when needed
+5. Creates backups before overwriting existing files
+6. Validates all configurations before completion
+
+---
+
+**Created by:** Thomas
+**Based on:** Claude Code Infrastructure Showcase + Reddit Best Practices
+**Last Updated:** 2025-11-09

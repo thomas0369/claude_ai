@@ -1,0 +1,51 @@
+/**
+ * Capture console logs during setupInteraction() to see what's happening
+ */
+
+import { test } from '@playwright/test';
+
+test('Capture hit area setup console logs', async ({ page }) => {
+  console.log('\n📋 CONSOLE LOG CAPTURE TEST\n');
+  console.log('='.repeat(80));
+
+  // Capture all console logs
+  const logs: string[] = [];
+  page.on('console', msg => {
+    const text = msg.text();
+    logs.push(text);
+    // Print logs that contain hit area information
+    if (text.includes('HIT AREA') || text.includes('setInteractive') || text.includes('setupInteraction')) {
+      console.log(`[BROWSER] ${text}`);
+    }
+  });
+
+  test.setTimeout(120000);
+
+  await page.goto('/play/1', { waitUntil: 'networkidle', timeout: 60000 });
+  await page.locator('canvas').waitFor({ state: 'visible', timeout: 30000 });
+  await page.waitForFunction(() => typeof (window as any).game !== 'undefined', { timeout: 40000 });
+  await page.waitForTimeout(10000); // Wait longer to capture all initialization logs
+
+  console.log('\n' + '='.repeat(80));
+  console.log('📊 ANALYSIS\n');
+
+  // Filter and analyze hit area calculation logs
+  const hitAreaLogs = logs.filter(log => log.includes('HIT AREA CALCULATION'));
+
+  console.log(`Found ${hitAreaLogs.length} hit area calculations:\n`);
+
+  hitAreaLogs.forEach((log, idx) => {
+    console.log(`${idx + 1}. ${log}\n`);
+  });
+
+  // Filter setupInteraction calls
+  const setupCalls = logs.filter(log => log.includes('setupInteraction() CALLED'));
+  console.log(`Total setupInteraction() calls: ${setupCalls.length}\n`);
+
+  // Filter setInteractive completions
+  const interactiveCalls = logs.filter(log => log.includes('setInteractive() COMPLETED'));
+  console.log(`Total setInteractive() completions: ${interactiveCalls.length}\n`);
+
+  console.log('='.repeat(80));
+  console.log('✅ CONSOLE LOG CAPTURE COMPLETE\n');
+});

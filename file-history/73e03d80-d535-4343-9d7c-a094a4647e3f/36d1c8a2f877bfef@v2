@@ -1,0 +1,36 @@
+/**
+ * Design Alignment Test
+ *
+ * Verify that the game layout uses consistent dark theme styling
+ * and all components are properly aligned
+ */
+
+import { test, expect } from '@playwright/test';
+
+test('Game page uses consistent dark theme design', async ({ page }) => {
+  console.log('=== Loading Level 1 ===');
+  await page.goto('http://localhost:3001/play/1');
+  await page.waitForLoadState('networkidle');
+
+  // Wait for game to fully initialize
+  await page.waitForTimeout(3000);
+
+  console.log('=== Taking Screenshot ===');
+  await page.screenshot({
+    path: 'design-alignment-full-page.png',
+    fullPage: true
+  });
+
+  // Check for GameHUD element
+  const hudElement = await page.locator('div.bg-gray-800.rounded-xl.shadow-2xl').first();
+  expect(await hudElement.isVisible()).toBe(true);
+
+  console.log('✅ Design alignment test complete');
+  console.log('📸 Screenshot saved to design-alignment-full-page.png');
+  console.log('');
+  console.log('🎨 Verify the following:');
+  console.log('  - GameHUD uses dark theme (gray-800 background)');
+  console.log('  - Score display is prominent with yellow text');
+  console.log('  - Game canvas matches HUD styling');
+  console.log('  - All components aligned in responsive grid');
+});

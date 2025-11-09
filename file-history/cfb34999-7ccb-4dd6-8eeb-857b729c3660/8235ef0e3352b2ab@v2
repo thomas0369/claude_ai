@@ -1,0 +1,121 @@
+/**
+ * DEBUG: Find elements blocking canvas input
+ */
+
+import { test } from '@playwright/test';
+
+test('Find elements blocking canvas', async ({ page }) => {
+  console.log('\n🔍 FINDING BLOCKING ELEMENTS\n');
+  console.log('='.repeat(80));
+
+  test.setTimeout(120000);
+
+  await page.goto('/play/1', { waitUntil: 'networkidle', timeout: 60000 });
+  await page.locator('canvas').waitFor({ state: 'visible', timeout: 30000 });
+  await page.waitForFunction(() => typeof (window as any).game !== 'undefined', { timeout: 40000 });
+  await page.waitForTimeout(8000);
+
+  console.log('✅ Game loaded\n');
+
+  // Find all elements at the block position
+  const blockPosition = { x: 160, y: 495 }; // Center of first block
+
+  const elementsAtPoint = await page.evaluate(({ x, y }) => {
+    const elements = [];
+    let currentElement = document.elementFromPoint(x, y);
+
+    // Walk up the DOM tree
+    while (currentElement) {
+      const rect = currentElement.getBoundingClientRect();
+      const styles = window.getComputedStyle(currentElement);
+
+      elements.push({
+        tag: currentElement.tagName,
+        id: currentElement.id || '(no id)',
+        className: currentElement.className || '(no class)',
+        zIndex: styles.zIndex,
+        pointerEvents: styles.pointerEvents,
+        position: styles.position,
+        opacity: styles.opacity,
+        bounds: {
+          left: Math.round(rect.left),
+          top: Math.round(rect.top),
+          right: Math.round(rect.right),
+          bottom: Math.round(rect.bottom),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height)
+        }
+      });
+
+      currentElement = currentElement.parentElement;
+    }
+
+    return elements;
+  }, blockPosition);
+
+  console.log(`📍 Elements at position (${blockPosition.x}, ${blockPosition.y}):\n`);
+
+  elementsAtPoint.forEach((elem, idx) => {
+    console.log(`${idx + 1}. <${elem.tag}> ${elem.id} ${elem.className}`);
+    console.log(`   z-index: ${elem.zIndex}`);
+    console.log(`   pointer-events: ${elem.pointerEvents}`);
+    console.log(`   position: ${elem.position}`);
+    console.log(`   opacity: ${elem.opacity}`);
+    console.log(`   bounds: ${JSON.stringify(elem.bounds)}`);
+    console.log('');
+  });
+
+  // Check if canvas is the top element
+  const topElement = elementsAtPoint[0];
+  if (topElement.tag === 'CANVAS') {
+    console.log('✅ Canvas is the top element - no blocking elements!\n');
+  } else {
+    console.log(`❌ BLOCKING ELEMENT FOUND: <${topElement.tag}> is on top of canvas!\n`);
+    console.log(`   This element is intercepting all clicks!\n`);
+    console.log(`   Solution: Set pointer-events: none on this element\n`);
+  }
+
+  // Also check all elements with pointer-events: auto or all
+  const interactiveElements = await page.evaluate(() => {
+    const all = document.querySelectorAll('*');
+    const interactive = [];
+
+    all.forEach((elem) => {
+      const styles = window.getComputedStyle(elem);
+      const rect = elem.getBoundingClientRect();
+
+      if (styles.pointerEvents === 'auto' || styles.pointerEvents === 'all') {
+        if (rect.width > 0 && rect.height > 0) {
+          interactive.push({
+            tag: elem.tagName,
+            id: elem.id || '(no id)',
+            className: elem.className.toString() || '(no class)',
+            zIndex: styles.zIndex,
+            position: styles.position,
+            bounds: {
+              left: Math.round(rect.left),
+              top: Math.round(rect.top),
+              width: Math.round(rect.width),
+              height: Math.round(rect.height)
+            }
+          });
+        }
+      }
+    });
+
+    return interactive;
+  });
+
+  console.log('─'.repeat(80));
+  console.log(`\n📋 All interactive elements (${interactiveElements.length} found):\n`);
+
+  interactiveElements.forEach((elem, idx) => {
+    console.log(`${idx + 1}. <${elem.tag}> ${elem.id} ${elem.className}`);
+    console.log(`   z-index: ${elem.zIndex}, position: ${elem.position}`);
+    console.log(`   bounds: ${JSON.stringify(elem.bounds)}`);
+    console.log('');
+  });
+
+  console.log('='.repeat(80));
+  console.log('✅ BLOCKING ELEMENT SEARCH COMPLETE\n');
+});

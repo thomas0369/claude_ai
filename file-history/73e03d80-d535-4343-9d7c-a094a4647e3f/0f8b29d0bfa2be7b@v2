@@ -1,0 +1,54 @@
+/**
+ * Capture JavaScript Errors
+ */
+
+import { test } from '@playwright/test';
+
+test('capture JavaScript errors from demo page', async ({ page }) => {
+  const jsErrors: string[] = [];
+  const consoleErrors: string[] = [];
+
+  // Capture JavaScript errors
+  page.on('pageerror', exception => {
+    console.log(`\n❌ PAGE ERROR: ${exception.toString()}`);
+    console.log(`Stack: ${exception.stack}`);
+    jsErrors.push(exception.toString());
+  });
+
+  // Capture console errors
+  page.on('console', msg => {
+    if (msg.type() === 'error') {
+      console.log(`\n❌ CONSOLE ERROR: ${msg.text()}`);
+      consoleErrors.push(msg.text());
+    } else {
+      console.log(`BROWSER: ${msg.text()}`);
+    }
+  });
+
+  console.log('\\n=== Navigating to /demo ===');
+  await page.goto('http://localhost:3001/demo');
+
+  console.log('\\n=== Waiting for page load ===');
+  await page.waitForLoadState('networkidle');
+
+  // Wait a bit to see if any errors occur
+  await page.waitForTimeout(5000);
+
+  console.log('\\n=== Summary ===');
+  console.log(`JavaScript Errors: ${jsErrors.length}`);
+  console.log(`Console Errors: ${consoleErrors.length}`);
+
+  if (jsErrors.length > 0) {
+    console.log('\\nJavaScript Errors:');
+    jsErrors.forEach(err => console.log(`  - ${err}`));
+  }
+
+  if (consoleErrors.length > 0) {
+    console.log('\\nConsole Errors:');
+    consoleErrors.forEach(err => console.log(`  - ${err}`));
+  }
+
+  // Take a screenshot
+  await page.screenshot({ path: 'error-capture.png', fullPage: true });
+  console.log('\\nScreenshot saved to error-capture.png');
+});

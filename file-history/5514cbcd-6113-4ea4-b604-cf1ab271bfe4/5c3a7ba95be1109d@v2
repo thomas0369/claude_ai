@@ -1,0 +1,266 @@
+/**
+ * PDF Storage Manager
+ * ====================
+ *
+ * Manages PDF file organization in folder structure:
+ * /public/data/pdfs/{manufacturer}/{model}/
+ *
+ * Features:
+ * - Create manufacturer/model directories
+ * - Save PDFs with metadata
+ * - Generate slugs for folder names
+ * - Track file versions
+ */
+
+import { promises as fs } from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+
+export interface PDFStorageMetadata {
+  /** Original filename */
+  originalFilename: string;
+  /** File size in bytes */
+  fileSize: number;
+  /** Number of pages in PDF */
+  pages: number;
+  /** SHA-256 hash of file content */
+  sha256: string;
+  /** Download/upload timestamp */
+  uploadedAt: string;
+  /** Source URL (if downloaded) */
+  sourceUrl?: string;
+  /** Download method */
+  source: 'manual_upload' | 'auto_search' | 'manufacturer_website';
+}
+
+export interface PDFStorageLocation {
+  /** Absolute path to PDF file */
+  pdfPath: string;
+  /** Relative path from public/ */
+  relativePath: string;
+  /** URL path for browser access */
+  publicUrl: string;
+  /** Directory containing PDF and metadata */
+  directory: string;
+}
+
+/**
+ * Generate URL-safe slug from string
+ */
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')  // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, '')       // Remove leading/trailing hyphens
+    .replace(/-+/g, '-')           // Collapse multiple hyphens
+    .substring(0, 100);            // Limit length
+}
+
+/**
+ * Calculate SHA-256 hash of file
+ */
+export async function calculateFileHash(buffer: Buffer): Promise<string> {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+}
+
+/**
+ * Get storage location for manufacturer/model
+ */
+export function getStorageLocation(
+  manufacturer: string,
+  model: string
+): PDFStorageLocation {
+  const manufacturerSlug = slugify(manufacturer);
+  const modelSlug = slugify(model);
+
+  const relativePath = `pdfs/${manufacturerSlug}/${modelSlug}`;
+  const directory = path.join(process.cwd(), 'public', 'data', relativePath);
+  const pdfPath = path.join(directory, 'datasheet.pdf');
+  const publicUrl = `/data/${relativePath}/datasheet.pdf`;
+
+  // Validate path stays within allowed directory (防止 path traversal)
+  const resolvedPath = path.resolve(directory);
+  const allowedDir = path.resolve(process.cwd(), 'public', 'data', 'pdfs');
+  if (!resolvedPath.startsWith(allowedDir)) {
+    throw new Error('Invalid path: Path traversal detected');
+  }
+
+  return {
+    pdfPath,
+    relativePath,
+    publicUrl,
+    directory,
+  };
+}
+
+/**
+ * Ensure directory exists
+ */
+export async function ensureDirectory(dirPath: string): Promise<void> {
+  try {
+    await fs.mkdir(dirPath, { recursive: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Save PDF file with metadata
+ */
+export async function savePDF(
+  manufacturer: string,
+  model: string,
+  pdfBuffer: Buffer,
+  metadata: Omit<PDFStorageMetadata, 'sha256' | 'uploadedAt'>
+): Promise<PDFStorageLocation> {
+  const location = getStorageLocation(manufacturer, model);
+
+  // Ensure directory exists
+  await ensureDirectory(location.directory);
+
+  // Calculate file hash
+  const sha256 = await calculateFileHash(pdfBuffer);
+
+  // Save PDF file
+  await fs.writeFile(location.pdfPath, pdfBuffer);
+
+  // Save metadata
+  const fullMetadata: PDFStorageMetadata = {
+    ...metadata,
+    sha256,
+    uploadedAt: new Date().toISOString(),
+  };
+
+  const metadataPath = path.join(location.directory, 'metadata.json');
+  await fs.writeFile(
+    metadataPath,
+    JSON.stringify(fullMetadata, null, 2),
+    'utf-8'
+  );
+
+  return location;
+}
+
+/**
+ * Check if PDF exists for manufacturer/model
+ */
+export async function pdfExists(
+  manufacturer: string,
+  model: string
+): Promise<boolean> {
+  const location = getStorageLocation(manufacturer, model);
+
+  try {
+    await fs.access(location.pdfPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get PDF metadata
+ */
+export async function getPDFMetadata(
+  manufacturer: string,
+  model: string
+): Promise<PDFStorageMetadata | null> {
+  const location = getStorageLocation(manufacturer, model);
+  const metadataPath = path.join(location.directory, 'metadata.json');
+
+  try {
+    const content = await fs.readFile(metadataPath, 'utf-8');
+    return JSON.parse(content) as PDFStorageMetadata;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Delete PDF and all associated files
+ */
+export async function deletePDF(
+  manufacturer: string,
+  model: string
+): Promise<boolean> {
+  const location = getStorageLocation(manufacturer, model);
+
+  try {
+    // Delete entire directory
+    await fs.rm(location.directory, { recursive: true, force: true });
+    return true;
+  } catch (error) {
+    console.error('Failed to delete PDF:', error);
+    return false;
+  }
+}
+
+/**
+ * List all manufacturers with PDFs
+ */
+export async function listManufacturers(): Promise<string[]> {
+  const pdfsDir = path.join(process.cwd(), 'public/data/pdfs');
+
+  try {
+    const entries = await fs.readdir(pdfsDir, { withFileTypes: true });
+    return entries
+      .filter(entry => entry.isDirectory())
+      .map(entry => entry.name);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * List all models for a manufacturer
+ */
+export async function listModels(manufacturer: string): Promise<string[]> {
+  const manufacturerSlug = slugify(manufacturer);
+  const manufacturerDir = path.join(
+    process.cwd(),
+    'public/data/pdfs',
+    manufacturerSlug
+  );
+
+  try {
+    const entries = await fs.readdir(manufacturerDir, { withFileTypes: true });
+    return entries
+      .filter(entry => entry.isDirectory())
+      .map(entry => entry.name);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get storage statistics
+ */
+export async function getStorageStats(): Promise<{
+  totalManufacturers: number;
+  totalPDFs: number;
+  totalSizeBytes: number;
+}> {
+  const manufacturers = await listManufacturers();
+  let totalPDFs = 0;
+  let totalSizeBytes = 0;
+
+  for (const manufacturer of manufacturers) {
+    const models = await listModels(manufacturer);
+    totalPDFs += models.length;
+
+    for (const model of models) {
+      const metadata = await getPDFMetadata(manufacturer, model);
+      if (metadata) {
+        totalSizeBytes += metadata.fileSize;
+      }
+    }
+  }
+
+  return {
+    totalManufacturers: manufacturers.length,
+    totalPDFs,
+    totalSizeBytes,
+  };
+}

@@ -1,0 +1,379 @@
+import { test, expect } from '@playwright/test';
+
+/**
+ * Dashboard Data Quality Validation Test
+ *
+ * Purpose: Validate that the dashboard displays complete product data
+ * from ZEREZ import and identify any missing values or data quality issues.
+ */
+
+test.describe('Dashboard Data Quality Validation', () => {
+  test.beforeEach(async ({ page }) => {
+    // Navigate to dashboard
+    await page.goto('/dashboard');
+
+    // Wait for data to load
+    await page.waitForSelector('h1:has-text("C&I BESS Competition Analytics Platform")', {
+      timeout: 30000
+    });
+
+    // Wait for KPI cards to be visible
+    await page.waitForSelector('p:has-text("Total Products")', { timeout: 10000 });
+  });
+
+  test('should display KPI cards with valid values', async ({ page }) => {
+    console.log('\n🔍 Validating KPI Dashboard Cards...');
+
+    // Check Total Products
+    const totalProducts = await page.locator('p:has-text("Total Products")').locator('..').locator('p').nth(1).textContent();
+    console.log(`✅ Total Products: ${totalProducts}`);
+    expect(parseInt(totalProducts || '0')).toBeGreaterThan(0);
+
+    // Check Manufacturers
+    const manufacturers = await page.locator('p:has-text("Manufacturers")').locator('..').locator('p').nth(1).textContent();
+    console.log(`✅ Manufacturers: ${manufacturers}`);
+    expect(parseInt(manufacturers || '0')).toBeGreaterThan(0);
+
+    // Check Avg Efficiency
+    const avgEfficiency = await page.locator('p:has-text("Avg Efficiency")').locator('..').locator('p').nth(1).textContent();
+    console.log(`📊 Avg Efficiency: ${avgEfficiency}`);
+
+    // Avg Efficiency might be 0% if all products have empty efficiency data
+    if (avgEfficiency === '0.00%' || avgEfficiency === 'NaN%') {
+      console.log('⚠️  WARNING: Average Efficiency is showing 0% or NaN - indicates missing efficiency data');
+    }
+
+    // Check ZEREZ Variants
+    const variants = await page.locator('p:has-text("ZEREZ Variants")').locator('..').locator('p').nth(1).textContent();
+    console.log(`✅ ZEREZ Variants: ${variants}`);
+
+    // Check Top Efficiency
+    const topEfficiency = await page.locator('p:has-text("Top Efficiency")').locator('..').locator('p').nth(1).textContent();
+    console.log(`📊 Top Efficiency: ${topEfficiency}`);
+
+    if (topEfficiency === 'N/A') {
+      console.log('❌ ERROR: Top Efficiency showing N/A - no products with efficiency data');
+    }
+
+    // Check Market Leaders
+    const marketLeaders = await page.locator('p:has-text("Market Leaders")').locator('..').locator('p').nth(1).textContent();
+    console.log(`✅ Market Leaders: ${marketLeaders}`);
+
+    // Check Avg Power Density
+    const avgPowerDensity = await page.locator('p:has-text("Avg Power Density")').locator('..').locator('p').nth(1).textContent();
+    console.log(`📊 Avg Power Density: ${avgPowerDensity}`);
+
+    if (avgPowerDensity?.includes('N/A')) {
+      console.log('❌ ERROR: Avg Power Density showing N/A - missing physical dimension data');
+    }
+
+    // Check Top Power Density
+    const topPowerDensity = await page.locator('p:has-text("Top Power Density")').locator('..').locator('p').nth(1).textContent();
+    console.log(`📊 Top Power Density: ${topPowerDensity}`);
+
+    if (topPowerDensity?.includes('N/A')) {
+      console.log('❌ ERROR: Top Power Density showing N/A - missing physical dimension data');
+    }
+
+    // Check Avg Power/Weight
+    const avgPowerWeight = await page.locator('p:has-text("Avg Power/Weight")').locator('..').locator('p').nth(1).textContent();
+    console.log(`📊 Avg Power/Weight: ${avgPowerWeight}`);
+
+    if (avgPowerWeight?.includes('N/A')) {
+      console.log('❌ ERROR: Avg Power/Weight showing N/A - missing weight data');
+    }
+
+    // Check High Efficiency Count
+    const highEfficiency = await page.locator('p:has-text("High Efficiency")').locator('..').locator('p').nth(1).textContent();
+    console.log(`📊 High Efficiency (>97.5%): ${highEfficiency}`);
+
+    if (highEfficiency === '0') {
+      console.log('⚠️  WARNING: No high-efficiency products (>97.5%) found - indicates missing efficiency data');
+    }
+  });
+
+  test('should navigate to Product Analysis tab and validate table data', async ({ page }) => {
+    console.log('\n🔍 Validating Product Analysis Table...');
+
+    // Click on Product Analysis tab (should be active by default)
+    await page.waitForSelector('button:has-text("Product Analysis")');
+
+    // Wait for table to load
+    await page.waitForSelector('table', { timeout: 10000 });
+
+    // Get table headers
+    const headers = await page.locator('table thead th').allTextContents();
+    console.log(`✅ Table has ${headers.length} columns visible`);
+    console.log(`📋 Columns: ${headers.filter(h => h).join(', ')}`);
+
+    // Check for specific columns that should have data
+    const expectedColumns = [
+      'MANUFACTURER',
+      'MODEL',
+      'POWER (KW)',
+      'EFFICIENCY (%)',
+      'WEIGHT (KG)',
+      'POWER/WEIGHT (KW/KG)',
+      'POWER DENSITY (KW/M³)'
+    ];
+
+    for (const col of expectedColumns) {
+      const found = headers.some(h => h.toUpperCase().includes(col));
+      if (found) {
+        console.log(`✅ Column found: ${col}`);
+      } else {
+        console.log(`⚠️  Column may be hidden: ${col}`);
+      }
+    }
+
+    // Get first row data
+    const firstRow = await page.locator('table tbody tr').first();
+    await expect(firstRow).toBeVisible();
+
+    // Check if table cells have data or "N/A"
+    const cells = await firstRow.locator('td').allTextContents();
+    const naCells = cells.filter(cell => cell.trim() === 'N/A');
+    const totalCells = cells.filter(cell => cell.trim() !== '').length;
+
+    console.log(`📊 First row: ${totalCells} cells, ${naCells.length} showing "N/A"`);
+
+    if (naCells.length > totalCells / 2) {
+      console.log(`❌ ERROR: More than 50% of cells showing "N/A" (${naCells.length}/${totalCells})`);
+      console.log('📊 Cell values:', cells.join(' | '));
+    } else {
+      console.log(`✅ Data quality OK: ${totalCells - naCells.length}/${totalCells} cells have values`);
+    }
+
+    // Get total number of rows displayed
+    const rowCount = await page.locator('table tbody tr').count();
+    console.log(`✅ Table showing ${rowCount} rows`);
+
+    // Check pagination info
+    const paginationInfo = await page.locator('text=/Showing \\d+ to \\d+ of \\d+ results/').textContent();
+    console.log(`📄 Pagination: ${paginationInfo}`);
+  });
+
+  test('should validate specific column data quality', async ({ page }) => {
+    console.log('\n🔍 Validating Individual Column Data Quality...');
+
+    // Wait for table
+    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+
+    // Get all rows
+    const rows = await page.locator('table tbody tr').all();
+    console.log(`📊 Analyzing ${rows.length} rows...`);
+
+    // Analyze specific columns
+    const columns = await page.locator('table thead th').allTextContents();
+
+    // Find efficiency column
+    const efficiencyIndex = columns.findIndex(col =>
+      col.toUpperCase().includes('EFFICIENCY') && col.toUpperCase().includes('%') && !col.toUpperCase().includes('PERCENTILE')
+    );
+
+    if (efficiencyIndex !== -1) {
+      console.log(`\n📊 Analyzing Efficiency column (index ${efficiencyIndex}):`);
+      let naCount = 0;
+      let valueCount = 0;
+
+      for (const row of rows) {
+        const cells = await row.locator('td').all();
+        if (cells[efficiencyIndex]) {
+          const value = await cells[efficiencyIndex].textContent();
+          if (value?.trim() === 'N/A') {
+            naCount++;
+          } else {
+            valueCount++;
+          }
+        }
+      }
+
+      console.log(`  ✅ Rows with efficiency values: ${valueCount}/${rows.length} (${((valueCount/rows.length)*100).toFixed(1)}%)`);
+      console.log(`  ❌ Rows with N/A: ${naCount}/${rows.length} (${((naCount/rows.length)*100).toFixed(1)}%)`);
+
+      if (naCount > valueCount) {
+        console.log(`  ⚠️  ISSUE: Most products missing efficiency data!`);
+      }
+    }
+
+    // Find weight column
+    const weightIndex = columns.findIndex(col =>
+      col.toUpperCase().includes('WEIGHT') && col.toUpperCase().includes('KG') && !col.toUpperCase().includes('/')
+    );
+
+    if (weightIndex !== -1) {
+      console.log(`\n📊 Analyzing Weight column (index ${weightIndex}):`);
+      let naCount = 0;
+      let valueCount = 0;
+
+      for (const row of rows) {
+        const cells = await row.locator('td').all();
+        if (cells[weightIndex]) {
+          const value = await cells[weightIndex].textContent();
+          if (value?.trim() === 'N/A') {
+            naCount++;
+          } else {
+            valueCount++;
+          }
+        }
+      }
+
+      console.log(`  ✅ Rows with weight values: ${valueCount}/${rows.length} (${((valueCount/rows.length)*100).toFixed(1)}%)`);
+      console.log(`  ❌ Rows with N/A: ${naCount}/${rows.length} (${((naCount/rows.length)*100).toFixed(1)}%)`);
+
+      if (naCount > valueCount) {
+        console.log(`  ⚠️  ISSUE: Most products missing weight data!`);
+      }
+    }
+
+    // Find Power Density column
+    const powerDensityIndex = columns.findIndex(col =>
+      col.toUpperCase().includes('POWER DENSITY')
+    );
+
+    if (powerDensityIndex !== -1) {
+      console.log(`\n📊 Analyzing Power Density column (index ${powerDensityIndex}):`);
+      let naCount = 0;
+      let valueCount = 0;
+
+      for (const row of rows) {
+        const cells = await row.locator('td').all();
+        if (cells[powerDensityIndex]) {
+          const value = await cells[powerDensityIndex].textContent();
+          if (value?.trim() === 'N/A') {
+            naCount++;
+          } else {
+            valueCount++;
+          }
+        }
+      }
+
+      console.log(`  ✅ Rows with power density values: ${valueCount}/${rows.length} (${((valueCount/rows.length)*100).toFixed(1)}%)`);
+      console.log(`  ❌ Rows with N/A: ${naCount}/${rows.length} (${((naCount/rows.length)*100).toFixed(1)}%)`);
+
+      if (naCount > valueCount) {
+        console.log(`  ⚠️  ISSUE: Most products missing power density data!`);
+      }
+    }
+  });
+
+  test('should check if data enrichment is working', async ({ page }) => {
+    console.log('\n🔍 Checking Data Enrichment Status...');
+
+    // Check API endpoint to see raw data
+    const response = await page.request.get('/data/zerez/products.json');
+    expect(response.ok()).toBeTruthy();
+
+    const products = await response.json();
+    console.log(`✅ Loaded ${products.length} products from ZEREZ database`);
+
+    // Analyze data quality
+    let emptyEfficiency = 0;
+    let emptyPhysical = 0;
+    let emptyBenchmarks = 0;
+    let emptyCompetitive = 0;
+
+    for (const product of products) {
+      // Check efficiency
+      if (!product.efficiency || Object.keys(product.efficiency).length === 0) {
+        emptyEfficiency++;
+      }
+
+      // Check physical
+      if (!product.physical || Object.keys(product.physical).length === 0) {
+        emptyPhysical++;
+      }
+
+      // Check benchmarks
+      if (!product.benchmarks) {
+        emptyBenchmarks++;
+      }
+
+      // Check competitive
+      if (!product.competitive) {
+        emptyCompetitive++;
+      }
+    }
+
+    console.log(`\n📊 Data Completeness Analysis:`);
+    console.log(`  efficiency: ${products.length - emptyEfficiency}/${products.length} have data (${emptyEfficiency} empty)`);
+    console.log(`  physical: ${products.length - emptyPhysical}/${products.length} have data (${emptyPhysical} empty)`);
+    console.log(`  benchmarks: ${products.length - emptyBenchmarks}/${products.length} have data (${emptyBenchmarks} missing)`);
+    console.log(`  competitive: ${products.length - emptyCompetitive}/${products.length} have data (${emptyCompetitive} missing)`);
+
+    if (emptyEfficiency > products.length / 2) {
+      console.log(`\n❌ CRITICAL ISSUE: ${emptyEfficiency}/${products.length} products (${((emptyEfficiency/products.length)*100).toFixed(1)}%) have empty efficiency objects!`);
+      console.log('   This is why dashboard KPIs show 0% or N/A for efficiency metrics.');
+    }
+
+    if (emptyPhysical > products.length / 2) {
+      console.log(`\n❌ CRITICAL ISSUE: ${emptyPhysical}/${products.length} products (${((emptyPhysical/products.length)*100).toFixed(1)}%) have empty physical objects!`);
+      console.log('   This is why power density and weight metrics show N/A.');
+    }
+
+    if (emptyBenchmarks > 0) {
+      console.log(`\n⚠️  WARNING: ${emptyBenchmarks}/${products.length} products missing benchmarks field`);
+      console.log('   Data enrichment may not be running on ZEREZ imports.');
+    }
+
+    if (emptyCompetitive > 0) {
+      console.log(`\n⚠️  WARNING: ${emptyCompetitive}/${products.length} products missing competitive field`);
+      console.log('   Competitive intelligence enrichment may not be running.');
+    }
+
+    // Sample a product to show structure
+    const sampleProduct = products[0];
+    console.log(`\n📋 Sample Product Structure:`);
+    console.log(`  Model: ${sampleProduct.identification?.model}`);
+    console.log(`  Efficiency: ${JSON.stringify(sampleProduct.efficiency)}`);
+    console.log(`  Physical: ${JSON.stringify(sampleProduct.physical)}`);
+    console.log(`  Has benchmarks: ${!!sampleProduct.benchmarks}`);
+    console.log(`  Has competitive: ${!!sampleProduct.competitive}`);
+  });
+
+  test('should provide recommendations for data quality improvement', async ({ page }) => {
+    console.log('\n📋 Data Quality Improvement Recommendations:\n');
+
+    const response = await page.request.get('/data/zerez/products.json');
+    const products = await response.json();
+
+    let emptyEfficiency = 0;
+    let emptyPhysical = 0;
+
+    for (const product of products) {
+      if (!product.efficiency || Object.keys(product.efficiency).length === 0) {
+        emptyEfficiency++;
+      }
+      if (!product.physical || Object.keys(product.physical).length === 0) {
+        emptyPhysical++;
+      }
+    }
+
+    if (emptyEfficiency > 0 || emptyPhysical > 0) {
+      console.log('⚠️  ISSUES DETECTED:\n');
+
+      if (emptyEfficiency > 0) {
+        console.log(`1. Empty Efficiency Data (${emptyEfficiency} products)`);
+        console.log('   Impact: Dashboard shows 0% avg efficiency, N/A top efficiency');
+        console.log('   Solution: Run data enrichment to populate from ZEREZ certificates');
+        console.log('');
+      }
+
+      if (emptyPhysical > 0) {
+        console.log(`2. Empty Physical Data (${emptyPhysical} products)`);
+        console.log('   Impact: Power density, weight, dimensions all show N/A');
+        console.log('   Solution: Extract from PDF datasheets or use default values');
+        console.log('');
+      }
+
+      console.log('📝 RECOMMENDED ACTIONS:\n');
+      console.log('1. Check dataLoader-enhanced.ts - ensure enrichment runs on load');
+      console.log('2. Verify ZEREZ import process populates all fields');
+      console.log('3. Consider adding default values for missing fields');
+      console.log('4. Run PDF extraction on missing products to fill gaps');
+      console.log('5. Update import workflow to enrich data immediately after import');
+    } else {
+      console.log('✅ Data quality is good! All products have complete data.');
+    }
+  });
+});

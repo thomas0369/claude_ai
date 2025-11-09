@@ -1,0 +1,146 @@
+/**
+ * Staging Item API Route
+ * =======================
+ *
+ * GET /api/staging/[id] - Get specific staging item
+ * PATCH /api/staging/[id] - Update staging item
+ * DELETE /api/staging/[id] - Delete staging item
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getStagingItem, updateStagingItem, deleteStagingItem } from '@/lib/pdf/staging';
+import { StagingItemSchema } from '@/lib/pdf/staging-types';
+import { createErrorResponse } from '@/lib/api-error-handler';
+import { validateWithErrorHandling } from '@/lib/api-validation-helpers';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+interface RouteParams {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+/**
+ * GET - Get staging item by ID
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const { id } = await params;
+
+    const item = await getStagingItem(id);
+
+    if (!item) {
+      return NextResponse.json(
+        {
+          error: 'Staging item not found',
+          message: `No staging item found with ID: ${id}`,
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      item,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return createErrorResponse('get staging item', error);
+  }
+}
+
+/**
+ * PATCH - Update staging item
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+
+    // Validate partial update (only allow certain fields)
+    const allowedUpdates = [
+      'status',
+      'edited_data',
+      'editor_notes',
+      'verified_by',
+      'rejected_reason',
+    ];
+
+    const updates: Record<string, unknown> = {};
+    for (const key of allowedUpdates) {
+      if (key in body) {
+        updates[key] = body[key];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json(
+        {
+          error: 'No valid updates provided',
+          message: `Allowed fields: ${allowedUpdates.join(', ')}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const updatedItem = await updateStagingItem(id, updates);
+
+    if (!updatedItem) {
+      return NextResponse.json(
+        {
+          error: 'Staging item not found',
+          message: `No staging item found with ID: ${id}`,
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      item: updatedItem,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return createErrorResponse('update staging item', error);
+  }
+}
+
+/**
+ * DELETE - Delete staging item
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const { id } = await params;
+
+    const success = await deleteStagingItem(id);
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          error: 'Failed to delete staging item',
+          message: `Could not delete staging item with ID: ${id}`,
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Staging item deleted successfully',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return createErrorResponse('delete staging item', error);
+  }
+}

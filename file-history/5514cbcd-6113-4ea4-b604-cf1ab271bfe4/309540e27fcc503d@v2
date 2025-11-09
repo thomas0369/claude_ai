@@ -1,0 +1,72 @@
+# DeepSeek API Key Setup
+
+## Issue
+
+Your `.env.local` file exists but doesn't contain the `DEEPSEEK_API_KEY` variable name.
+
+## Fix
+
+Add this line to your `.env.local` file:
+
+```bash
+DEEPSEEK_API_KEY=sk-812d550b63ef41dab70775bc6d84a5da
+```
+
+## How to Fix
+
+### Option 1: Manual Edit
+
+1. Open `.env.local` in your editor
+2. Add the line above
+3. Save the file
+
+### Option 2: Command Line (WSL/Linux/Mac)
+
+```bash
+echo "DEEPSEEK_API_KEY=sk-812d550b63ef41dab70775bc6d84a5da" >> .env.local
+```
+
+### Option 3: Recreate File
+
+```bash
+# Backup existing file
+cp .env.local .env.local.backup
+
+# Create new file with API key
+echo "DEEPSEEK_API_KEY=sk-812d550b63ef41dab70775bc6d84a5da" > .env.local
+```
+
+## Verify
+
+After fixing, verify the API key is loaded:
+
+```bash
+npx tsx -e "require('dotenv').config({ path: '.env.local' }); console.log('API Key:', process.env.DEEPSEEK_API_KEY ? 'SET' : 'NOT SET')"
+```
+
+Expected output:
+```
+API Key: SET
+```
+
+## Test Scripts
+
+### With Environment Variable
+
+After fixing `.env.local`, run:
+
+```bash
+npx tsx scripts/test-extraction-simple.ts
+```
+
+### With Command Line Argument (Alternative)
+
+If you don't want to modify `.env.local`, you can pass the API key directly:
+
+```bash
+npx tsx scripts/test-intelligent-extraction.ts sk-812d550b63ef41dab70775bc6d84a5da
+```
+
+## Current .env.local Status
+
+The file currently has 1 variable but it's not named `DEEPSEEK_API_KEY`. Check the file contents and update accordingly.

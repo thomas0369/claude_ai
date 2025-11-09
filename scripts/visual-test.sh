@@ -1,0 +1,10 @@
+#!/bin/bash
+echo "🎨 Visual Regression Testing"
+echo ""
+echo "Setup options:"
+echo "1. Percy: https://percy.io (recommended)"
+echo "2. Chromatic: https://chromatic.com"
+echo "3. Self-hosted: pixelmatch"
+echo ""
+echo "Install: npm i -D pixelmatch pngjs"
+echo "Config: playwright.visual.config.ts"

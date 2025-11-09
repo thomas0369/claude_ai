@@ -1,0 +1,393 @@
+# ZEREZ Importer - UX Analysis & Improvement Plan
+
+**Date**: 2025-11-02
+**Status**: Active Development
+**Priority**: High
+
+## Current State Assessment
+
+### What's Working ✅
+1. **API Integration**: All endpoints return HTTP 200
+   - `/api/zerez/manufacturers` - Loads 12s (slow but functional)
+   - `/api/zerez/enum-values` - Loads in ~2-3s
+   - `/api/zerez/search` - Returns results in ~1.6-3.5s
+2. **Select Component Fix**: No more empty value errors
+3. **Manufacturer dropdown**: Searchable with 50-item pagination
+
+### User-Reported Issue ⚠️
+**"I selected a manufacturer and it's working for preview. But I can't see results."**
+
+**Diagnosis**: API returns data, but table may not be rendering. Possible causes:
+1. Data structure mismatch between API response and component expectations
+2. Table rendering conditional logic issue
+3. Browser console errors preventing render
+4. CSS/visibility issue hiding the table
+
+### Current UX Problems 🔴
+
+#### 1. **Overwhelming Filter Complexity**
+**Problem**: 15+ filter fields presented all at once
+- Power Range (2 fields)
+- Voltage Range (2 fields)
+- Category Filters (2 dropdowns)
+- Compliance (2 checkboxes)
+- Certificate Norms (3 checkboxes)
+- Date Filters (4 date inputs)
+- Advanced ID Filters (2 fields)
+
+**Impact**:
+- Cognitive overload for new users
+- Unclear which filters are essential vs optional
+- No guidance on common use cases
+
+#### 2. **Poor Visual Hierarchy**
+**Problem**: All sections have equal visual weight
+- No clear distinction between basic and advanced filters
+- Important actions (Preview/Reset) buried at bottom
+- No progressive disclosure
+
+#### 3. **Lack of Immediate Feedback**
+**Problem**: User doesn't know if selections worked
+- No filter summary/chip display
+- No "active filters" count
+- Must scroll to table to see results
+- Table appears far below filters (requires scrolling)
+
+#### 4. **No Guidance or Help**
+**Problem**: Technical field names without explanation
+- "Authority ID (UUID)" - What is this?
+- "4105 Compliant" - What regulation?
+- "Certificate Norms" - What do these mean?
+- No tooltips, no help text, no examples
+
+#### 5. **Slow Loading Times Without Feedback**
+**Problem**: Manufacturers take 12 seconds to load
+- User sees "Loading manufacturers..." but no progress
+- No indication of how long it will take
+- Can't interact with other filters while loading
+
+#### 6. **Poor Error Visibility**
+**Problem**: Errors show in small red text
+- Easy to miss validation errors
+- No error summary at top of form
+- Authority ID error appears but is subtle
+
+#### 7. **Unclear Result State**
+**Problem**: When table is visible, it's hard to scan
+- 12 columns with German headers (mixed language)
+- Too much information density
+- Important fields (manufacturer, power) lost in noise
+- No column sorting or filtering
+
+#### 8. **No Save/Load Filter Presets**
+**Problem**: Users must re-enter filters every time
+- Common searches require repetitive input
+- No "Recent Searches" or "Saved Filters"
+- Reset button clears everything (destructive)
+
+---
+
+## Proposed UX Improvements
+
+### Phase 1: Quick Wins (1-2 hours)
+
+#### 1.1 **Add Filter Summary Chips**
+**Location**: Between filters and Preview button
+
+```tsx
+{Object.entries(activeFilters).length > 0 && (
+  <div className="flex flex-wrap gap-2 p-4 bg-blue-50 rounded-lg">
+    <p className="text-sm font-medium w-full mb-2">
+      Active Filters ({activeFiltersCount}):
+    </p>
+    {filters.manufacturerId !== ALL_OPTIONS_SENTINEL && (
+      <Chip onRemove={() => resetFilter('manufacturerId')}>
+        Manufacturer: {getManufacturerName(filters.manufacturerId)}
+      </Chip>
+    )}
+    {filters.powerMin !== DEFAULT_MIN && (
+      <Chip onRemove={() => resetFilter('powerMin')}>
+        Min Power: {filters.powerMin} kW
+      </Chip>
+    )}
+    {/* ... more chips ... */}
+  </div>
+)}
+```
+
+**Impact**: Users see what filters are applied at a glance
+
+#### 1.2 **Add Results Count Preview**
+**Location**: On Preview button
+
+```tsx
+<Button onClick={handlePreviewProducts}>
+  {isLoadingPreview ? (
+    <>
+      <Loader2 className="animate-spin" />
+      Loading...
+    </>
+  ) : totalCount > 0 ? (
+    <>
+      <Filter />
+      Preview {totalCount.toLocaleString()} Products
+    </>
+  ) : (
+    <>
+      <Filter />
+      Preview Products
+    </>
+  )}
+</Button>
+```
+
+**Impact**: Immediate feedback if filters return 0 results
+
+#### 1.3 **Add Help Tooltips**
+**Location**: Next to technical field labels
+
+```tsx
+<Label htmlFor="authorityId">
+  Authority ID (UUID)
+  <InfoTooltip>
+    The unique identifier for the certification authority.
+    Leave blank to include all authorities.
+  </InfoTooltip>
+</Label>
+```
+
+**Impact**: Reduces confusion, improves accessibility
+
+#### 1.4 **Improve Table Scannability**
+- **Reduce columns** to 6 essential fields:
+  1. Checkbox
+  2. Model Name + ZEREZ ID (combined)
+  3. Manufacturer
+  4. Power (kW)
+  5. Category
+  6. Verification Status
+- **Add "Show Details" expansion row** for full data
+- **Add column sorting** (click headers)
+
+**Impact**: 50% less horizontal scrolling, easier to find products
+
+---
+
+### Phase 2: Major UX Overhaul (4-6 hours)
+
+#### 2.1 **Progressive Disclosure with Tabs**
+Restructure into three tabs:
+
+**Tab 1: Basic Filters** (default, always visible)
+```
+┌─────────────────────────────────────────┐
+│ Basic Filters | Advanced | Saved       │
+├─────────────────────────────────────────┤
+│ Power Range: [0] to [1000] kW          │
+│ Manufacturer: [Dropdown with search]    │
+│ ☑ Only Verified Products                │
+│                                          │
+│ [Preview Products]  [Reset]             │
+└─────────────────────────────────────────┘
+```
+
+**Tab 2: Advanced Filters** (hidden by default)
+- Voltage range
+- Category filters
+- Certificate norms
+- Date filters
+- Authority ID
+
+**Tab 3: Saved Filters** (localStorage persistence)
+- Common Searches preset
+- My Saved Filters
+- Recent Searches (last 5)
+
+**Impact**: Reduces cognitive load by 70%
+
+#### 2.2 **Smart Defaults with Use Case Buttons**
+Add quick-action buttons above filters:
+
+```tsx
+<div className="grid grid-cols-3 gap-4 mb-6">
+  <Button
+    variant="outline"
+    onClick={() => applyPreset('batteries-only')}
+  >
+    <Battery className="mr-2" />
+    Battery Storage Only
+    <span className="text-xs text-gray-500 ml-2">~450 products</span>
+  </Button>
+
+  <Button
+    variant="outline"
+    onClick={() => applyPreset('high-power')}
+  >
+    <Zap className="mr-2" />
+    High Power (&gt;100kW)
+    <span className="text-xs text-gray-500 ml-2">~120 products</span>
+  </Button>
+
+  <Button
+    variant="outline"
+    onClick={() => applyPreset('verified-only')}
+  >
+    <CheckCircle2 className="mr-2" />
+    Verified Products
+    <span className="text-xs text-gray-500 ml-2">~200 products</span>
+  </Button>
+</div>
+```
+
+**Impact**: New users can start searching in 1 click
+
+#### 2.3 **Sticky Filter Summary + Results Header**
+Make top bar sticky during scroll:
+
+```
+┌──────────────────────────────────────────────┐ ← Sticky
+│ 🔍 Filters Active: 3 | Products: 15 | [Edit] │
+├──────────────────────────────────────────────┤
+│                                              │
+│ [Scrollable product table]                  │
+│                                              │
+```
+
+**Impact**: Always visible context while browsing results
+
+#### 2.4 **Async Loading with Skeleton States**
+Replace "Loading..." spinners with skeleton screens:
+
+```tsx
+{isLoadingManufacturers ? (
+  <div className="space-y-2">
+    <Skeleton className="h-10 w-full" />
+    <div className="flex gap-2">
+      <Skeleton className="h-4 w-20" />
+      <Skeleton className="h-4 w-32" />
+    </div>
+  </div>
+) : (
+  <Select>...</Select>
+)}
+```
+
+**Impact**: Perceived performance improvement
+
+---
+
+### Phase 3: Advanced Features (8-10 hours)
+
+#### 3.1 **Real-Time Search Preview**
+Debounced search that shows count as you type:
+
+```
+Manufacturer: [Typ_____]
+              ↓
+              "Typing..."
+              ↓ 300ms debounce
+              "Found 15 manufacturers matching 'Typ'"
+```
+
+**Impact**: Faster iteration, fewer failed searches
+
+#### 3.2 **Filter Validation & Suggestions**
+Show warnings before search:
+
+```
+⚠️ Your filters may return 0 results
+Suggestion: Try increasing power range to 0-2000 kW
+```
+
+**Impact**: Reduce frustration from empty results
+
+#### 3.3 **Bulk Actions on Results**
+```tsx
+<div className="flex justify-between items-center">
+  <p>{selectedCount} products selected</p>
+  <div className="space-x-2">
+    <Button onClick={handleBulkExport}>Export CSV</Button>
+    <Button onClick={handleBulkImport}>Import Details</Button>
+    <Button onClick={handleBulkCompare}>Compare</Button>
+  </div>
+</div>
+```
+
+**Impact**: Power users can work faster
+
+#### 3.4 **Visual Filter Builder**
+Drag-and-drop filter construction:
+
+```
+┌─────────────────────────────────────┐
+│ IF manufacturer IS "Tesla"          │
+│ AND power BETWEEN 50 AND 200 kW     │
+│ AND verified IS true                │
+│ THEN show products (Est. 12 results)│
+└─────────────────────────────────────┘
+```
+
+**Impact**: Non-technical users can create complex queries
+
+---
+
+## Immediate Debugging Steps
+
+### Step 1: Check Browser Console
+**Action**: Open DevTools Console while previewing products
+
+**Look For**:
+- React errors (red text)
+- Network errors (failed requests)
+- TypeScript type errors
+- Null reference errors
+
+### Step 2: Add Debug Logging
+**File**: `app/import/zerez/page.tsx:320`
+
+```tsx
+const data = await response.json();
+console.log('🔍 Search API Response:', {
+  totalCount: data.totalCount,
+  unitsReceived: data.units?.length,
+  firstUnit: data.units?.[0]
+});
+setProducts(data.units.map((u: ZEREZUnit) => ({ ...u, selected: true })));
+setTotalCount(data.totalCount);
+console.log('✅ State Updated:', {
+  productsLength: data.units.length,
+  totalCount: data.totalCount
+});
+```
+
+### Step 3: Check Table Render Condition
+**File**: `app/import/zerez/page.tsx:848`
+
+Current condition:
+```tsx
+{products.length > 0 && (
+  <div className="mt-6">
+    {/* Table renders here */}
+  </div>
+)}
+```
+
+**Verify**:
+1. Is `products.length` actually > 0?
+2. Is table rendering but hidden by CSS?
+3. Is table rendering below viewport?
+
+### Step 4: Test with Minimal Filters
+**Action**: Try search with ONLY these filters:
+- Power: 0 to 10000 kW (very wide range)
+- Uncheck "Only Verified"
+- Uncheck "Only 4105 Compliant"
+- Set Manufacturer to "All Manufacturers"
+
+**Expected**: Should return hundreds of products
+
+---
+
+## Test Plan Document (Separate File)
+
+Creating comprehensive test plan in separate file...

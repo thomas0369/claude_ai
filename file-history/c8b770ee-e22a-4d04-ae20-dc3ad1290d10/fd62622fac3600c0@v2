@@ -1,0 +1,448 @@
+# PM2 Guide for Thomas's Workspace
+
+How to use PM2 with your projects in `/mnt/c/App-Ideas-Workspace/`
+
+---
+
+## 🎯 When PM2 Helps You
+
+### Problem: Managing Multiple Dev Servers
+
+**Without PM2:**
+```bash
+# Terminal 1
+cd /mnt/c/App-Ideas-Workspace/block-puzzle-hero
+npm run dev
+
+# Terminal 2
+cd /mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot
+npm test:ui
+
+# Terminal 3
+cd /mnt/c/App-Ideas-Workspace/new-project
+npm run dev
+
+# Result: 3+ terminal windows, hard to see logs, easy to lose track
+```
+
+**With PM2:**
+```bash
+# One command starts everything
+pm2 start ecosystem.config.js
+
+# View all processes
+pm2 list
+
+# View logs from all projects
+pm2 logs
+
+# Stop everything when done
+pm2 stop all
+```
+
+---
+
+## 🚀 Use Cases for Your Projects
+
+### Use Case 1: Working on Multiple Projects
+
+**Scenario:** You're switching between block-puzzle-hero and a new canvas app.
+
+**PM2 Solution:**
+```javascript
+// ecosystem.config.js in /mnt/c/App-Ideas-Workspace/
+module.exports = {
+  apps: [
+    {
+      name: 'block-puzzle',
+      script: 'npm',
+      args: 'run dev',
+      cwd: './block-puzzle-hero',
+      env: { PORT: 3000 }
+    },
+    {
+      name: 'new-canvas-app',
+      script: 'npm',
+      args: 'run dev',
+      cwd: './my-canvas-app',
+      env: { PORT: 3001 }
+    }
+  ]
+};
+```
+
+**Benefits:**
+- Both apps running simultaneously
+- Switch between `localhost:3000` and `localhost:3001`
+- One `pm2 logs` command shows logs from both
+- `pm2 restart block-puzzle` to restart just one
+
+### Use Case 2: Development + Testing
+
+**Scenario:** Running Next.js dev server AND Playwright tests.
+
+**PM2 Solution:**
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: 'block-puzzle-dev',
+      script: 'npm',
+      args: 'run dev',
+      cwd: './block-puzzle-hero'
+    },
+    {
+      name: 'block-puzzle-tests',
+      script: 'npm',
+      args: 'run test:e2e:ui',
+      cwd: './block-puzzle-hero',
+      autorestart: false  // Don't restart tests
+    }
+  ]
+};
+```
+
+**Benefits:**
+- Dev server runs continuously
+- Tests run in parallel
+- See test results in `pm2 logs block-puzzle-tests`
+
+### Use Case 3: Frontend + Backend Projects
+
+**Scenario:** When you build a project with separate frontend/backend.
+
+**Example:**
+```javascript
+module.exports = {
+  apps: [
+    // Frontend (Vite + Preact)
+    {
+      name: 'frontend',
+      script: 'npm',
+      args: 'run dev',
+      cwd: './my-app-frontend',
+      env: { PORT: 5173 }
+    },
+    // Backend API (Express)
+    {
+      name: 'api',
+      script: 'npm',
+      args: 'start',
+      cwd: './my-app-backend',
+      env: { PORT: 3001, NODE_ENV: 'development' }
+    }
+  ]
+};
+```
+
+**Benefits:**
+- Both services start together
+- Easy debugging: `pm2 logs api` or `pm2 logs frontend`
+- Restart just the API: `pm2 restart api`
+
+---
+
+## 📋 Practical Commands for Your Workflow
+
+### Starting Your Day
+
+```bash
+# Navigate to workspace
+cd /mnt/c/App-Ideas-Workspace
+
+# Start all configured projects
+pm2 start ecosystem.config.js
+
+# Check what's running
+pm2 list
+```
+
+### During Development
+
+```bash
+# View logs from specific project
+pm2 logs block-puzzle
+
+# View logs from all projects
+pm2 logs
+
+# Restart after config change
+pm2 restart block-puzzle
+
+# Stop project when not needed
+pm2 stop elliott-wave-bot
+```
+
+### Debugging Issues
+
+```bash
+# Check if process crashed
+pm2 list
+
+# View error logs
+pm2 logs block-puzzle --err
+
+# View last 100 lines
+pm2 logs --lines 100
+
+# Monitor resource usage
+pm2 monit
+```
+
+### End of Day
+
+```bash
+# Stop all running processes
+pm2 stop all
+
+# Delete all processes from PM2
+pm2 delete all
+```
+
+---
+
+## 🛠️ Setup for Your Workspace
+
+### Option 1: Workspace-Level Config (Recommended)
+
+Create one config for all projects:
+
+```bash
+# Create ecosystem config in workspace root
+cd /mnt/c/App-Ideas-Workspace
+```
+
+Create `ecosystem.config.js`:
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: 'block-puzzle',
+      script: 'npm',
+      args: 'run dev',
+      cwd: './block-puzzle-hero',
+      error_file: './block-puzzle-hero/logs/pm2-error.log',
+      out_file: './block-puzzle-hero/logs/pm2-out.log'
+    },
+    // Add more projects as you create them
+  ]
+};
+```
+
+**Usage:**
+```bash
+cd /mnt/c/App-Ideas-Workspace
+pm2 start ecosystem.config.js
+```
+
+### Option 2: Per-Project Config
+
+Each project has its own config:
+
+```bash
+# In block-puzzle-hero/
+pm2 start ecosystem.config.js --only block-puzzle
+
+# In new-canvas-app/
+pm2 start ecosystem.config.js --only canvas-app
+```
+
+---
+
+## 💡 When You DON'T Need PM2
+
+### Single Project Development
+
+If you're only working on one project at a time:
+```bash
+# Just use npm directly
+cd /mnt/c/App-Ideas-Workspace/block-puzzle-hero
+npm run dev
+```
+
+**PM2 overhead not needed for:**
+- One frontend app
+- Simple development
+- Quick tests
+
+### When PM2 REALLY Helps
+
+**Use PM2 when you have:**
+- ✅ 2+ services running (frontend + backend)
+- ✅ Multiple projects open simultaneously
+- ✅ Long-running processes (dev servers, watchers)
+- ✅ Need to monitor resource usage
+- ✅ Want consolidated logs from multiple processes
+
+---
+
+## 📝 Example: Your Current Setup
+
+Based on your projects, here's a starter config:
+
+```javascript
+// /mnt/c/App-Ideas-Workspace/ecosystem.config.js
+module.exports = {
+  apps: [
+    // Block Puzzle Hero - Next.js development
+    {
+      name: 'block-puzzle-dev',
+      script: 'npm',
+      args: 'run dev',
+      cwd: './block-puzzle-hero',
+      env: {
+        NODE_ENV: 'development',
+        PORT: 3000
+      }
+    },
+
+    // Block Puzzle Hero - Playwright tests (optional)
+    {
+      name: 'block-puzzle-tests',
+      script: 'npm',
+      args: 'run test:e2e:ui',
+      cwd: './block-puzzle-hero',
+      autorestart: false
+    },
+
+    // When you create new projects, add them here
+    // {
+    //   name: 'my-canvas-app',
+    //   script: 'npm',
+    //   args: 'run dev',
+    //   cwd: './my-canvas-app',
+    //   env: { PORT: 5173 }
+    // }
+  ]
+};
+```
+
+**Try it:**
+```bash
+cd /mnt/c/App-Ideas-Workspace
+pm2 start ecosystem.config.js --only block-puzzle-dev
+pm2 logs
+```
+
+---
+
+## 🎨 Integration with Claude Code
+
+### Ask Claude to Check PM2 Logs
+
+```markdown
+Check the PM2 logs for block-puzzle to see if there are any errors.
+```
+
+Claude can run:
+```bash
+pm2 logs block-puzzle --lines 50
+```
+
+### Ask Claude to Restart Service
+
+```markdown
+The block-puzzle app seems stuck, can you restart it?
+```
+
+Claude can run:
+```bash
+pm2 restart block-puzzle
+```
+
+### Include PM2 Commands in CLAUDE.md
+
+When you run `/thomas-setup` on a project, the CLAUDE.md will include:
+
+```markdown
+## Quick Commands
+
+### Development
+npm run dev              # Start dev server
+pm2 start ecosystem.config.js  # Start with PM2
+pm2 logs block-puzzle    # View logs
+pm2 restart block-puzzle # Restart service
+```
+
+---
+
+## ⚙️ Advanced: Auto-Start on Boot (Optional)
+
+If you want PM2 to start your projects automatically when your system boots:
+
+```bash
+# Save current process list
+pm2 save
+
+# Generate startup script
+pm2 startup
+
+# Follow the instructions shown
+```
+
+**Use case:** If you always work on the same projects.
+
+---
+
+## 🔧 Troubleshooting
+
+### "pm2: command not found"
+
+PM2 is already installed globally. If you get this error:
+```bash
+# Check installation
+which pm2
+
+# If not found, reinstall
+npm install -g pm2
+```
+
+### Processes Won't Start
+
+```bash
+# Check what failed
+pm2 list
+
+# View error logs
+pm2 logs [app-name] --err
+
+# Delete and retry
+pm2 delete [app-name]
+pm2 start ecosystem.config.js
+```
+
+### Port Already in Use
+
+```bash
+# Check what's using the port
+pm2 list
+
+# Stop conflicting process
+pm2 stop [app-name]
+
+# Or change port in ecosystem.config.js
+```
+
+---
+
+## 📊 Summary
+
+| Scenario | Use PM2? | Why |
+|----------|----------|-----|
+| Single Next.js dev server | ❌ No | Unnecessary overhead |
+| Frontend + Backend | ✅ Yes | Manage both together |
+| Multiple projects | ✅ Yes | Easy switching |
+| Development + Tests | ✅ Yes | Run in parallel |
+| Quick prototype | ❌ No | Just use npm run dev |
+
+**Your sweet spot:**
+- Use PM2 when working on 2+ related projects
+- Use PM2 when you have frontend + backend
+- Skip PM2 for single-app development sessions
+
+---
+
+**PM2 Version:** 6.0.13 (installed)
+**Workspace:** /mnt/c/App-Ideas-Workspace/
+**Documentation:** ~/.claude/PM2-SETUP.md (general guide)
+**This Guide:** Specific to your workflow

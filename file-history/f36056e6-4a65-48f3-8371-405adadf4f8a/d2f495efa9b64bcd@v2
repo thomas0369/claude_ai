@@ -1,0 +1,181 @@
+"""
+pytest configuration and shared fixtures for the Elliott Wave Trading Bot test suite.
+"""
+
+import sys
+import os
+from pathlib import Path
+import pytest
+import pandas as pd
+import numpy as np
+from datetime import datetime, timezone, timedelta
+
+# Add src to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+
+
+# ============================================================================
+# Test Data Fixtures
+# ============================================================================
+
+@pytest.fixture
+def sample_ohlcv_data():
+    """Generate sample OHLCV data for testing."""
+    np.random.seed(42)
+
+    # Generate 500 5-minute candles (roughly 2 days)
+    periods = 500
+    start_time = datetime(2025, 1, 1, 0, 0, tzinfo=timezone.utc)
+
+    # Base price around 1.1000
+    base_price = 1.1000
+
+    timestamps = [start_time + timedelta(minutes=5*i) for i in range(periods)]
+
+    # Generate realistic price movement
+    returns = np.random.normal(0, 0.0002, periods)
+    prices = base_price * np.exp(np.cumsum(returns))
+
+    data = []
+    for i, (ts, price) in enumerate(zip(timestamps, prices)):
+        # Add some randomness to OHLC
+        noise = np.random.uniform(0.9999, 1.0001, 4)
+        open_price = price * noise[0]
+        high_price = max(price * noise[1], open_price, price)
+        low_price = min(price * noise[2], open_price, price)
+        close_price = price * noise[3]
+        volume = np.random.uniform(1000, 5000)
+
+        data.append({
+            'datetime': ts,
+            'open': open_price,
+            'high': high_price,
+            'low': low_price,
+            'close': close_price,
+            'volume': volume
+        })
+
+    df = pd.DataFrame(data)
+    df.set_index('datetime', inplace=True)
+    return df
+
+
+@pytest.fixture
+def sample_quality_data():
+    """Generate sample data with known quality issues for testing."""
+    np.random.seed(42)
+
+    periods = 100
+    start_time = datetime(2025, 1, 1, 0, 0, tzinfo=timezone.utc)
+
+    data = []
+    for i in range(periods):
+        # Add some gaps (skip every 10th candle)
+        if i % 10 == 0 and i > 0:
+            continue
+
+        ts = start_time + timedelta(minutes=5*i)
+        price = 1.1000 + np.random.normal(0, 0.001)
+
+        data.append({
+            'datetime': ts,
+            'open': price,
+            'high': price * 1.0001,
+            'low': price * 0.9999,
+            'close': price + np.random.normal(0, 0.0001),
+            'volume': np.random.uniform(1000, 5000)
+        })
+
+    df = pd.DataFrame(data)
+    df.set_index('datetime', inplace=True)
+    return df
+
+
+@pytest.fixture
+def temp_db_path(tmp_path):
+    """Provide a temporary database path for testing."""
+    return str(tmp_path / "test_signals.db")
+
+
+@pytest.fixture
+def temp_cache_dir(tmp_path):
+    """Provide a temporary cache directory for testing."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir(exist_ok=True)
+    return str(cache_dir)
+
+
+# ============================================================================
+# Mock API Fixtures
+# ============================================================================
+
+@pytest.fixture
+def mock_twelvedata_response():
+    """Mock TwelveData API response."""
+    return {
+        'meta': {
+            'symbol': 'EUR/USD',
+            'interval': '5min',
+            'exchange': 'FOREX'
+        },
+        'values': [
+            {
+                'datetime': '2025-01-01 00:00:00',
+                'open': '1.10000',
+                'high': '1.10050',
+                'low': '1.09950',
+                'close': '1.10025',
+                'volume': '1500'
+            },
+            {
+                'datetime': '2025-01-01 00:05:00',
+                'open': '1.10025',
+                'high': '1.10075',
+                'low': '1.10000',
+                'close': '1.10050',
+                'volume': '2000'
+            }
+        ],
+        'status': 'ok'
+    }
+
+
+@pytest.fixture
+def mock_claude_response():
+    """Mock Claude API response for validation."""
+    return {
+        'validated': True,
+        'confidence': 85,
+        'enhanced_score': 110,
+        'justification': 'Strong Elliott Wave pattern with clear impulse structure',
+        'recommendation': 'TAKE_TRADE'
+    }
+
+
+# ============================================================================
+# Environment Setup
+# ============================================================================
+
+@pytest.fixture(autouse=True)
+def setup_test_env(monkeypatch, tmp_path):
+    """Set up test environment variables."""
+    # Use test database and cache paths
+    test_data_dir = tmp_path / "data"
+    test_data_dir.mkdir(exist_ok=True)
+
+    monkeypatch.setenv('TWELVEDATA_API_KEY', 'test_key_12345')
+    monkeypatch.setenv('ANTHROPIC_API_KEY', 'test_anthropic_key')
+
+    # Ensure we don't accidentally hit real APIs in tests
+    monkeypatch.setenv('TEST_MODE', 'true')
+
+
+# ============================================================================
+# Cleanup Fixtures
+# ============================================================================
+
+@pytest.fixture(autouse=True)
+def cleanup_after_test():
+    """Clean up after each test."""
+    yield
+    # Add any cleanup logic here if needed

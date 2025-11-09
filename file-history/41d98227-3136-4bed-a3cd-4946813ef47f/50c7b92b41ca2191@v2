@@ -1,0 +1,399 @@
+# C&I BESS Competition Analytics Platform v2.0
+
+> World-class enterprise intelligence and benchmarking system for Battery Energy Storage Systems (BESS) competition analysis
+
+## Live Demo
+
+🌐 **Try the application online:** https://c-i-competition-analysis.vercel.app/
+
+The platform is deployed on Vercel and ready for immediate testing. No installation required - just visit the link to explore:
+- Interactive dashboard with AG Grid pivot tables
+- ZEREZ importer with real-time filtering
+- Certification timeline and competitive analysis
+- Export capabilities (CSV, Excel, PDF, PowerPoint)
+
+## Overview
+
+A production-ready, enterprise-grade analytics platform combining AG Grid Enterprise pivot tables, Apache ECharts visualizations, statistical analysis, and AI-powered insights to analyze the C&I BESS market landscape.
+
+### Key Features
+
+**Advanced Visualizations**
+- 📊 **AG Grid Enterprise Pivot Tables** - Dynamic multi-dimensional analysis with drag-and-drop
+- 📈 **Apache ECharts Timeline** - Interactive certification timeline with zoom and pan
+- 🎯 **Competitive Positioning Matrix** - Strategic quadrant analysis (Leaders/Challengers/Innovators/Followers)
+- 🔥 **Performance Heatmap** - Multi-metric comparison across manufacturers
+
+**Competitive Intelligence**
+- 🤖 AI-powered insights and recommendations
+- 📊 Market position analysis (Leader, Challenger, Innovator, Follower)
+- 💡 Innovation scoring algorithm
+- 📈 Efficiency percentile rankings
+- 🎯 Recommendation scores with confidence levels
+
+**Data Processing**
+- 🔄 Automatic data enrichment with competitive metrics
+- 📉 Statistical analysis engine (correlations, trends, forecasting)
+- 🎨 Beautiful, responsive UI with dark mode support
+- 💾 Export to CSV, Excel, PDF, and PowerPoint
+
+**Analytics Features**
+- Real-time filtering and cross-filtering
+- Trend analysis with forecasting
+- Correlation matrix calculations
+- Anomaly detection
+- K-means clustering
+
+## Technology Stack
+
+### Frontend
+- **Next.js 15** - React framework with App Router
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first styling
+
+### Visualization
+- **AG Grid Enterprise 31.x** - Advanced pivot tables and data grids
+- **Apache ECharts 5.5** - Professional charting library
+- **Recharts** - Additional chart components
+- **D3.js** - Data-driven visualizations
+
+### Data & Analytics
+- **DuckDB-WASM** - In-browser SQL analytics
+- **Simple Statistics** - Statistical computations
+- **Math.js** - Mathematical operations
+- **TensorFlow.js** - Machine learning capabilities
+
+### State Management
+- **Zustand** - Lightweight state management
+- **React Query** - Server state management
+
+### Export & Reporting
+- **jsPDF** - PDF generation
+- **xlsx** - Excel file generation
+- **pptxgen.js** - PowerPoint generation
+- **html2canvas** - Chart to image conversion
+
+## Installation
+
+### Prerequisites
+
+- Node.js 18.x or later
+- npm or yarn
+
+### Setup Steps
+
+1. **Clone and navigate to the app:**
+   ```bash
+   cd benchmark-app
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure AG Grid Enterprise License (Optional for Development, Required for Production):**
+
+   **Development/Trial Mode (No License Required):**
+   - AG Grid Enterprise runs in trial mode for 14 days
+   - All enterprise features (pivot, charts, export) are fully functional
+   - Console warnings and watermarks will appear during trial
+   - Perfect for development and evaluation
+
+   **Production License Setup:**
+   - Get a license key from https://www.ag-grid.com/license-pricing/
+   - Create `.env.local` in the `benchmark-app/` directory:
+     ```env
+     NEXT_PUBLIC_AG_GRID_LICENSE=your-license-key-here
+     ```
+   - The license is automatically applied via `lib/ag-grid-config.ts`
+   - This removes console warnings and watermarks
+
+   **Important:**
+   - Never commit `.env.local` to version control (already in .gitignore)
+   - AG Grid Enterprise modules are registered in `lib/ag-grid-config.ts`
+   - License is required for commercial production use
+
+4. **Start development server:**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open in browser:**
+   ```
+   http://localhost:3000/dashboard
+   ```
+
+## Project Structure
+
+```
+benchmark-app/
+├── app/
+│   ├── dashboard/
+│   │   └── page.tsx              # Main dashboard page
+│   ├── globals.css
+│   └── layout.tsx
+├── components/
+│   ├── PivotTablePro.tsx         # AG Grid pivot table
+│   ├── CertificationTimeline.tsx # ECharts timeline
+│   ├── CompetitiveMatrix.tsx     # Positioning matrix
+│   ├── PerformanceHeatmap.tsx    # Performance heatmap
+│   ├── PivotChart.tsx            # Original pivot chart
+│   ├── TimelineChart.tsx         # Original timeline
+│   └── ComparisonChart.tsx       # Original comparison
+├── lib/
+│   ├── types-enhanced.ts         # Enhanced TypeScript types
+│   ├── store.ts                  # Zustand state management
+│   ├── statistics.ts             # Statistical analysis engine
+│   ├── data-enrichment.ts        # AI-powered data enrichment
+│   ├── export.ts                 # Export utilities
+│   ├── dataLoader-enhanced.ts    # Enhanced data loader
+│   ├── dataLoader.ts             # Original data loader
+│   └── types.ts                  # Original types
+├── public/
+│   └── data/
+│       ├── products/             # Product YAML files
+│       ├── companies/            # Company YAML files
+│       └── zerez/                # ZEREZ certification data
+├── package.json
+├── tsconfig.json
+├── tailwind.config.ts
+└── next.config.js
+```
+
+## Features Guide
+
+### 1. Pivot Analysis
+
+The AG Grid Enterprise pivot table allows you to:
+
+- **Drag and drop** columns to row groups or pivot dimensions
+- **Dynamic aggregations** (sum, average, min, max, count)
+- **Advanced filtering** on any column
+- **Export** to CSV or Excel with pivot state preserved
+- **Chart integration** directly from grid data
+
+**Usage:**
+1. Click sidebar to access column panel
+2. Drag columns to "Row Groups" to group data
+3. Drag columns to "Pivot" to create pivot dimensions
+4. Drag numerical columns to "Values" for aggregations
+5. Use filters to focus on specific data
+
+### 2. Certification Timeline
+
+Interactive timeline showing product certifications over time:
+
+- **Scatter plot** with dates on X-axis, power on Y-axis
+- **Bubble size** represents ZEREZ variant count
+- **Color grouping** by manufacturer or market position
+- **Zoom and pan** for detailed exploration
+- **Statistics panel** showing key metrics
+
+### 3. Competitive Positioning Matrix
+
+Strategic quadrant analysis:
+
+- **X-axis:** Innovation Index (0-100)
+- **Y-axis:** Market Presence (%)
+- **Quadrants:** Leaders, Challengers, Innovators, Followers
+- **Bubble size:** Product portfolio size
+- **Color coding:** Market position
+
+### 4. Performance Heatmap
+
+Multi-dimensional performance comparison:
+
+- **Metrics:** Efficiency, Power Density, Innovation, Market Share, Recommendation, Data Quality
+- **Color scale:** 0-100 performance score
+- **Tooltip:** Detailed metric values
+- **Top performers:** Highlighted per metric
+
+## Data Enrichment
+
+The platform automatically enriches product data with:
+
+### Competitive Intelligence
+- Market position classification
+- Innovation score calculation
+- Price index estimation
+- Unique selling points identification
+
+### Benchmarks
+- Efficiency percentile ranking
+- Power density ranking
+- Cost efficiency score
+- Comparison vs market average
+
+### AI Insights
+- Strengths analysis
+- Weaknesses identification
+- Market opportunities
+- Risk factors
+- Competitive threats
+- Recommendation score (0-100)
+
+## Export Capabilities
+
+### CSV Export
+- Raw data in comma-separated format
+- All products with key metrics
+- Compatible with Excel and other tools
+
+### Excel Export (XLSX)
+- Multiple sheets:
+  - Overview
+  - Technical Specifications
+  - Competitive Analysis
+- Formatted tables with headers
+- Preserves data types
+
+### PDF Export
+- Executive summary
+- Product comparison table
+- Chart visualizations
+- Professional formatting
+
+### PowerPoint Export (PPTX)
+- Title slide
+- Executive summary slide
+- Top performers slide
+- Chart visualization slides
+- Ready for presentations
+
+## Performance Optimization
+
+- **Virtual scrolling** for large datasets (AG Grid)
+- **Data caching** (30-minute TTL)
+- **Lazy loading** of chart components
+- **React Server Components** for static content
+- **Code splitting** for optimal bundle size
+
+## Development
+
+### Build for Production
+
+```bash
+npm run build
+npm start
+```
+
+### Validation
+
+Run comprehensive validation tests:
+
+```bash
+# Run all validations
+npm run validate
+
+# Run specific validations
+npm run validate:all          # Comprehensive feature validation
+npm run validate:enrichment   # Data enrichment validation
+npm run validate:quick        # Quick validation (same as validate:all)
+```
+
+The validation scripts test:
+- Data loading and parsing
+- Data enrichment algorithms
+- TypeScript type safety
+- React components
+- Production build
+- Power density calculations
+- Field preservation
+
+### Linting
+
+```bash
+npm run lint
+```
+
+### Type Checking
+
+```bash
+npx tsc --noEmit
+```
+
+## Configuration
+
+### Environment Variables
+
+Create `.env.local`:
+
+```env
+# Optional: API endpoints for future integrations
+NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# Optional: Analytics
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
+```
+
+### Customization
+
+**Colors & Branding:**
+- Edit `tailwind.config.ts` for color scheme
+- Update `app/globals.css` for global styles
+
+**Data Sources:**
+- Add YAML files to `public/data/products/`
+- Update `dataLoader-enhanced.ts` with new file names
+
+**Metrics:**
+- Modify `data-enrichment.ts` for custom scoring algorithms
+- Update `statistics.ts` for additional statistical methods
+
+## Troubleshooting
+
+**AG Grid license warning:**
+- Expected if using AG Grid Community features
+- Upgrade to Enterprise license for full pivot functionality
+
+**Charts not rendering:**
+- Check browser console for errors
+- Ensure data is loading correctly
+- Verify ECharts version compatibility
+
+**Slow performance:**
+- Enable data caching in store
+- Reduce dataset size for testing
+- Use production build
+
+**TypeScript errors:**
+- Run `npm install` to ensure dependencies are installed
+- Check tsconfig.json for strict mode settings
+
+## Roadmap
+
+### Phase 1 (Current)
+- ✅ Enhanced visualizations
+- ✅ AI-powered insights
+- ✅ Export capabilities
+- ✅ Statistical analysis
+
+### Phase 2 (Next)
+- 🔄 PostgreSQL database integration
+- 🔄 Real-time data updates
+- 🔄 Natural language queries
+- 🔄 Collaborative features
+
+### Phase 3 (Future)
+- 📅 Machine learning predictions
+- 📅 Custom dashboard builder
+- 📅 API integration framework
+- 📅 Mobile application
+
+## Support
+
+For issues, questions, or contributions:
+- Create an issue in the repository
+- Check documentation in `/docs`
+- Review example implementations in `/examples`
+
+## License
+
+MIT License - See LICENSE file for details
+
+---
+
+**Built with** ❤️ **for world-class BESS market analysis**
+
+_Version 2.0 - Enterprise Analytics Platform_

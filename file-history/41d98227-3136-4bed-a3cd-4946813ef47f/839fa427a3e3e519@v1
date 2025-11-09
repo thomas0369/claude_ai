@@ -1,0 +1,125 @@
+# C&I BESS Competition Analysis
+
+Comprehensive database of Commercial & Industrial Battery Energy Storage System inverters (90-120kW) with technical specifications extracted from manufacturer datasheets.
+
+## Quick Start
+
+### View Company Products
+```bash
+cat data/companies/sofar.yaml
+```
+
+### View Product Details
+```bash
+cat data/products/sofar_sofar_100ktlx_g4_ess.yaml
+```
+
+### Load in Python
+```python
+import yaml
+
+# Load company data
+with open('data/companies/sofar.yaml') as f:
+    company = yaml.safe_load(f)
+    
+# Load product specs
+with open('data/products/sofar_sofar_100ktlx_g4_ess.yaml') as f:
+    product = yaml.safe_load(f)
+```
+
+## Database Contents
+
+- **14 manufacturers** - One YAML file per company
+- **43 products** - Detailed specs with units (kW, mm, kg, °C, %)
+- **78 ZEREZ variants** - 99% coverage of certified products
+- **58 PDF datasheets** - Original source documents
+
+## Structure
+
+```
+data/
+  companies/     # 14 company YAML files
+  products/      # 43 product YAML files with full specs
+  
+datasheets/      # 58 manufacturer PDF files
+  
+benchmark_results/
+  benchmark_results_20251026_013531.csv  # Latest extraction
+```
+
+## Technical Specs Available
+
+Each product includes:
+- Power ratings (kW)
+- Efficiency (peak, Euro, CEC %)
+- Dimensions (mm) and weight (kg)
+- Electrical specs (voltage, MPPT count, THD)
+- Environmental (temp range °C, cooling)
+- Data source & confidence
+
+## Session Management (Memory-Bank)
+
+Resume work seamlessly across sessions:
+
+```bash
+# See where you left off
+python3 scripts/memory_bank/resume_session.py
+
+# Update after completing tasks
+python3 scripts/memory_bank/update_memory.py \
+  --completed "Extracted 10 products" \
+  --next "Validate data" "Update docs"
+```
+
+The memory-bank system automatically tracks:
+- Current session state and progress
+- Project statistics and file counts
+- Git repository state
+- Active goals and next steps
+
+See [.memory-bank/QUICK_START.md](.memory-bank/QUICK_START.md) for details.
+
+## ZEREZ Importer (Production Ready)
+
+Automated import wizard for ZEREZ certification database with real-time filtering and PDF matching.
+
+```bash
+# Start the Next.js app
+cd benchmark-app
+npm run dev
+
+# Visit import wizard
+open http://localhost:3000/import/zerez
+```
+
+### Features
+- ✅ **GraphQL-powered search** - 600x faster than HTML scraping (2s vs 30+ min)
+- ✅ **Real-time filtering** - Power, voltage, certification, manufacturer filters
+- ✅ **3-step wizard** - Filter → Import → Match PDF
+- ✅ **Server-Sent Events** - Live progress streaming
+- ✅ **8,000+ manufacturers** - Complete tenant database with autocomplete
+- ✅ **Fuzzy PDF matching** - Automatic datasheet linkage
+- ✅ **Type-safe APIs** - Full Zod validation
+
+### Performance
+- Search: 2-5 seconds for filtered results
+- Import: ~2 seconds per product (HTML details)
+- PDF Match: < 1 second for 100 products
+- **Full workflow: ~3.5 minutes for 100 products**
+
+See [docs/zerez/ZEREZ_IMPORTER_SETUP.md](docs/zerez/ZEREZ_IMPORTER_SETUP.md) for production deployment.
+
+## Documentation
+
+- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Complete project documentation
+- [.memory-bank/QUICK_START.md](.memory-bank/QUICK_START.md) - Session tracking guide
+- [scripts/memory_bank/README.md](scripts/memory_bank/README.md) - Memory-bank API docs
+- [docs/zerez/ZEREZ_IMPORTER_SETUP.md](docs/zerez/ZEREZ_IMPORTER_SETUP.md) - ZEREZ importer setup & troubleshooting
+- [docs/zerez/ZEREZ_API_CLIENT_GUIDE.md](docs/zerez/ZEREZ_API_CLIENT_GUIDE.md) - Python API client documentation
+- [docs/zerez/ZEREZ_QUICKSTART.md](docs/zerez/ZEREZ_QUICKSTART.md) - Quick start guide
+
+---
+
+**Last Updated:** November 1, 2025
+**Coverage:** 99% of ZEREZ products (90-120kW)
+**Status:** ZEREZ Importer Production Ready ✅

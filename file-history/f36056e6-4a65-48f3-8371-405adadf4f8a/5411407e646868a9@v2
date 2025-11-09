@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""
+Test Data Fetching for New Assets
+Verify data providers can actually fetch data for all asset types
+"""
+
+import sys
+sys.path.insert(0, 'src')
+
+from dual_provider_manager import DualProviderManager
+import os
+
+# Set API keys from environment
+os.environ['TWELVEDATA_API_KEY'] = os.getenv('TWELVEDATA_API_KEY', 'ee4d1fc648d74d44abbbf8ea9c220080')
+os.environ['MASSIVE_API_KEY'] = os.getenv('MASSIVE_API_KEY', 'Eg_fnD8sP7p1Qjtj9NlhFQYIAruyNu7D')
+
+print("=" * 70)
+print("DATA FETCHING TEST - Representative Assets from Each Category")
+print("=" * 70)
+
+manager = DualProviderManager()
+
+# Test one asset from each category
+test_assets = [
+    ("EUR/USD", "1h", "Forex Major"),
+    ("XAU/USD", "1h", "Commodity (Gold)"),
+    ("SPY", "1h", "Index (S&P 500)"),
+    ("AAPL", "1h", "Stock (Apple)"),
+    ("BTC/USD", "1h", "Crypto (Bitcoin)"),
+]
+
+results = []
+
+for symbol, timeframe, category in test_assets:
+    print(f"\n{'=' * 70}")
+    print(f"Testing: {symbol} ({category})")
+    print(f"{'=' * 70}")
+
+    try:
+        data = manager.fetch_ohlcv(symbol, timeframe, limit=50)
+
+        if data and len(data) > 0:
+            print(f"✅ SUCCESS - Fetched {len(data)} candles")
+            print(f"   First candle: {data[0]}")
+            print(f"   Last candle:  {data[-1]}")
+            results.append((symbol, category, "✅ SUCCESS", len(data)))
+        else:
+            print(f"❌ FAILED - No data returned")
+            results.append((symbol, category, "❌ NO DATA", 0))
+
+    except Exception as e:
+        print(f"❌ ERROR - {str(e)}")
+        results.append((symbol, category, f"❌ ERROR: {str(e)[:50]}", 0))
+
+# Summary
+print(f"\n{'=' * 70}")
+print("SUMMARY")
+print(f"{'=' * 70}\n")
+
+print(f"{'Asset':<12} {'Category':<20} {'Status':<30} {'Candles':<10}")
+print("-" * 70)
+for symbol, category, status, candles in results:
+    print(f"{symbol:<12} {category:<20} {status:<30} {candles:<10}")
+
+# Provider stats
+print(f"\n{'=' * 70}")
+print("PROVIDER STATISTICS")
+print(f"{'=' * 70}\n")
+
+stats = manager.get_provider_stats()
+print("TwelveData:")
+print(f"  Calls: {stats['twelvedata']['calls']}")
+print(f"  Successes: {stats['twelvedata']['successes']}")
+print(f"  Failures: {stats['twelvedata']['failures']}")
+
+print("\nMassive.com:")
+print(f"  Calls: {stats['massive']['calls']}")
+print(f"  Successes: {stats['massive']['successes']}")
+print(f"  Failures: {stats['massive']['failures']}")
+
+# Check if all passed
+all_success = all(status.startswith("✅") for _, _, status, _ in results)
+
+print(f"\n{'=' * 70}")
+if all_success:
+    print("✅ ALL TESTS PASSED - Data providers working correctly!")
+    print("Ready to run full portfolio scan.")
+else:
+    print("⚠️  SOME TESTS FAILED - Review errors above")
+    print("Check API keys and provider availability")
+print(f"{'=' * 70}")

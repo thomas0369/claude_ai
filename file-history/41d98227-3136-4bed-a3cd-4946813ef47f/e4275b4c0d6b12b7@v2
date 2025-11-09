@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""
+Standard logging configuration for ZEREZ Python scripts.
+
+This module provides consistent logging setup across all ZEREZ scripts that
+interact with the ZEREZ GraphQL API and return JSON data to TypeScript.
+
+Critical Feature: Routes logs to stderr to prevent JSON corruption
+------------------------------------------------
+All ZEREZ scripts that return JSON via stdout MUST route logs to stderr.
+Otherwise, log messages will corrupt the JSON output when parsed by TypeScript.
+
+Usage Examples:
+--------------
+# For scripts that return JSON and need progress tracking (long-running):
+from zerez_logging_config import configure_script_logging
+logger = configure_script_logging(__name__, level=logging.INFO)
+
+# For simple scripts (short-running, errors only):
+logger = configure_script_logging(__name__, level=logging.WARNING)
+
+Logging Levels Guide:
+--------------------
+- INFO: Long-running operations (>3 seconds) with progress tracking
+  Examples: zerez_list_certificate_authorities.py, zerez_graphql_client.py
+
+- WARNING: Simple, fast operations (<3 seconds) where only errors matter
+  Examples: zerez_list_tenants.py (if it stays fast)
+
+- DEBUG: Verbose debugging (rarely needed in production)
+"""
+
+import logging
+import sys
+from typing import Optional
+
+
+def configure_script_logging(
+    name: str,
+    level: int = logging.INFO,
+    include_stderr_routing: bool = True,
+    format_string: Optional[str] = None
+) -> logging.Logger:
+    """
+    Configure logging for ZEREZ Python scripts with consistent format.
+
+    Args:
+        name: Script name (usually __name__)
+        level: Logging level (default: INFO for progress tracking)
+        include_stderr_routing: Route logs to stderr to keep stdout clean (default: True)
+        format_string: Custom format string (default: project standard with timestamp)
+
+    Returns:
+        Configured logger instance
+
+    Example:
+        ```python
+        from zerez_logging_config import configure_script_logging
+        import logging
+
+        # Long-running script with progress tracking
+        logger = configure_script_logging(__name__, level=logging.INFO)
+        logger.info("Starting operation...")
+
+        # Simple script, errors only
+        logger = configure_script_logging(__name__, level=logging.WARNING)
+        logger.warning("Something went wrong")
+        ```
+    """
+    # Use project standard format (same as zerez_graphql_client.py)
+    if format_string is None:
+        format_string = '%(asctime)s - %(levelname)s - %(message)s'
+
+    config = {
+        'level': level,
+        'format': format_string,
+        'force': True  # Override any existing configuration
+    }
+
+    # CRITICAL: Route to stderr for scripts that output JSON to stdout
+    if include_stderr_routing:
+        config['stream'] = sys.stderr
+
+    logging.basicConfig(**config)
+    return logging.getLogger(name)
+
+
+# Convenience function for JSON-returning scripts
+def configure_json_script_logging(name: str, level: int = logging.INFO) -> logging.Logger:
+    """
+    Configure logging for scripts that return JSON to stdout.
+
+    This is a convenience wrapper that ensures stderr routing is enabled.
+    Use this for any script called by TypeScript that returns JSON.
+
+    Args:
+        name: Script name (usually __name__)
+        level: Logging level (default: INFO)
+
+    Returns:
+        Configured logger instance
+    """
+    return configure_script_logging(
+        name=name,
+        level=level,
+        include_stderr_routing=True  # Always true for JSON scripts
+    )

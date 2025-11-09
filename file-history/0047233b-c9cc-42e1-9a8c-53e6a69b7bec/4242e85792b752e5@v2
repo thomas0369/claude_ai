@@ -1,0 +1,741 @@
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, Activity, AlertCircle, CheckCircle, Clock, Target, DollarSign, BarChart3, Zap, Filter, RefreshCw, Brain, Sparkles } from 'lucide-react';
+
+const ElliottWaveLiveSignals = () => {
+  const [activeSignals, setActiveSignals] = useState([]);
+  const [scanning, setScanning] = useState(false);
+  const [selectedSignal, setSelectedSignal] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterScore, setFilterScore] = useState(75);
+  const [useClaude, setUseClaude] = useState(true);  // Enable Claude analysis
+  const [useCache, setUseCache] = useState(true);
+  const [scanInfo, setScanInfo] = useState(null);
+  const [error, setError] = useState(null);
+
+  // Backend API URL
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+  // Expanded Asset Universe
+  const assetCategories = {
+    'Forex Majors': ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CHF', 'USD/CAD', 'NZD/USD'],
+    'Commodities': ['XAU/USD', 'XAG/USD'],
+    'Crypto': ['BTC/USD', 'ETH/USD'],
+  };
+
+  // Scan markets via backend API
+  const scanMarkets = async () => {
+    setScanning(true);
+    setError(null);
+    setLastUpdate(new Date());
+
+    try {
+      const symbols = Object.values(assetCategories).flat();
+
+      const response = await fetch(`${API_URL}/scan`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          symbols,
+          min_score: filterScore,
+          use_claude: useClaude,
+          use_cache: useCache
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setActiveSignals(data.signals);
+        setScanInfo(data.scan_info);
+      } else {
+        throw new Error(data.error || 'Unknown error');
+      }
+    } catch (err) {
+      console.error('Scan error:', err);
+      setError(err.message);
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  // Auto-refresh
+  useEffect(() => {
+    if (autoRefresh) {
+      const interval = setInterval(() => {
+        scanMarkets();
+      }, 300000); // 5 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [autoRefresh, filterScore, useClaude, useCache]);
+
+  // Filter signals by category
+  const filteredSignals = filterCategory === 'all'
+    ? activeSignals
+    : activeSignals.filter(s => s.category === filterCategory);
+
+  return (
+    <div style={{
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      background: '#0f172a',
+      minHeight: '100vh',
+      padding: '20px',
+      color: '#e2e8f0'
+    }}>
+      <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '20px',
+          boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, color: 'white' }}>
+                🎯 Elliott Wave Live Signals
+              </h1>
+              <p style={{ margin: '8px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
+                Real-time scanning • Claude CLI Integration • Cache-optimized
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              {lastUpdate && (
+                <div style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <Clock size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 600 }}>
+                    {lastUpdate.toLocaleTimeString('de-DE')}
+                  </span>
+                </div>
+              )}
+
+              <button
+                onClick={scanMarkets}
+                disabled={scanning}
+                style={{
+                  background: scanning ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontWeight: 600,
+                  cursor: scanning ? 'not-allowed' : 'pointer',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.2s',
+                  fontSize: '14px'
+                }}
+              >
+                <RefreshCw size={16} style={{
+                  verticalAlign: 'middle',
+                  marginRight: '6px',
+                  animation: scanning ? 'spin 1s linear infinite' : 'none'
+                }} />
+                {scanning ? 'Scanning...' : 'Start Scan'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div style={{
+            background: '#991b1b',
+            border: '1px solid #dc2626',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <AlertCircle size={20} style={{ color: '#fca5a5' }} />
+            <div>
+              <div style={{ fontWeight: 600, color: '#fca5a5' }}>Scan Error</div>
+              <div style={{ fontSize: '13px', color: '#fecaca', marginTop: '4px' }}>{error}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Stats Overview */}
+        {scanInfo && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+            marginBottom: '20px'
+          }}>
+            <StatCard
+              icon={<Activity size={20} />}
+              label="Qualified Signals"
+              value={scanInfo.qualified_signals}
+              color="#48bb78"
+            />
+            <StatCard
+              icon={<Target size={20} />}
+              label="Top Score"
+              value={filteredSignals.length > 0 ? `${filteredSignals[0].enhanced_score || filteredSignals[0].score}/194` : '--'}
+              color="#667eea"
+            />
+            <StatCard
+              icon={<Clock size={20} />}
+              label="Scan Duration"
+              value={`${scanInfo.duration_seconds.toFixed(1)}s`}
+              color="#fbbf24"
+            />
+            <StatCard
+              icon={useClaude ? <Brain size={20} /> : <BarChart3 size={20} />}
+              label="Analysis Mode"
+              value={useClaude ? 'Claude AI' : 'Screener Only'}
+              color={useClaude ? '#a78bfa' : '#64748b'}
+            />
+          </div>
+        )}
+
+        {/* Filters */}
+        <div style={{
+          background: '#1e293b',
+          borderRadius: '12px',
+          padding: '16px',
+          marginBottom: '20px',
+          display: 'flex',
+          gap: '16px',
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <Filter size={18} style={{ color: '#94a3b8' }} />
+
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            style={{
+              background: '#0f172a',
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              color: '#e2e8f0',
+              fontSize: '13px',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="all">All Categories</option>
+            {Object.keys(assetCategories).map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontSize: '13px', color: '#94a3b8' }}>Min Score:</label>
+            <input
+              type="number"
+              min="70"
+              max="95"
+              step="5"
+              value={filterScore}
+              onChange={(e) => setFilterScore(parseInt(e.target.value))}
+              style={{
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                color: '#e2e8f0',
+                fontSize: '13px',
+                width: '70px'
+              }}
+            />
+          </div>
+
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            fontSize: '13px'
+          }}>
+            <input
+              type="checkbox"
+              checked={useClaude}
+              onChange={(e) => setUseClaude(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            <Brain size={14} style={{ verticalAlign: 'middle' }} />
+            Use Claude CLI
+          </label>
+
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            fontSize: '13px'
+          }}>
+            <input
+              type="checkbox"
+              checked={useCache}
+              onChange={(e) => setUseCache(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            Cache Data
+          </label>
+
+          <label style={{
+            marginLeft: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            fontSize: '13px'
+          }}>
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            Auto-refresh (5min)
+          </label>
+        </div>
+
+        {/* Signals Grid */}
+        {scanning ? (
+          <div style={{
+            background: '#1e293b',
+            borderRadius: '12px',
+            padding: '60px',
+            textAlign: 'center'
+          }}>
+            <Activity size={48} style={{ color: '#667eea', marginBottom: '16px', animation: 'spin 2s linear infinite' }} />
+            <h3 style={{ margin: 0, color: '#e2e8f0' }}>Scanning Markets...</h3>
+            <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
+              Analyzing assets with {useClaude ? 'Claude CLI integration' : 'screener only'}
+            </p>
+          </div>
+        ) : filteredSignals.length === 0 && !error ? (
+          <div style={{
+            background: '#1e293b',
+            borderRadius: '12px',
+            padding: '60px',
+            textAlign: 'center'
+          }}>
+            <AlertCircle size={48} style={{ color: '#94a3b8', marginBottom: '16px' }} />
+            <h3 style={{ margin: 0, color: '#e2e8f0' }}>
+              {scanInfo ? 'No Qualified Signals' : 'Ready to Scan'}
+            </h3>
+            <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
+              {scanInfo ? `No setups found with score ≥ ${filterScore}` : 'Click "Start Scan" to begin analysis'}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {filteredSignals.map((signal, index) => (
+              <SignalCard
+                key={`${signal.symbol}-${index}`}
+                signal={signal}
+                rank={index + 1}
+                onClick={() => setSelectedSignal(signal)}
+                isSelected={selectedSignal?.symbol === signal.symbol}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Detailed Analysis Modal */}
+        {selectedSignal && (
+          <SignalDetailModal
+            signal={selectedSignal}
+            onClose={() => setSelectedSignal(null)}
+          />
+        )}
+      </div>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// Stat Card Component
+const StatCard = ({ icon, label, value, color }) => (
+  <div style={{
+    background: '#1e293b',
+    borderRadius: '12px',
+    padding: '20px',
+    borderLeft: `4px solid ${color}`
+  }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div>
+        <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          {label}
+        </div>
+        <div style={{ fontSize: '28px', fontWeight: 700, color: '#e2e8f0' }}>
+          {value}
+        </div>
+      </div>
+      <div style={{ color, opacity: 0.6 }}>
+        {icon}
+      </div>
+    </div>
+  </div>
+);
+
+// Signal Card Component
+const SignalCard = ({ signal, rank, onClick, isSelected }) => {
+  const displayScore = signal.enhanced_score || signal.score;
+  const hasClaude = !!signal.claude_analysis;
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: isSelected ? '#1e293b' : '#1e293b',
+        border: isSelected ? '2px solid #667eea' : '1px solid #334155',
+        borderRadius: '12px',
+        padding: '20px',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        position: 'relative',
+        borderLeft: `4px solid ${signal.direction === 'long' ? '#4ade80' : '#f87171'}`
+      }}
+      onMouseEnter={(e) => {
+        if (!isSelected) e.currentTarget.style.borderColor = '#475569';
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) e.currentTarget.style.borderColor = '#334155';
+      }}
+    >
+      {/* Claude Badge */}
+      {hasClaude && (
+        <div style={{
+          position: 'absolute',
+          top: '-10px',
+          left: '16px',
+          background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
+          color: 'white',
+          padding: '4px 12px',
+          borderRadius: '12px',
+          fontSize: '11px',
+          fontWeight: 700,
+          boxShadow: '0 4px 12px rgba(167, 139, 250, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          <Brain size={12} /> Claude Analyzed
+        </div>
+      )}
+
+      {/* Rank Badge */}
+      {rank <= 3 && (
+        <div style={{
+          position: 'absolute',
+          top: '-10px',
+          right: '16px',
+          background: rank === 1 ? '#fbbf24' : rank === 2 ? '#94a3b8' : '#cd7f32',
+          color: '#0f172a',
+          padding: '4px 12px',
+          borderRadius: '12px',
+          fontSize: '11px',
+          fontWeight: 700,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+        }}>
+          {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'} #{rank}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', marginTop: hasClaude ? '12px' : '0' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#e2e8f0' }}>
+              {signal.symbol}
+            </h3>
+
+            <span style={{
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              background: signal.direction === 'long' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(248, 113, 113, 0.2)',
+              color: signal.direction === 'long' ? '#4ade80' : '#f87171'
+            }}>
+              {signal.direction === 'long' ? '🚀 LONG' : '📉 SHORT'}
+            </span>
+
+            <span style={{
+              padding: '4px 8px',
+              borderRadius: '6px',
+              fontSize: '10px',
+              fontWeight: 600,
+              background: '#334155',
+              color: '#94a3b8'
+            }}>
+              {signal.category}
+            </span>
+          </div>
+
+          <div style={{ fontSize: '13px', color: '#94a3b8' }}>
+            ${signal.current_price.toFixed(signal.category.includes('Forex') ? 4 : 2)}
+            {signal.claude_analysis && (
+              <>
+                {' '}• Confidence: {(signal.claude_analysis.confidence * 100).toFixed(0)}%
+              </>
+            )}
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'right' }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: 800,
+            color: displayScore >= 85 ? '#4ade80' : '#667eea',
+            padding: '8px 16px',
+            background: displayScore >= 85 ? 'rgba(74, 222, 128, 0.1)' : 'rgba(102, 126, 234, 0.1)',
+            borderRadius: '10px'
+          }}>
+            {displayScore}
+          </div>
+          {hasClaude && signal.score !== displayScore && (
+            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+              Base: {signal.score}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Claude Justification Preview */}
+      {hasClaude && signal.claude_analysis.justification && (
+        <div style={{
+          background: '#0f172a',
+          padding: '12px',
+          borderRadius: '8px',
+          marginBottom: '12px',
+          borderLeft: '3px solid #a78bfa'
+        }}>
+          <div style={{ fontSize: '11px', color: '#a78bfa', marginBottom: '4px', fontWeight: 600 }}>
+            <Sparkles size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+            Claude's Analysis
+          </div>
+          <div style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: 1.5 }}>
+            {signal.claude_analysis.justification}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Detailed Signal Modal
+const SignalDetailModal = ({ signal, onClose }) => (
+  <div
+    style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+      zIndex: 1000
+    }}
+    onClick={onClose}
+  >
+    <div
+      style={{
+        background: '#1e293b',
+        borderRadius: '16px',
+        padding: '32px',
+        maxWidth: '900px',
+        width: '100%',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        position: 'relative'
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '16px',
+          background: '#334155',
+          border: 'none',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          color: '#e2e8f0',
+          cursor: 'pointer',
+          fontWeight: 600
+        }}
+      >
+        ✕ Close
+      </button>
+
+      <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', color: '#e2e8f0' }}>
+        {signal.symbol} - Deep Analysis
+      </h2>
+
+      {/* Claude Analysis Section */}
+      {signal.claude_analysis && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
+          border: '1px solid #a78bfa',
+          borderRadius: '12px',
+          padding: '20px',
+          marginBottom: '20px'
+        }}>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Brain size={20} style={{ color: '#a78bfa' }} />
+            Claude CLI Analysis
+          </h3>
+
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px' }}>Signal</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#e2e8f0', textTransform: 'uppercase' }}>
+              {signal.claude_analysis.signal}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px' }}>Confidence</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#4ade80' }}>
+              {(signal.claude_analysis.confidence * 100).toFixed(0)}%
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px' }}>Wave Count</div>
+            <div style={{ fontSize: '14px', color: '#e2e8f0' }}>
+              {signal.claude_analysis.wave_count}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px' }}>Justification</div>
+            <div style={{ fontSize: '14px', color: '#e2e8f0', lineHeight: 1.6 }}>
+              {signal.claude_analysis.justification}
+            </div>
+          </div>
+
+          {signal.claude_analysis.concerns && (
+            <div>
+              <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '4px' }}>Concerns</div>
+              <div style={{ fontSize: '14px', color: '#fbbf24', lineHeight: 1.6 }}>
+                {signal.claude_analysis.concerns}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Score Breakdown */}
+      <div style={{
+        background: '#0f172a',
+        borderRadius: '12px',
+        padding: '20px',
+        marginBottom: '20px'
+      }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#e2e8f0' }}>
+          📊 Score Breakdown
+        </h3>
+        {Object.entries(signal.score_breakdown).map(([key, value]) => {
+          const maxScores = {
+            fibonacci_levels: 34,
+            ema_structure: 21,
+            elliott_wave_oscillator: 21,
+            divergence: 21,
+            fibonacci_bounce: 34,
+            stochastic: 13,
+            bollinger_bands: 13,
+            adx: 8,
+            volume: 3,
+            confluence: 13,
+            elliott_wave_pattern: 8,
+            fibonacci_time: 5
+          };
+          const max = maxScores[key] || 10;
+          const percentage = (value / max) * 100;
+
+          return (
+            <div key={key} style={{ marginBottom: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
+                <span style={{ color: '#94a3b8', textTransform: 'capitalize' }}>
+                  {key.replace(/_/g, ' ')}
+                </span>
+                <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{value}/{max}</span>
+              </div>
+              <div style={{
+                height: '8px',
+                background: '#334155',
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: `${percentage}%`,
+                  height: '100%',
+                  background: percentage > 70 ? '#4ade80' : percentage > 40 ? '#fbbf24' : '#f87171',
+                  transition: 'width 0.5s ease'
+                }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Trade Parameters */}
+      <div style={{
+        background: '#0f172a',
+        borderRadius: '12px',
+        padding: '20px'
+      }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#e2e8f0' }}>
+          💰 Trade Parameters
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+          <ParamItem label="Entry Price" value={`$${signal.current_price.toFixed(4)}`} />
+          <ParamItem label="Stop Loss" value={`$${signal.stop_loss.toFixed(4)}`} color="#f87171" />
+          <ParamItem label="Take Profit" value={`$${signal.take_profit.toFixed(4)}`} color="#4ade80" />
+          <ParamItem label="Leverage" value={`${signal.leverage}x`} />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Parameter Item Component
+const ParamItem = ({ label, value, color = '#e2e8f0' }) => (
+  <div style={{
+    background: '#1e293b',
+    padding: '12px',
+    borderRadius: '8px'
+  }}>
+    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>
+      {label}
+    </div>
+    <div style={{ fontSize: '16px', fontWeight: 700, color }}>
+      {value}
+    </div>
+  </div>
+);
+
+export default ElliottWaveLiveSignals;

@@ -1,0 +1,93 @@
+/**
+ * Staging List API Route
+ * =======================
+ *
+ * GET /api/staging/list - List all staging items with filtering and sorting
+ *
+ * Query Parameters:
+ * - status: Filter by status (pending_review, in_review, verified, rejected)
+ * - minConfidence: Minimum confidence score (0-100)
+ * - maxConfidence: Maximum confidence score (0-100)
+ * - manufacturer: Filter by manufacturer name (partial match)
+ * - sortBy: Sort field (created_at, confidence, manufacturer, model, status)
+ * - sortOrder: Sort direction (asc, desc)
+ * - limit: Maximum number of results
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { listStagingItems, getStagingStats } from '@/lib/pdf/staging';
+import type { StagingFilterOptions, StagingSortBy, StagingSortOrder } from '@/lib/pdf/staging-types';
+import { createErrorResponse } from '@/lib/api-error-handler';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Parse query parameters
+    const { searchParams } = new URL(request.url);
+
+    // Build filter options
+    const filter: StagingFilterOptions = {};
+
+    // Status filter (can be multiple, comma-separated)
+    const statusParam = searchParams.get('status');
+    if (statusParam) {
+      const statuses = statusParam.split(',') as Array<'pending_review' | 'in_review' | 'verified' | 'rejected'>;
+      filter.status = statuses;
+    }
+
+    // Confidence filters
+    const minConfidence = searchParams.get('minConfidence');
+    if (minConfidence) {
+      const value = Number(minConfidence);
+      if (!isNaN(value) && value >= 0 && value <= 100) {
+        filter.minConfidence = value;
+      }
+    }
+
+    const maxConfidence = searchParams.get('maxConfidence');
+    if (maxConfidence) {
+      const value = Number(maxConfidence);
+      if (!isNaN(value) && value >= 0 && value <= 100) {
+        filter.maxConfidence = value;
+      }
+    }
+
+    // Manufacturer filter
+    const manufacturer = searchParams.get('manufacturer');
+    if (manufacturer) {
+      filter.manufacturer = manufacturer;
+    }
+
+    // Sort options
+    const sortBy = (searchParams.get('sortBy') || 'created_at') as StagingSortBy;
+    const sortOrder = (searchParams.get('sortOrder') || 'desc') as StagingSortOrder;
+
+    // Limit
+    const limitParam = searchParams.get('limit');
+    const limit = limitParam ? Number(limitParam) : undefined;
+
+    // Get items and stats
+    const items = await listStagingItems(filter, sortBy, sortOrder, limit);
+    const stats = await getStagingStats();
+
+    return NextResponse.json({
+      success: true,
+      items,
+      stats,
+      filters: {
+        status: filter.status,
+        minConfidence: filter.minConfidence,
+        maxConfidence: filter.maxConfidence,
+        manufacturer: filter.manufacturer,
+        sortBy,
+        sortOrder,
+        limit,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return createErrorResponse('list staging items', error);
+  }
+}

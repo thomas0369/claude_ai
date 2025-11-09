@@ -1,0 +1,185 @@
+#!/usr/bin/env node
+
+/**
+ * Test Script: ZEREZ Data Enrichment Fix Verification
+ *
+ * This script tests that the fix for missing ZEREZ data is working correctly.
+ * It verifies that manufacturer names, primary energy source, category, and
+ * certificate information are properly preserved after data enrichment.
+ */
+
+const http = require('http');
+
+// Colors for terminal output
+const colors = {
+  reset: '\x1b[0m',
+  green: '\x1b[32m',
+  red: '\x1b[31m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m'
+};
+
+function log(color, message) {
+  console.log(`${color}${message}${colors.reset}`);
+}
+
+function makeRequest(path, method = 'GET', data = null) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'localhost',
+      port: 3000,
+      path,
+      method,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    const req = http.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          resolve({ status: res.statusCode, data: JSON.parse(body) });
+        } catch (e) {
+          resolve({ status: res.statusCode, data: body });
+        }
+      });
+    });
+
+    req.on('error', reject);
+
+    if (data) {
+      req.write(JSON.stringify(data));
+    }
+
+    req.end();
+  });
+}
+
+async function runTest() {
+  log(colors.cyan, '\n═══════════════════════════════════════════════════════');
+  log(colors.cyan, '   ZEREZ Data Enrichment Fix Verification');
+  log(colors.cyan, '═══════════════════════════════════════════════════════\n');
+
+  try {
+    // Step 1: Search for products
+    log(colors.blue, '📋 Step 1: Searching for Sungrow products (50-200 kW)...');
+    const searchResponse = await makeRequest('/api/zerez/search', 'POST', {
+      manufacturerName: 'Sungrow',
+      minPower: 50,
+      maxPower: 200,
+      page: 1,
+      pageSize: 5
+    });
+
+    if (searchResponse.status !== 200) {
+      throw new Error(`Search failed with status ${searchResponse.status}`);
+    }
+
+    const units = searchResponse.data.units || [];
+    log(colors.green, `✓ Found ${units.length} products\n`);
+
+    if (units.length === 0) {
+      log(colors.yellow, '⚠ No products found. Test cannot continue.');
+      return;
+    }
+
+    // Step 2: Analyze search results (these should have manufacturer info)
+    log(colors.blue, '📋 Step 2: Analyzing search results...');
+    const searchSample = units[0];
+    log(colors.cyan, `   Sample Unit ID: ${searchSample.id}`);
+    log(colors.cyan, `   Model Name: ${searchSample.modelName || 'N/A'}`);
+    log(colors.cyan, `   Manufacturer: ${searchSample.manufacturerName || 'N/A'}`);
+    log(colors.cyan, `   Category: ${searchSample.category || 'N/A'}`);
+    log(colors.cyan, `   Energy Source: ${searchSample.primaryEnergySource || 'N/A'}\n`);
+
+    // Step 3: Get detailed preview (this is where the bug was)
+    log(colors.blue, '📋 Step 3: Fetching detailed preview data...');
+    const detailsResponse = await makeRequest('/api/zerez/import-details', 'POST', {
+      unitIds: units.map(u => u.id)
+    });
+
+    if (detailsResponse.status !== 200) {
+      throw new Error(`Import details failed with status ${detailsResponse.status}`);
+    }
+
+    const detailedUnits = detailsResponse.data || [];
+    log(colors.green, `✓ Retrieved detailed data for ${detailedUnits.length} products\n`);
+
+    // Step 4: Verify enrichment (THE ACTUAL FIX VERIFICATION)
+    log(colors.blue, '📋 Step 4: Verifying data enrichment...');
+    log(colors.cyan, '─────────────────────────────────────────────────────');
+
+    let passCount = 0;
+    let failCount = 0;
+    const criticalFields = ['manufacturerName', 'primaryEnergySource', 'category'];
+
+    detailedUnits.forEach((unit, idx) => {
+      log(colors.cyan, `\n   Unit ${idx + 1}: ${unit.modelName || unit.id}`);
+
+      let unitPassed = true;
+      criticalFields.forEach(field => {
+        const value = unit[field];
+        const hasValue = value !== null && value !== undefined && value !== '';
+
+        if (hasValue) {
+          log(colors.green, `   ✓ ${field}: ${value}`);
+          passCount++;
+        } else {
+          log(colors.red, `   ✗ ${field}: MISSING (was "N/A" or null)`);
+          failCount++;
+          unitPassed = false;
+        }
+      });
+
+      // Also check technical specs
+      const technicalSpecs = {
+        maxActivePower: unit.maxActivePower,
+        ratedVoltage: unit.ratedVoltage,
+        ratedCurrent: unit.ratedCurrent
+      };
+
+      log(colors.cyan, `\n   Technical Specs:`);
+      Object.entries(technicalSpecs).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          log(colors.green, `   ✓ ${key}: ${value}`);
+        } else {
+          log(colors.yellow, `   - ${key}: N/A`);
+        }
+      });
+    });
+
+    log(colors.cyan, '\n─────────────────────────────────────────────────────');
+
+    // Step 5: Final verdict
+    log(colors.blue, '\n📋 Step 5: Test Results');
+    log(colors.cyan, `   Critical fields checked: ${passCount + failCount}`);
+    log(colors.green, `   Passed: ${passCount}`);
+    log(colors.red, `   Failed: ${failCount}\n`);
+
+    if (failCount === 0) {
+      log(colors.green, '═══════════════════════════════════════════════════════');
+      log(colors.green, '✅ SUCCESS: All critical fields are preserved!');
+      log(colors.green, '   The data enrichment fix is working correctly.');
+      log(colors.green, '   Manufacturer names, categories, and energy sources');
+      log(colors.green, '   are properly merged with technical specifications.');
+      log(colors.green, '═══════════════════════════════════════════════════════\n');
+      process.exit(0);
+    } else {
+      log(colors.red, '═══════════════════════════════════════════════════════');
+      log(colors.red, '❌ FAILURE: Some critical fields are missing!');
+      log(colors.red, '   The data enrichment may not be working correctly.');
+      log(colors.red, '═══════════════════════════════════════════════════════\n');
+      process.exit(1);
+    }
+
+  } catch (error) {
+    log(colors.red, `\n❌ Test failed with error: ${error.message}\n`);
+    process.exit(1);
+  }
+}
+
+// Run the test
+runTest();

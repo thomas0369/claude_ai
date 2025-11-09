@@ -1,0 +1,877 @@
+'use client';
+
+/**
+ * Puzzle Mode Game Client - Block Puzzle Hero
+ *
+ * Features:
+ * - Move-limited gameplay (3-10 moves per puzzle)
+ * - Pre-defined block sets (no random spawning)
+ * - Star rating system based on move efficiency
+ * - Win/lose conditions
+ * - Progress tracking and completion status
+ * - Victory celebration for 3-star completion
+ */
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Stage, Layer, Rect, Group, Text } from 'react-konva';
+import Konva from 'konva';
+import type { PuzzleConfig } from '@/lib/game/modes/types';
+import { musicManager } from '@/lib/audio/MusicManager';
+import { soundEffects } from '@/lib/audio/SoundEffects';
+import { haptics } from '@/lib/utils/haptics';
+import { MoveCounter } from '@/components/ui/MoveCounter';
+import { AudioControls } from '@/components/game/AudioControls';
+import { saveLevelProgress } from '@/lib/storage/progressStorage';
+
+// Game constants
+const GRID_SIZE = 8;
+
+// Responsive sizing constraints
+const MIN_CELL_SIZE = 30;
+const MAX_CELL_SIZE = 42;
+const GRID_OFFSET_RATIO = 0.08;
+const MIN_STAGE_WIDTH = 320;
+
+interface BlockData {
+  id: string;
+  shape: number[][];
+  color: string;
+  x: number;
+  y: number;
+  originalX: number;
+  originalY: number;
+  isPlaced: boolean;
+}
+
+export interface PuzzleGameClientProps {
+  puzzle: PuzzleConfig;
+  onPuzzleComplete?: (stars: number, movesUsed: number) => void;
+  onPuzzleFailed?: () => void;
+  onExit?: () => void;
+}
+
+/**
+ * Calculate responsive dimensions based on container width
+ */
+function calculateDimensions(containerWidth: number) {
+  const safeWidth = Math.max(containerWidth, MIN_STAGE_WIDTH);
+  const availableWidth = safeWidth - (safeWidth * GRID_OFFSET_RATIO * 2);
+  let cellSize = Math.floor(availableWidth / GRID_SIZE);
+
+  cellSize = Math.max(MIN_CELL_SIZE, Math.min(MAX_CELL_SIZE, cellSize));
+
+  const gridOffsetX = Math.floor(safeWidth * GRID_OFFSET_RATIO);
+  const gridOffsetY = gridOffsetX;
+  const gridWidth = cellSize * GRID_SIZE;
+  const stageWidth = gridWidth + (gridOffsetX * 2);
+  const spawnY = gridOffsetY + gridWidth + Math.floor(cellSize * 1.5);
+  const maxBlockHeight = cellSize * 3;
+  const stageHeight = spawnY + maxBlockHeight + (cellSize * 1.5);
+
+  return {
+    cellSize,
+    gridOffsetX,
+    gridOffsetY,
+    stageWidth,
+    stageHeight,
+    spawnY,
+  };
+}
+
+/**
+ * Calculate star rating based on moves used vs optimal
+ * 3 stars: optimal moves
+ * 2 stars: optimal + 1-2 moves
+ * 1 star: completed (any moves within limit)
+ */
+function calculateStars(movesUsed: number, movesLimit: number): number {
+  const optimalMoves = Math.max(1, Math.floor(movesLimit * 0.6)); // 60% is optimal
+
+  if (movesUsed <= optimalMoves) {
+    return 3; // Perfect!
+  } else if (movesUsed <= optimalMoves + 2) {
+    return 2; // Good
+  } else {
+    return 1; // Completed
+  }
+}
+
+export function PuzzleGameClient({ puzzle, onPuzzleComplete, onPuzzleFailed, onExit }: PuzzleGameClientProps) {
+  // Responsive dimensions state
+  const [dimensions, setDimensions] = useState(() => calculateDimensions(800));
+
+  // Game state
+  const [grid, setGrid] = useState<number[][]>(() => {
+    const initialGrid = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+
+    // Apply prefilled cells if any
+    if (puzzle.gridConfig.prefilled) {
+      puzzle.gridConfig.prefilled.forEach(cell => {
+        const colorValue = parseInt(cell.color.replace('#', ''), 16);
+        initialGrid[cell.row][cell.col] = colorValue;
+      });
+    }
+
+    return initialGrid;
+  });
+
+  const [blocks, setBlocks] = useState<BlockData[]>([]);
+  const [movesUsed, setMovesUsed] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPuzzleComplete, setIsPuzzleComplete] = useState(false);
+  const [isPuzzleFailed, setIsPuzzleFailed] = useState(false);
+  const [stars, setStars] = useState(0);
+  const [dragPreview, setDragPreview] = useState<{
+    row: number;
+    col: number;
+    shape: number[][];
+    isValid: boolean;
+  } | null>(null);
+  const [audioInitialized, setAudioInitialized] = useState(false);
+
+  const stageRef = useRef<Konva.Stage>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
+
+  // Initialize audio systems on first user interaction
+  useEffect(() => {
+    if (!audioInitialized) {
+      const initAudio = () => {
+        musicManager.initialize();
+        soundEffects.initialize();
+        setAudioInitialized(true);
+        musicManager.play();
+      };
+
+      document.addEventListener('click', initAudio, { once: true });
+      document.addEventListener('touchstart', initAudio, { once: true });
+
+      return () => {
+        document.removeEventListener('click', initAudio);
+        document.removeEventListener('touchstart', initAudio);
+      };
+    }
+    return undefined;
+  }, [audioInitialized]);
+
+  // Handle responsive resize
+  useEffect(() => {
+    const updateDimensions = () => {
+      const isMobile = window.innerWidth < 768;
+      const viewportWidth = window.innerWidth;
+      const maxGameWidth = isMobile
+        ? Math.min(viewportWidth * 0.95, 500)
+        : Math.min(viewportWidth * 0.6, 500);
+
+      const availableWidth = containerRef.current?.offsetWidth || maxGameWidth;
+      const calculatedWidth = Math.min(availableWidth, maxGameWidth);
+
+      setDimensions(calculateDimensions(calculatedWidth));
+    };
+
+    setTimeout(updateDimensions, 100);
+
+    let resizeTimer: NodeJS.Timeout;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(updateDimensions, 150);
+    };
+
+    window.addEventListener('resize', debouncedResize);
+    return () => {
+      window.removeEventListener('resize', debouncedResize);
+      clearTimeout(resizeTimer);
+    };
+  }, []);
+
+  // Initialize puzzle blocks ONCE
+  useEffect(() => {
+    if (!initializedRef.current && puzzle.blocks && puzzle.blocks.length > 0) {
+      initializedRef.current = true;
+      spawnPuzzleBlocks();
+      setIsLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [puzzle.puzzleNumber]);
+
+  /**
+   * Spawn all puzzle blocks at once
+   * Unlike campaign mode, we spawn exact blocks defined in puzzle config
+   */
+  const spawnPuzzleBlocks = useCallback(() => {
+    const newBlocks: BlockData[] = [];
+    let blockIndex = 0;
+
+    // Flatten all blocks based on their count
+    const allBlocks: Array<{ shape: number[][], color: string, id: string }> = [];
+    puzzle.blocks.forEach(blockDef => {
+      for (let i = 0; i < blockDef.count; i++) {
+        allBlocks.push({
+          shape: blockDef.shape,
+          color: blockDef.color,
+          id: `${blockDef.id}-${i}`,
+        });
+      }
+    });
+
+    // Calculate positions with better spacing
+    const blocksPerRow = Math.min(3, allBlocks.length);
+    const totalRows = Math.ceil(allBlocks.length / blocksPerRow);
+
+    allBlocks.forEach((blockDef, index) => {
+      const row = Math.floor(index / blocksPerRow);
+      const col = index % blocksPerRow;
+
+      const blockWidth = blockDef.shape[0].length * dimensions.cellSize;
+      const gap = dimensions.cellSize * 0.5;
+
+      // Calculate X position for this block in its row
+      const rowBlocks = Math.min(blocksPerRow, allBlocks.length - row * blocksPerRow);
+      const totalRowWidth = Array.from({ length: rowBlocks }, (_, i) => {
+        const idx = row * blocksPerRow + i;
+        return allBlocks[idx].shape[0].length * dimensions.cellSize;
+      }).reduce((sum, w) => sum + w, 0) + (gap * (rowBlocks + 1));
+
+      let currentX = dimensions.gridOffsetX + (dimensions.stageWidth - dimensions.gridOffsetX * 2 - totalRowWidth) / 2 + gap;
+      for (let i = 0; i < col; i++) {
+        const idx = row * blocksPerRow + i;
+        currentX += allBlocks[idx].shape[0].length * dimensions.cellSize + gap;
+      }
+
+      const y = dimensions.spawnY + (row * (dimensions.cellSize * 3 + gap));
+
+      newBlocks.push({
+        id: `block-${blockIndex++}`,
+        shape: blockDef.shape,
+        color: blockDef.color,
+        x: currentX,
+        y: y,
+        originalX: currentX,
+        originalY: y,
+        isPlaced: false,
+      });
+    });
+
+    setBlocks(newBlocks);
+  }, [dimensions, puzzle.blocks]);
+
+  /**
+   * Convert world coordinates to grid position
+   */
+  const worldToGrid = useCallback((worldX: number, worldY: number) => {
+    const gridX = worldX - dimensions.gridOffsetX;
+    const gridY = worldY - dimensions.gridOffsetY;
+
+    if (gridX < 0 || gridY < 0 ||
+        gridX >= GRID_SIZE * dimensions.cellSize ||
+        gridY >= GRID_SIZE * dimensions.cellSize) {
+      return null;
+    }
+
+    const col = Math.floor(gridX / dimensions.cellSize);
+    const row = Math.floor(gridY / dimensions.cellSize);
+
+    if (row < 0 || col < 0 || row >= GRID_SIZE || col >= GRID_SIZE) {
+      return null;
+    }
+
+    return { row, col };
+  }, [dimensions]);
+
+  /**
+   * Check if a block can be placed at the given position
+   */
+  const canPlaceBlock = useCallback((row: number, col: number, shape: number[][]) => {
+    if (row < 0 || col < 0) return false;
+    if (row + shape.length > GRID_SIZE) return false;
+    if (col + shape[0].length > GRID_SIZE) return false;
+
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape[r].length; c++) {
+        if (shape[r][c] === 1 && grid[row + r][col + c] !== 0) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }, [grid]);
+
+  /**
+   * Check if puzzle is complete (all cells filled or target achieved)
+   */
+  const checkPuzzleComplete = useCallback((currentGrid: number[][]) => {
+    // Check if all non-zero cells match the target pattern (if specified)
+    if (puzzle.targetPattern && puzzle.targetPattern.length > 0) {
+      // Pattern-based completion
+      for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col < GRID_SIZE; col++) {
+          const targetCell = puzzle.targetPattern[row]?.[col] || 0;
+          const currentCell = currentGrid[row][col];
+
+          if (targetCell === 1 && currentCell === 0) {
+            return false; // Required cell is empty
+          }
+        }
+      }
+      return true;
+    }
+
+    // Otherwise, check if grid is completely filled or all blocks placed
+    const allBlocksPlaced = blocks.every(b => b.isPlaced);
+
+    if (allBlocksPlaced) {
+      // Check if any lines can be cleared (puzzle complete)
+      return true;
+    }
+
+    return false;
+  }, [puzzle.targetPattern, blocks]);
+
+  /**
+   * Check and clear completed lines (rows and columns)
+   */
+  const checkAndClearLines = useCallback((currentGrid: number[][]) => {
+    const newGrid = currentGrid.map(row => [...row]);
+    let linesCleared = 0;
+
+    // Check rows
+    for (let row = 0; row < GRID_SIZE; row++) {
+      if (newGrid[row].every(cell => cell !== 0)) {
+        newGrid[row].fill(0);
+        linesCleared++;
+      }
+    }
+
+    // Check columns
+    for (let col = 0; col < GRID_SIZE; col++) {
+      const columnFilled = newGrid.every(row => row[col] !== 0);
+      if (columnFilled) {
+        for (let row = 0; row < GRID_SIZE; row++) {
+          newGrid[row][col] = 0;
+        }
+        linesCleared++;
+      }
+    }
+
+    return { linesCleared, newGrid };
+  }, []);
+
+  /**
+   * Place a block on the grid and increment move counter
+   */
+  const placeBlock = useCallback((blockId: string, row: number, col: number, shape: number[][], color: string) => {
+    const newGrid = grid.map(row => [...row]);
+    const colorValue = parseInt(color.replace('#', ''), 16);
+
+    // Place block cells on grid
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape[r].length; c++) {
+        if (shape[r][c] === 1) {
+          newGrid[row + r][col + c] = colorValue;
+        }
+      }
+    }
+
+    setGrid(newGrid);
+
+    // Play block placement feedback
+    soundEffects.play('blockPlace');
+    haptics.blockPlace();
+
+    // Mark block as placed and increment moves
+    setBlocks(prev => prev.map(b =>
+      b.id === blockId ? { ...b, isPlaced: true } : b
+    ));
+
+    const newMovesUsed = movesUsed + 1;
+    setMovesUsed(newMovesUsed);
+
+    // Check for completed lines
+    setTimeout(() => {
+      const { linesCleared, newGrid: clearedGrid } = checkAndClearLines(newGrid);
+
+      if (linesCleared > 0) {
+        setGrid(clearedGrid);
+
+        if (linesCleared === 1) {
+          soundEffects.play('lineClear');
+        } else {
+          soundEffects.playMultiClear(linesCleared);
+        }
+        haptics.lineClear(linesCleared);
+      }
+
+      // Check if puzzle is complete after clearing
+      const isComplete = checkPuzzleComplete(clearedGrid);
+
+      if (isComplete) {
+        // Puzzle complete!
+        const earnedStars = calculateStars(newMovesUsed, puzzle.movesLimit);
+        setStars(earnedStars);
+        setIsPuzzleComplete(true);
+
+        // Play victory feedback
+        if (earnedStars === 3) {
+          soundEffects.play('levelWin');
+          haptics.levelComplete();
+        } else {
+          soundEffects.play('lineClear');
+        }
+
+        // Save progress
+        saveLevelProgress({
+          levelId: puzzle.puzzleNumber.toString(),
+          mode: 'puzzle',
+          completed: true,
+          highScore: 0, // Puzzles don't have scores
+          stars: earnedStars,
+          moves: newMovesUsed,
+          lastPlayed: new Date().toISOString(),
+          attempts: 0,
+        });
+
+        if (onPuzzleComplete) {
+          onPuzzleComplete(earnedStars, newMovesUsed);
+        }
+      } else if (newMovesUsed >= puzzle.movesLimit) {
+        // Out of moves - check if any blocks can still be placed
+        const remainingBlocks = blocks.filter(b => !b.isPlaced && b.id !== blockId);
+        if (remainingBlocks.length > 0) {
+          // Puzzle failed
+          setIsPuzzleFailed(true);
+          soundEffects.play('gameOver');
+          haptics.gameOver();
+
+          if (onPuzzleFailed) {
+            onPuzzleFailed();
+          }
+        }
+      }
+    }, 100);
+  }, [grid, movesUsed, puzzle.movesLimit, puzzle.puzzleNumber, blocks, checkAndClearLines, checkPuzzleComplete, onPuzzleComplete, onPuzzleFailed]);
+
+  /**
+   * Find the nearest valid position for a block
+   */
+  const findNearestValidPosition = useCallback((x: number, y: number, shape: number[][]) => {
+    const snapRadius = dimensions.cellSize * 1.5;
+    const centerRow = Math.round((y - dimensions.gridOffsetY) / dimensions.cellSize);
+    const centerCol = Math.round((x - dimensions.gridOffsetX) / dimensions.cellSize);
+
+    let bestPosition: { row: number; col: number; distance: number } | null = null;
+
+    for (let radius = 0; radius <= 2; radius++) {
+      for (let row = centerRow - radius; row <= centerRow + radius; row++) {
+        for (let col = centerCol - radius; col <= centerCol + radius; col++) {
+          if (row < 0 || col < 0 || row >= GRID_SIZE || col >= GRID_SIZE) continue;
+
+          if (canPlaceBlock(row, col, shape)) {
+            const posX = dimensions.gridOffsetX + col * dimensions.cellSize;
+            const posY = dimensions.gridOffsetY + row * dimensions.cellSize;
+            const distance = Math.sqrt(Math.pow(x - posX, 2) + Math.pow(y - posY, 2));
+
+            if (distance <= snapRadius) {
+              if (!bestPosition || distance < bestPosition.distance) {
+                bestPosition = { row, col, distance };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return bestPosition ? { row: bestPosition.row, col: bestPosition.col } : null;
+  }, [dimensions, canPlaceBlock]);
+
+  /**
+   * Handle drag move for a block - show preview of placement
+   */
+  const handleDragMove = useCallback((blockId: string) => (e: Konva.KonvaEventObject<DragEvent>) => {
+    const block = blocks.find(b => b.id === blockId);
+    if (!block || block.isPlaced) return;
+
+    const shape = e.target;
+    const x = shape.x();
+    const y = shape.y();
+
+    const gridPos = worldToGrid(x, y);
+
+    if (gridPos) {
+      const { row, col } = gridPos;
+      const isValid = canPlaceBlock(row, col, block.shape);
+      setDragPreview({ row, col, shape: block.shape, isValid });
+    } else {
+      setDragPreview(null);
+    }
+  }, [blocks, worldToGrid, canPlaceBlock]);
+
+  /**
+   * Handle drag end for a block
+   */
+  const handleDragEnd = useCallback((blockId: string) => (e: Konva.KonvaEventObject<DragEvent>) => {
+    const block = blocks.find(b => b.id === blockId);
+    if (!block || block.isPlaced) return;
+
+    // Check if we've run out of moves
+    if (movesUsed >= puzzle.movesLimit) {
+      // Return to original position
+      e.target.to({
+        x: block.originalX,
+        y: block.originalY,
+        duration: 0.3,
+      });
+      setDragPreview(null);
+      return;
+    }
+
+    setDragPreview(null);
+
+    const shape = e.target;
+    const x = shape.x();
+    const y = shape.y();
+
+    const gridPos = worldToGrid(x, y);
+    let targetRow: number;
+    let targetCol: number;
+
+    if (gridPos && canPlaceBlock(gridPos.row, gridPos.col, block.shape)) {
+      targetRow = gridPos.row;
+      targetCol = gridPos.col;
+    } else {
+      const nearestPos = findNearestValidPosition(x, y, block.shape);
+
+      if (nearestPos) {
+        targetRow = nearestPos.row;
+        targetCol = nearestPos.col;
+      } else {
+        shape.to({
+          x: block.originalX,
+          y: block.originalY,
+          duration: 0.3,
+        });
+        return;
+      }
+    }
+
+    const snapX = dimensions.gridOffsetX + targetCol * dimensions.cellSize;
+    const snapY = dimensions.gridOffsetY + targetRow * dimensions.cellSize;
+
+    shape.to({
+      x: snapX,
+      y: snapY,
+      duration: 0.15,
+      onFinish: () => {
+        placeBlock(blockId, targetRow, targetCol, block.shape, block.color);
+      }
+    });
+  }, [blocks, movesUsed, puzzle.movesLimit, worldToGrid, canPlaceBlock, findNearestValidPosition, placeBlock, dimensions]);
+
+  if (isLoading) {
+    return (
+      <div className="w-full flex flex-col items-center" ref={containerRef}>
+        <div className="flex items-center justify-center bg-white rounded-xl shadow-lg p-6 border border-gray-200" style={{ width: dimensions.stageWidth, height: dimensions.stageHeight }}>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500 mx-auto mb-4"></div>
+            <p className="text-gray-700 text-xl font-medium">Loading Puzzle...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const movesRemaining = puzzle.movesLimit - movesUsed;
+
+  return (
+    <div className="w-full flex flex-col items-center gap-6" ref={containerRef}>
+      {/* Puzzle Header */}
+      <div className="w-full max-w-lg bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">{puzzle.name}</h2>
+            <p className="text-sm text-gray-600">{puzzle.description}</p>
+          </div>
+          <div className="text-3xl">🧩</div>
+        </div>
+        {puzzle.hint && (
+          <div className="mt-2 bg-white/60 rounded-lg px-3 py-2 text-sm text-gray-700">
+            💡 <span className="font-medium">Hint:</span> {puzzle.hint}
+          </div>
+        )}
+      </div>
+
+      {/* Move Counter */}
+      <div className="w-full max-w-lg">
+        <MoveCounter
+          currentMoves={movesUsed}
+          maxMoves={puzzle.movesLimit}
+          variant={
+            movesRemaining <= 1 ? 'danger' :
+            movesRemaining <= 3 ? 'warning' :
+            'default'
+          }
+        />
+      </div>
+
+      {/* Konva Stage */}
+      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200" style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
+        <Stage
+          width={dimensions.stageWidth}
+          height={dimensions.stageHeight}
+          ref={stageRef}
+          listening={true}
+        >
+          {/* Grid Layer */}
+          <Layer>
+            <Rect
+              x={dimensions.gridOffsetX}
+              y={dimensions.gridOffsetY}
+              width={GRID_SIZE * dimensions.cellSize}
+              height={GRID_SIZE * dimensions.cellSize}
+              fill="#f8fafc"
+              stroke="#cbd5e1"
+              strokeWidth={3}
+              cornerRadius={8}
+            />
+
+            {/* Grid cells */}
+            {Array.from({ length: GRID_SIZE }).map((_, row) =>
+              Array.from({ length: GRID_SIZE }).map((_, col) => {
+                const cellValue = grid[row][col];
+                const x = dimensions.gridOffsetX + col * dimensions.cellSize;
+                const y = dimensions.gridOffsetY + row * dimensions.cellSize;
+
+                return (
+                  <Group key={`cell-${row}-${col}`}>
+                    <Rect
+                      x={x}
+                      y={y}
+                      width={dimensions.cellSize}
+                      height={dimensions.cellSize}
+                      stroke="#e2e8f0"
+                      strokeWidth={1.5}
+                    />
+
+                    {cellValue !== 0 && (
+                      <Rect
+                        x={x + 3}
+                        y={y + 3}
+                        width={dimensions.cellSize - 6}
+                        height={dimensions.cellSize - 6}
+                        fill={`#${cellValue.toString(16).padStart(6, '0')}`}
+                        cornerRadius={6}
+                        shadowColor="rgba(0,0,0,0.15)"
+                        shadowBlur={4}
+                        shadowOffset={{x: 0, y: 2}}
+                        shadowOpacity={0.3}
+                      />
+                    )}
+                  </Group>
+                );
+              })
+            )}
+
+            <Text
+              text="Drag blocks to solve the puzzle"
+              x={dimensions.gridOffsetX}
+              y={dimensions.spawnY - dimensions.cellSize}
+              fontSize={Math.max(14, Math.min(18, dimensions.cellSize * 0.3))}
+              fill="#64748b"
+              fontStyle="500"
+              width={dimensions.stageWidth - (dimensions.gridOffsetX * 2)}
+              align="center"
+            />
+          </Layer>
+
+          {/* Preview Layer */}
+          <Layer>
+            {dragPreview && (
+              <>
+                {dragPreview.shape.map((row, r) =>
+                  row.map((cell, c) => {
+                    if (cell === 1) {
+                      const x = dimensions.gridOffsetX + (dragPreview.col + c) * dimensions.cellSize;
+                      const y = dimensions.gridOffsetY + (dragPreview.row + r) * dimensions.cellSize;
+
+                      return (
+                        <Rect
+                          key={`preview-${r}-${c}`}
+                          x={x + 3}
+                          y={y + 3}
+                          width={dimensions.cellSize - 6}
+                          height={dimensions.cellSize - 6}
+                          fill={dragPreview.isValid ? '#22c55e' : '#ef4444'}
+                          opacity={0.4}
+                          cornerRadius={6}
+                          listening={false}
+                          stroke={dragPreview.isValid ? '#16a34a' : '#dc2626'}
+                          strokeWidth={2}
+                        />
+                      );
+                    }
+                    return null;
+                  })
+                )}
+              </>
+            )}
+          </Layer>
+
+          {/* Blocks Layer */}
+          <Layer>
+            {blocks.filter(b => !b.isPlaced).map((block) => {
+              const isDisabled = movesUsed >= puzzle.movesLimit;
+
+              return (
+                <Group
+                  key={block.id}
+                  x={block.x}
+                  y={block.y}
+                  draggable={!isDisabled && !isPuzzleComplete && !isPuzzleFailed}
+                  onDragMove={handleDragMove(block.id)}
+                  onDragEnd={handleDragEnd(block.id)}
+                  onDragStart={(e) => {
+                    e.target.moveToTop();
+                    haptics.blockPickup();
+                  }}
+                  opacity={isDisabled ? 0.5 : 1}
+                  onMouseEnter={(e) => {
+                    const stage = e.target.getStage();
+                    if (stage && !isDisabled && !isPuzzleComplete && !isPuzzleFailed) {
+                      stage.container().style.cursor = 'grab';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    const stage = e.target.getStage();
+                    if (stage) {
+                      stage.container().style.cursor = 'default';
+                    }
+                  }}
+                >
+                  {block.shape.map((row, r) =>
+                    row.map((cell, c) => {
+                      if (cell === 1) {
+                        const x = c * dimensions.cellSize;
+                        const y = r * dimensions.cellSize;
+
+                        return (
+                          <Rect
+                            key={`${r}-${c}`}
+                            x={x}
+                            y={y}
+                            width={dimensions.cellSize - 6}
+                            height={dimensions.cellSize - 6}
+                            fill={block.color}
+                            stroke="#ffffff"
+                            strokeWidth={3}
+                            cornerRadius={8}
+                            shadowColor="rgba(0,0,0,0.2)"
+                            shadowBlur={12}
+                            shadowOffset={{x: 0, y: 4}}
+                            shadowOpacity={0.4}
+                          />
+                        );
+                      }
+                      return null;
+                    })
+                  )}
+                </Group>
+              );
+            })}
+          </Layer>
+        </Stage>
+      </div>
+
+      {/* Puzzle Complete Modal */}
+      {isPuzzleComplete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 text-center">
+            <div className="text-6xl mb-4">
+              {stars === 3 ? '🌟' : stars === 2 ? '⭐' : '✨'}
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Puzzle Complete!</h2>
+            <p className="text-gray-600 mb-4">
+              {stars === 3 ? 'Perfect solution!' : stars === 2 ? 'Great job!' : 'Well done!'}
+            </p>
+
+            {/* Star Rating Display */}
+            <div className="flex justify-center gap-2 mb-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className={`text-4xl ${i <= stars ? 'opacity-100' : 'opacity-20'}`}>
+                  ⭐
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 mb-6">
+              <div className="text-sm text-gray-600 mb-1">Moves Used</div>
+              <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+                {movesUsed} / {puzzle.movesLimit}
+              </div>
+              {stars === 3 && (
+                <div className="mt-2 text-sm text-green-600 font-medium">
+                  🎯 Optimal solution!
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={onExit}
+                className="flex-1 bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 transition-all"
+              >
+                Exit
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg"
+              >
+                Next Puzzle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Puzzle Failed Modal */}
+      {isPuzzleFailed && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 text-center">
+            <div className="text-6xl mb-4">😔</div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Out of Moves!</h2>
+            <p className="text-gray-600 mb-4">The puzzle wasn't solved in time</p>
+
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-6 mb-6">
+              <div className="text-sm text-gray-600 mb-1">Moves Used</div>
+              <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-600">
+                {movesUsed} / {puzzle.movesLimit}
+              </div>
+              <div className="mt-2 text-sm text-gray-600">
+                💡 Try a different strategy!
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={onExit}
+                className="flex-1 bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 transition-all"
+              >
+                Exit
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all shadow-lg"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audio Controls */}
+      <div className="absolute top-4 right-4 z-40">
+        <AudioControls />
+      </div>
+    </div>
+  );
+}

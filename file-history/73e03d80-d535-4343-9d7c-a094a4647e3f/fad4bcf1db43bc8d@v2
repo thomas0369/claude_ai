@@ -1,0 +1,56 @@
+/**
+ * Check Current Layout
+ * Quick test to see the actual current state
+ */
+
+import { test } from '@playwright/test';
+
+test('Check current layout and take screenshot', async ({ page }) => {
+  console.log('=== Loading page ===');
+  await page.goto('http://localhost:3003/play/1');
+
+  // Wait for game to load
+  await page.waitForTimeout(10000);
+
+  console.log('=== Taking screenshot ===');
+  await page.screenshot({
+    path: 'current-layout-check.png',
+    fullPage: true
+  });
+
+  // Get actual dimensions
+  const dimensions = await page.evaluate(() => {
+    const canvas = document.querySelector('canvas');
+    const container = canvas?.closest('.bg-white.rounded-xl');
+    const gameHUD = document.querySelector('.bg-white.rounded-lg.shadow-md');
+
+    return {
+      canvas: canvas ? {
+        width: canvas.width,
+        displayWidth: canvas.getBoundingClientRect().width,
+        height: canvas.height,
+        displayHeight: canvas.getBoundingClientRect().height,
+      } : null,
+      container: container ? {
+        width: container.getBoundingClientRect().width,
+        height: container.getBoundingClientRect().height,
+      } : null,
+      gameHUD: gameHUD ? {
+        width: gameHUD.getBoundingClientRect().width,
+        height: gameHUD.getBoundingClientRect().height,
+      } : null,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      }
+    };
+  });
+
+  console.log('\n=== Current Dimensions ===');
+  console.log('Viewport:', dimensions.viewport);
+  console.log('Canvas:', dimensions.canvas);
+  console.log('Container:', dimensions.container);
+  console.log('GameHUD:', dimensions.gameHUD);
+
+  console.log('\n✅ Screenshot saved to current-layout-check.png');
+});

@@ -1,0 +1,50 @@
+# Testing Protocol for Claude Code
+
+## Critical Rule
+**ALWAYS test, validate and verify with browser after each prompt that modifies code.**
+
+## Why This Matters
+- Hot reload may not pick up all changes
+- Runtime errors may not show in build logs
+- Visual/functional bugs only appear in browser
+- User experience is the ultimate validation
+
+## Testing Checklist
+
+### After Code Changes
+1. ✅ Wait for Next.js hot reload to complete
+2. ✅ Check browser console for errors
+3. ✅ Verify visual rendering is correct
+4. ✅ Test user interactions (clicks, form inputs, etc.)
+5. ✅ Check Network tab for API errors
+6. ✅ Validate data flow end-to-end
+
+### For UI Component Changes
+- [ ] Open page in browser
+- [ ] Interact with changed components
+- [ ] Check for runtime errors in console
+- [ ] Verify styling/layout
+- [ ] Test edge cases (empty states, errors, etc.)
+
+### For API Changes
+- [ ] Test with curl/Postman
+- [ ] Check server logs for errors
+- [ ] Verify response format
+- [ ] Test error handling
+
+### For State Management
+- [ ] Verify initial state
+- [ ] Test state updates
+- [ ] Check for race conditions
+- [ ] Validate cleanup on unmount
+
+## Common Pitfalls
+- ❌ Trusting "No TypeScript errors" without browser test
+- ❌ Assuming hot reload worked without verification
+- ❌ Not checking console for warnings
+- ❌ Skipping edge case testing
+
+## This Document
+- Location: `.memory-bank/testing_protocol.md`
+- Purpose: Ensure rigorous testing of all code changes
+- Updated: 2025-11-02

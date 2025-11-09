@@ -1,0 +1,332 @@
+"""
+Dual Data Provider Manager for Elliott Wave Trading Bot.
+
+Intelligently routes data requests to the best available provider:
+- TwelveData: Forex, Commodities (FREE tier)
+- Massive.com: US Stocks, Options (better quality)
+
+Provides automatic fallback when a provider fails or reaches limits.
+"""
+
+import logging
+from typing import List, Optional, Dict
+from datetime import datetime
+from twelvedata_provider import TwelveDataProvider
+from massive_provider import MassiveProvider
+
+logger = logging.getLogger(__name__)
+
+
+class DualProviderManager:
+    """
+    Manages multiple data providers with intelligent routing and fallback.
+
+    Provider Selection Strategy:
+    1. Forex/Commodities → TwelveData (EUR/USD, GBP/USD, XAU/USD, USOIL)
+    2. US Stocks → Massive.com (AAPL, MSFT, TSLA, etc.)
+    3. Crypto → Try both (fallback logic)
+
+    Fallback Logic:
+    - If primary provider fails → try secondary
+    - If rate limit reached → switch to secondary
+    - Track failures and auto-disable broken providers
+    """
+
+    # Symbol type classification
+    FOREX_SYMBOLS = {
+        "EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CHF",
+        "NZD/USD", "USD/CAD"
+    }
+
+    COMMODITY_SYMBOLS = {
+        "XAU/USD",  # Gold
+        "XAG/USD",  # Silver
+        "USOIL",    # WTI Crude Oil
+    }
+
+    CRYPTO_SYMBOLS = {
+        "BTC/USD", "ETH/USD", "BNB/USD", "SOL/USD"
+    }
+
+    def __init__(
+        self,
+        twelvedata_key: Optional[str] = None,
+        massive_key: Optional[str] = None
+    ):
+        """
+        Initialize dual provider manager.
+
+        Args:
+            twelvedata_key: TwelveData API key (optional)
+            massive_key: Massive.com API key (optional)
+        """
+        # Initialize providers
+        self.twelvedata = TwelveDataProvider(api_key=twelvedata_key)
+        self.massive = MassiveProvider(api_key=massive_key)
+
+        # Track provider health
+        self.provider_failures = {
+            "TwelveData": 0,
+            "Massive.com": 0
+        }
+
+        self.provider_disabled = {
+            "TwelveData": False,
+            "Massive.com": False
+        }
+
+        logger.info("Dual Provider Manager initialized")
+        logger.info(f"- TwelveData: {'✓ Active' if self.twelvedata.client else '✗ No API key'}")
+        logger.info(f"- Massive.com: {'✓ Active' if self.massive.api_key else '✗ No API key'}")
+
+    def _classify_symbol(self, symbol: str) -> str:
+        """
+        Classify symbol type.
+
+        Returns:
+            "forex", "commodity", "crypto", or "stock"
+        """
+        if symbol in self.FOREX_SYMBOLS:
+            return "forex"
+        elif symbol in self.COMMODITY_SYMBOLS:
+            return "commodity"
+        elif symbol in self.CRYPTO_SYMBOLS:
+            return "crypto"
+        else:
+            return "stock"  # Default to stock
+
+    def _select_provider(self, symbol: str) -> str:
+        """
+        Select best provider for this symbol.
+
+        Returns:
+            "TwelveData" or "Massive.com"
+        """
+        symbol_type = self._classify_symbol(symbol)
+
+        # Routing logic
+        if symbol_type in ["forex", "commodity"]:
+            # TwelveData is better for Forex/Commodities (FREE access)
+            primary = "TwelveData"
+            fallback = "Massive.com"
+        elif symbol_type == "stock":
+            # Massive.com is better for Stocks (institutional quality)
+            primary = "Massive.com"
+            fallback = "TwelveData"
+        elif symbol_type == "crypto":
+            # Try TwelveData first, then Massive
+            primary = "TwelveData"
+            fallback = "Massive.com"
+        else:
+            # Default to TwelveData
+            primary = "TwelveData"
+            fallback = "Massive.com"
+
+        # Check if primary is available
+        if self.provider_disabled.get(primary, False):
+            logger.warning(f"{primary} is disabled, using {fallback}")
+            return fallback
+
+        return primary
+
+    def fetch_ohlcv(
+        self,
+        symbol: str,
+        timeframe: str = "1h",
+        limit: int = 200,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> Optional[List[List]]:
+        """
+        Fetch OHLCV data using best available provider.
+
+        Automatically falls back to secondary provider if primary fails.
+
+        Args:
+            symbol: Asset symbol (e.g., "EUR/USD", "AAPL")
+            timeframe: Timeframe (e.g., "5m", "1h", "1d")
+            limit: Number of candles to fetch
+            start_date: Optional start date
+            end_date: Optional end date
+
+        Returns:
+            List of OHLCV candles or None if all providers fail
+        """
+        symbol_type = self._classify_symbol(symbol)
+        primary_provider_name = self._select_provider(symbol)
+
+        logger.info(
+            f"Fetching {symbol} ({symbol_type}) {timeframe}: "
+            f"Primary={primary_provider_name}"
+        )
+
+        # Try primary provider
+        if primary_provider_name == "TwelveData":
+            primary = self.twelvedata
+            fallback = self.massive
+            fallback_name = "Massive.com"
+        else:
+            primary = self.massive
+            fallback = self.twelvedata
+            fallback_name = "TwelveData"
+
+        # Attempt fetch from primary
+        try:
+            data = primary.fetch_ohlcv(
+                symbol=symbol,
+                timeframe=timeframe,
+                limit=limit,
+                start_date=start_date,
+                end_date=end_date
+            )
+
+            if data:
+                logger.info(f"✓ {primary_provider_name} succeeded for {symbol}")
+                # Reset failure count on success
+                self.provider_failures[primary_provider_name] = 0
+                return data
+            else:
+                logger.warning(f"{primary_provider_name} returned no data for {symbol}")
+                # Increment failure count
+                self.provider_failures[primary_provider_name] += 1
+
+        except Exception as e:
+            logger.error(f"{primary_provider_name} error for {symbol}: {e}")
+            self.provider_failures[primary_provider_name] += 1
+
+        # Disable provider if too many failures
+        if self.provider_failures[primary_provider_name] >= 5:
+            logger.error(
+                f"Disabling {primary_provider_name} due to repeated failures "
+                f"({self.provider_failures[primary_provider_name]})"
+            )
+            self.provider_disabled[primary_provider_name] = True
+
+        # Try fallback provider
+        logger.warning(f"Falling back to {fallback_name} for {symbol}")
+
+        try:
+            data = fallback.fetch_ohlcv(
+                symbol=symbol,
+                timeframe=timeframe,
+                limit=limit,
+                start_date=start_date,
+                end_date=end_date
+            )
+
+            if data:
+                logger.info(f"✓ {fallback_name} succeeded for {symbol}")
+                return data
+            else:
+                logger.warning(f"{fallback_name} returned no data for {symbol}")
+
+        except Exception as e:
+            logger.error(f"{fallback_name} error for {symbol}: {e}")
+
+        # Both providers failed
+        logger.error(f"❌ All providers failed for {symbol} {timeframe}")
+        return None
+
+    def get_provider_stats(self) -> Dict:
+        """Get statistics for both providers."""
+        return {
+            "twelvedata": {
+                "calls": self.twelvedata.get_call_count(),
+                "failures": self.provider_failures["TwelveData"],
+                "disabled": self.provider_disabled["TwelveData"],
+                "available": bool(self.twelvedata.client)
+            },
+            "massive": {
+                "calls": self.massive.get_call_count(),
+                "failures": self.provider_failures["Massive.com"],
+                "disabled": self.provider_disabled["Massive.com"],
+                "available": bool(self.massive.api_key)
+            }
+        }
+
+    def reset_providers(self):
+        """Reset all providers (clear failures, re-enable)."""
+        self.twelvedata.reset_call_count()
+        self.massive.reset_call_count()
+
+        self.provider_failures = {
+            "TwelveData": 0,
+            "Massive.com": 0
+        }
+
+        self.provider_disabled = {
+            "TwelveData": False,
+            "Massive.com": False
+        }
+
+        logger.info("All providers reset")
+
+
+def test_dual_provider():
+    """Test dual provider manager."""
+    import sys
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(levelname)s - %(message)s',
+        stream=sys.stdout
+    )
+
+    print("=" * 60)
+    print("TESTING DUAL PROVIDER MANAGER")
+    print("=" * 60)
+
+    manager = DualProviderManager()
+
+    # Test 1: Forex (should use TwelveData)
+    print("\n" + "=" * 60)
+    print("TEST 1: EUR/USD (Forex → TwelveData)")
+    print("=" * 60)
+
+    data = manager.fetch_ohlcv("EUR/USD", "1h", limit=10)
+    if data:
+        print(f"✓ Got {len(data)} candles")
+    else:
+        print("❌ Failed")
+
+    # Test 2: Stock (should use Massive.com)
+    print("\n" + "=" * 60)
+    print("TEST 2: AAPL (Stock → Massive.com)")
+    print("=" * 60)
+
+    data = manager.fetch_ohlcv("AAPL", "1h", limit=10)
+    if data:
+        print(f"✓ Got {len(data)} candles")
+    else:
+        print("❌ Failed")
+
+    # Test 3: Gold (should use TwelveData)
+    print("\n" + "=" * 60)
+    print("TEST 3: XAU/USD (Commodity → TwelveData)")
+    print("=" * 60)
+
+    data = manager.fetch_ohlcv("XAU/USD", "1h", limit=10)
+    if data:
+        print(f"✓ Got {len(data)} candles")
+    else:
+        print("❌ Failed")
+
+    # Statistics
+    print("\n" + "=" * 60)
+    print("PROVIDER STATISTICS")
+    print("=" * 60)
+
+    stats = manager.get_provider_stats()
+    print(f"\nTwelveData:")
+    print(f"  API Calls: {stats['twelvedata']['calls']}")
+    print(f"  Failures: {stats['twelvedata']['failures']}")
+    print(f"  Available: {stats['twelvedata']['available']}")
+
+    print(f"\nMassive.com:")
+    print(f"  API Calls: {stats['massive']['calls']}")
+    print(f"  Failures: {stats['massive']['failures']}")
+    print(f"  Available: {stats['massive']['available']}")
+
+
+if __name__ == "__main__":
+    test_dual_provider()

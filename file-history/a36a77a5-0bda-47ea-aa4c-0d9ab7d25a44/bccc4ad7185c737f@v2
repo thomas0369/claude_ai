@@ -1,0 +1,58 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+/**
+ * Hook to detect if app is running as PWA in fullscreen mode
+ * This enables optimized layouts for true fullscreen PWA experience
+ */
+export function usePWADetection() {
+  const [isPWA, setIsPWA] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Detect if running as installed PWA
+    const checkPWAStatus = () => {
+      // Check if running in standalone mode (iOS)
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
+
+      // Check if running in fullscreen mode
+      const isFullscreenMode = window.matchMedia('(display-mode: fullscreen)').matches;
+
+      // Check if navigator.standalone is true (iOS Safari)
+      const isIOSStandalone = 'standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true;
+
+      // App is considered PWA if any of these conditions are true
+      const isPWAMode = isStandaloneMode || isFullscreenMode || isIOSStandalone;
+
+      setIsStandalone(isStandaloneMode || isIOSStandalone);
+      setIsFullscreen(isFullscreenMode);
+      setIsPWA(isPWAMode);
+    };
+
+    checkPWAStatus();
+
+    // Listen for display mode changes
+    const standaloneMedia = window.matchMedia('(display-mode: standalone)');
+    const fullscreenMedia = window.matchMedia('(display-mode: fullscreen)');
+
+    const handleChange = () => checkPWAStatus();
+
+    standaloneMedia.addEventListener('change', handleChange);
+    fullscreenMedia.addEventListener('change', handleChange);
+
+    return () => {
+      standaloneMedia.removeEventListener('change', handleChange);
+      fullscreenMedia.removeEventListener('change', handleChange);
+    };
+  }, []);
+
+  return {
+    isPWA,
+    isFullscreen,
+    isStandalone,
+    // Helper: should use immersive mode if PWA and mobile
+    shouldUseImmersiveMode: isPWA && typeof window !== 'undefined' && window.innerWidth < 768,
+  };
+}

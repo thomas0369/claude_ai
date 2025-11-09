@@ -1,0 +1,158 @@
+"""RSI Extremes Mean Reversion Strategy"""
+
+from typing import Dict, Tuple
+import pandas as pd
+from .base_strategy import BaseStrategy, SignalDirection
+
+
+class RSIExtremesStrategy(BaseStrategy):
+    """
+    RSI Extremes Strategy - Mean reversion based on oversold/overbought RSI
+
+    Entry Conditions:
+    - LONG: RSI < 30 (oversold) + RSI turning up + price above support
+    - SHORT: RSI > 70 (overbought) + RSI turning down + price below resistance
+
+    Scoring (100 points max):
+    - RSI Level: 40 points (more extreme = higher score)
+    - RSI Divergence: 20 points
+    - Volume Confirmation: 15 points
+    - Price Action: 15 points (near support/resistance)
+    - Trend Context: 10 points (counter-trend vs with-trend)
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="RSI Extremes",
+            max_score=100,
+            min_score=60  # 60% confidence minimum
+        )
+
+    def calculate_score(self, indicators: Dict, ohlcv: pd.DataFrame) -> Tuple[float, Dict]:
+        """Calculate RSI extremes strategy score"""
+        score = 0
+        breakdown = {}
+
+        # Extract indicators
+        rsi_values = indicators.get('rsi', {}).get('rsi', [])
+        close_prices = ohlcv['close'].values
+        volumes = ohlcv['volume'].values if 'volume' in ohlcv.columns else None
+
+        if len(rsi_values) < 3:
+            return 0, breakdown
+
+        current_rsi = rsi_values[-1]
+        prev_rsi = rsi_values[-2]
+
+        # 1. RSI Level Score (40 points)
+        if current_rsi < 30:
+            # Oversold - more extreme = higher score
+            rsi_score = min(40, (30 - current_rsi) * 2)
+        elif current_rsi > 70:
+            # Overbought - more extreme = higher score
+            rsi_score = min(40, (current_rsi - 70) * 2)
+        else:
+            rsi_score = 0
+
+        score += rsi_score
+        breakdown['rsi_level'] = rsi_score
+
+        # 2. RSI Divergence (20 points)
+        if len(rsi_values) >= 10 and len(close_prices) >= 10:
+            # Check for bullish/bearish divergence
+            price_change = close_prices[-1] - close_prices[-10]
+            rsi_change = rsi_values[-1] - rsi_values[-10]
+
+            if price_change < 0 and rsi_change > 0 and current_rsi < 35:
+                # Bullish divergence
+                score += 20
+                breakdown['divergence'] = 20
+            elif price_change > 0 and rsi_change < 0 and current_rsi > 65:
+                # Bearish divergence
+                score += 20
+                breakdown['divergence'] = 20
+            else:
+                breakdown['divergence'] = 0
+        else:
+            breakdown['divergence'] = 0
+
+        # 3. Volume Confirmation (15 points)
+        if volumes is not None and len(volumes) >= 20:
+            avg_volume = volumes[-20:].mean()
+            current_volume = volumes[-1]
+            if current_volume > avg_volume * 1.2:
+                score += 15
+                breakdown['volume'] = 15
+            elif current_volume > avg_volume:
+                score += 8
+                breakdown['volume'] = 8
+            else:
+                breakdown['volume'] = 0
+        else:
+            breakdown['volume'] = 0
+
+        # 4. Price Action - Near Support/Resistance (15 points)
+        if len(close_prices) >= 50:
+            recent_high = close_prices[-50:].max()
+            recent_low = close_prices[-50:].min()
+            current_price = close_prices[-1]
+            price_range = recent_high - recent_low
+
+            # Distance from extremes
+            dist_from_low = (current_price - recent_low) / price_range
+            dist_from_high = (recent_high - current_price) / price_range
+
+            if dist_from_low < 0.1:  # Near support
+                score += 15
+                breakdown['price_action'] = 15
+            elif dist_from_high < 0.1:  # Near resistance
+                score += 15
+                breakdown['price_action'] = 15
+            elif dist_from_low < 0.2 or dist_from_high < 0.2:
+                score += 8
+                breakdown['price_action'] = 8
+            else:
+                breakdown['price_action'] = 0
+        else:
+            breakdown['price_action'] = 0
+
+        # 5. Trend Context (10 points)
+        if 'ema' in indicators and 'ema_55' in indicators['ema']:
+            ema_55 = indicators['ema']['ema_55'][-1]
+            current_price = close_prices[-1]
+
+            # Bonus for mean reversion in strong trends
+            if current_rsi < 30 and current_price > ema_55:
+                # Oversold in uptrend
+                score += 10
+                breakdown['trend_context'] = 10
+            elif current_rsi > 70 and current_price < ema_55:
+                # Overbought in downtrend
+                score += 10
+                breakdown['trend_context'] = 10
+            else:
+                breakdown['trend_context'] = 0
+        else:
+            breakdown['trend_context'] = 0
+
+        return score, breakdown
+
+    def determine_direction(self, indicators: Dict, ohlcv: pd.DataFrame, score: float) -> SignalDirection:
+        """Determine trade direction based on RSI extremes"""
+        rsi_values = indicators.get('rsi', {}).get('rsi', [])
+
+        if len(rsi_values) < 2:
+            return SignalDirection.NEUTRAL
+
+        current_rsi = rsi_values[-1]
+        prev_rsi = rsi_values[-2]
+
+        # LONG: Oversold and RSI turning up
+        if current_rsi < 35 and current_rsi > prev_rsi:
+            return SignalDirection.LONG
+
+        # SHORT: Overbought and RSI turning down
+        elif current_rsi > 65 and current_rsi < prev_rsi:
+            return SignalDirection.SHORT
+
+        return SignalDirection.NEUTRAL

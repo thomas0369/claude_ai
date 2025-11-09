@@ -1,0 +1,51 @@
+import { NextResponse } from 'next/server';
+import { getZEREZClient } from '@/lib/zerez-graphql-client';
+import { filterValidEnumValues } from '@/lib/ui-utils';
+import { EnumValuesResponse, EnumValuesResponseSchema } from '@/lib/zerez-types';
+import { validateWithErrorHandling } from '@/lib/api-validation-helpers';
+import { createErrorResponse } from '@/lib/api-error-handler';
+
+export async function GET() {
+  try {
+    // Get TypeScript GraphQL client
+    const client = await getZEREZClient();
+
+    // Get enum values from GraphQL introspection
+    const rawEnumValues = {
+      primaryEnergySource: client.getEnumValues('PrimaryEnergySource'),
+      category: client.getEnumValues('Category'),
+    };
+
+    // Filter out invalid values (empty strings, null, undefined, whitespace-only)
+    // This implements defense-in-depth: Python filters → API filters → Component filters
+    // Radix UI Select doesn't allow empty string values, which can come from GraphQL introspection
+    const sanitizedEnumValues = {
+      primaryEnergySource: filterValidEnumValues(rawEnumValues.primaryEnergySource || []),
+      category: filterValidEnumValues(rawEnumValues.category || []),
+    };
+
+    // Validate response structure against Zod schema
+    const result = validateWithErrorHandling(
+      EnumValuesResponseSchema,
+      sanitizedEnumValues,
+      {
+        operation: 'enum values retrieval',
+        logContext: {
+          totalPrimaryEnergySources: sanitizedEnumValues.primaryEnergySource.length,
+          totalCategories: sanitizedEnumValues.category.length
+        },
+        sampleData: {
+          primaryEnergySource: sanitizedEnumValues.primaryEnergySource.slice(0, 3),
+          category: sanitizedEnumValues.category.slice(0, 3)
+        }
+      }
+    );
+
+    if (!result.success) return result.response;
+
+    // Type-safe validated data
+    return NextResponse.json<EnumValuesResponse>(result.data);
+  } catch (error) {
+    return createErrorResponse('fetch enum values', error);
+  }
+}

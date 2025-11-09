@@ -1,0 +1,147 @@
+#!/usr/bin/env node
+
+/**
+ * Environment Variable Diagnostic Tool
+ *
+ * This script helps diagnose why DEEPSEEK_API_KEY is not loading
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+console.log('🔍 DeepSeek API Key Diagnostic Tool\n');
+console.log('=' .repeat(60));
+
+// 1. Check if .env.local exists
+const envPath = path.join(__dirname, '.env.local');
+console.log('\n1. Checking .env.local file:');
+console.log(`   Path: ${envPath}`);
+
+if (fs.existsSync(envPath)) {
+  console.log('   ✅ File exists');
+
+  // Read file contents (without showing the actual key)
+  const contents = fs.readFileSync(envPath, 'utf8');
+  const lines = contents.split('\n').filter(line => line.trim());
+
+  console.log(`   📄 File has ${lines.length} line(s)`);
+
+  // Check for DEEPSEEK_API_KEY line
+  const hasKey = lines.some(line => line.startsWith('DEEPSEEK_API_KEY='));
+
+  if (hasKey) {
+    console.log('   ✅ DEEPSEEK_API_KEY line found');
+
+    // Check format
+    const keyLine = lines.find(line => line.startsWith('DEEPSEEK_API_KEY='));
+    const hasSpaces = keyLine.includes(' = ') || keyLine.includes('= ') || keyLine.includes(' =');
+    const hasQuotes = keyLine.includes('"') || keyLine.includes("'");
+    const hasExport = keyLine.startsWith('export ');
+
+    if (hasSpaces) {
+      console.log('   ⚠️  WARNING: Line has spaces around = (should be KEY=value)');
+    }
+    if (hasQuotes) {
+      console.log('   ⚠️  WARNING: Value has quotes (remove them)');
+    }
+    if (hasExport) {
+      console.log('   ⚠️  WARNING: Line starts with "export" (remove it)');
+    }
+
+    // Check if value is set
+    const value = keyLine.split('=')[1];
+    if (!value || value.trim() === '') {
+      console.log('   ❌ ERROR: No value after =');
+    } else if (value.startsWith('sk-')) {
+      console.log('   ✅ Value starts with sk- (correct format)');
+      console.log(`   ✅ Value length: ${value.trim().length} characters`);
+    } else {
+      console.log('   ⚠️  WARNING: Value does not start with sk-');
+    }
+  } else {
+    console.log('   ❌ DEEPSEEK_API_KEY line NOT found');
+    console.log('   💡 Add this line: DEEPSEEK_API_KEY=sk-your-key-here');
+  }
+
+  // Show all environment variable names (not values)
+  console.log('\n   📋 Variables in .env.local:');
+  lines.forEach(line => {
+    if (line.trim() && !line.startsWith('#')) {
+      const key = line.split('=')[0];
+      console.log(`      - ${key}`);
+    }
+  });
+
+} else {
+  console.log('   ❌ File does NOT exist');
+  console.log('   💡 Create it with: echo "DEEPSEEK_API_KEY=sk-your-key" > .env.local');
+}
+
+// 2. Check if environment variable is loaded in Node.js
+console.log('\n2. Checking Node.js process.env:');
+const envValue = process.env.DEEPSEEK_API_KEY;
+
+if (envValue) {
+  console.log('   ✅ DEEPSEEK_API_KEY is loaded in process.env');
+  console.log(`   ✅ Value length: ${envValue.length} characters`);
+  console.log(`   ✅ Starts with: ${envValue.substring(0, 5)}...`);
+} else {
+  console.log('   ❌ DEEPSEEK_API_KEY is NOT in process.env');
+  console.log('   ⚠️  This means the .env.local file is not being loaded');
+  console.log('   💡 Solution: Restart the dev server (npm run dev)');
+}
+
+// 3. Check Next.js environment loading
+console.log('\n3. Next.js Environment Info:');
+console.log(`   Node Environment: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`   Working Directory: ${process.cwd()}`);
+
+// Check for other .env files
+const envFiles = [
+  '.env',
+  '.env.local',
+  '.env.development',
+  '.env.development.local',
+  '.env.production',
+  '.env.production.local'
+];
+
+console.log('\n4. All .env files in directory:');
+envFiles.forEach(file => {
+  const filePath = path.join(__dirname, file);
+  if (fs.existsSync(filePath)) {
+    console.log(`   ✅ ${file} exists`);
+  } else {
+    console.log(`   ⬜ ${file} does not exist`);
+  }
+});
+
+// 5. Recommendations
+console.log('\n' + '='.repeat(60));
+console.log('📋 RECOMMENDATIONS:\n');
+
+if (!fs.existsSync(envPath)) {
+  console.log('1. ❗ CREATE .env.local file in benchmark-app/ directory');
+  console.log('   Command: cd benchmark-app && touch .env.local');
+  console.log('');
+}
+
+if (fs.existsSync(envPath) && !envValue) {
+  console.log('1. ❗ RESTART the development server');
+  console.log('   - Stop current server (Ctrl+C)');
+  console.log('   - Run: npm run dev');
+  console.log('');
+}
+
+console.log('2. ✅ Correct .env.local format:');
+console.log('   DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxxx');
+console.log('   (no quotes, no spaces around =)');
+console.log('');
+
+console.log('3. ✅ After fixing, verify with:');
+console.log('   curl http://localhost:3000/api/pdf/extract');
+console.log('   Should show: "apiKeyConfigured": true');
+console.log('');
+
+console.log('=' .repeat(60));
+console.log('\n✨ Diagnostic complete!');

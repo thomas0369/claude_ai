@@ -1,0 +1,366 @@
+/**
+ * Staging Database Manager
+ * =========================
+ *
+ * Manages unverified PDF extraction data in JSON files
+ *
+ * Storage structure:
+ * /public/data/staging/
+ *   ├── products/
+ *   │   ├── {uuid}.json
+ *   │   └── {uuid}.json
+ *   └── index.json
+ */
+
+import { promises as fs } from 'fs';
+import path from 'path';
+import {
+  StagingItem,
+  StagingItemSchema,
+  StagingIndex,
+  StagingIndexSchema,
+  StagingFilterOptions,
+  StagingSortBy,
+  StagingSortOrder,
+} from './staging-types';
+
+const STAGING_DIR = path.join(process.cwd(), 'public', 'data', 'staging', 'products');
+const INDEX_PATH = path.join(process.cwd(), 'public', 'data', 'staging', 'index.json');
+
+/**
+ * Ensure staging directory exists
+ */
+export async function ensureStagingDirectory(): Promise<void> {
+  await fs.mkdir(STAGING_DIR, { recursive: true });
+}
+
+/**
+ * Get path to staging item file with validation
+ */
+function getStagingItemPath(id: string): string {
+  // Validate ID format to prevent path traversal (防止 path traversal)
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id)) {
+    throw new Error('Invalid staging ID format');
+  }
+
+  const itemPath = path.join(STAGING_DIR, `${id}.json`);
+
+  // Validate path stays within staging directory (防止 path traversal)
+  const resolvedPath = path.resolve(itemPath);
+  const allowedDir = path.resolve(STAGING_DIR);
+  if (!resolvedPath.startsWith(allowedDir)) {
+    throw new Error('Invalid path: Path traversal detected');
+  }
+
+  return itemPath;
+}
+
+/**
+ * Load staging index
+ */
+export async function loadStagingIndex(): Promise<StagingIndex> {
+  try {
+    const content = await fs.readFile(INDEX_PATH, 'utf-8');
+    const data = JSON.parse(content);
+    return StagingIndexSchema.parse(data);
+  } catch (error) {
+    // Return empty index if file doesn't exist
+    return {
+      items: [],
+      updated_at: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * Save staging index
+ */
+export async function saveStagingIndex(index: StagingIndex): Promise<void> {
+  await ensureStagingDirectory();
+  await fs.writeFile(
+    INDEX_PATH,
+    JSON.stringify(
+      {
+        ...index,
+        updated_at: new Date().toISOString(),
+      },
+      null,
+      2
+    ),
+    'utf-8'
+  );
+}
+
+/**
+ * Add item to staging database
+ */
+export async function addStagingItem(item: StagingItem): Promise<void> {
+  await ensureStagingDirectory();
+
+  // Validate item
+  const validated = StagingItemSchema.parse(item);
+
+  // Save item file
+  const itemPath = getStagingItemPath(validated.id);
+  await fs.writeFile(itemPath, JSON.stringify(validated, null, 2), 'utf-8');
+
+  // Update index
+  const index = await loadStagingIndex();
+  index.items.push({
+    id: validated.id,
+    status: validated.status,
+    manufacturer: validated.extracted_data.manufacturer || 'Unknown',
+    model: validated.extracted_data.model_name,
+    confidence: validated.confidence_scores.overall,
+    created_at: validated.created_at,
+  });
+  await saveStagingIndex(index);
+}
+
+/**
+ * Get staging item by ID
+ */
+export async function getStagingItem(id: string): Promise<StagingItem | null> {
+  try {
+    const itemPath = getStagingItemPath(id);
+    const content = await fs.readFile(itemPath, 'utf-8');
+    const data = JSON.parse(content);
+    return StagingItemSchema.parse(data);
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Update staging item
+ */
+export async function updateStagingItem(
+  id: string,
+  updates: Partial<StagingItem>
+): Promise<StagingItem | null> {
+  const existing = await getStagingItem(id);
+  if (!existing) return null;
+
+  const updated: StagingItem = {
+    ...existing,
+    ...updates,
+    id: existing.id, // Prevent ID change
+    updated_at: new Date().toISOString(),
+  };
+
+  // Validate
+  const validated = StagingItemSchema.parse(updated);
+
+  // Save
+  const itemPath = getStagingItemPath(id);
+  await fs.writeFile(itemPath, JSON.stringify(validated, null, 2), 'utf-8');
+
+  // Update index if status or confidence changed
+  if (
+    updates.status !== undefined ||
+    updates.confidence_scores !== undefined
+  ) {
+    const index = await loadStagingIndex();
+    const indexItem = index.items.find(item => item.id === id);
+    if (indexItem) {
+      if (updates.status) indexItem.status = updates.status;
+      if (updates.confidence_scores) {
+        indexItem.confidence = updates.confidence_scores.overall;
+      }
+      await saveStagingIndex(index);
+    }
+  }
+
+  return validated;
+}
+
+/**
+ * Delete staging item
+ */
+export async function deleteStagingItem(id: string): Promise<boolean> {
+  try {
+    // Delete file
+    const itemPath = getStagingItemPath(id);
+    await fs.unlink(itemPath);
+
+    // Update index
+    const index = await loadStagingIndex();
+    index.items = index.items.filter(item => item.id !== id);
+    await saveStagingIndex(index);
+
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * List staging items with filtering and sorting
+ */
+export async function listStagingItems(
+  filter?: StagingFilterOptions,
+  sortBy: StagingSortBy = 'created_at',
+  sortOrder: StagingSortOrder = 'desc',
+  limit?: number
+): Promise<StagingIndex['items']> {
+  const index = await loadStagingIndex();
+  let items = [...index.items];
+
+  // Apply filters
+  if (filter) {
+    if (filter.status && filter.status.length > 0) {
+      items = items.filter(item => filter.status!.includes(item.status));
+    }
+
+    if (filter.minConfidence !== undefined) {
+      items = items.filter(item => item.confidence >= filter.minConfidence!);
+    }
+
+    if (filter.maxConfidence !== undefined) {
+      items = items.filter(item => item.confidence <= filter.maxConfidence!);
+    }
+
+    if (filter.manufacturer) {
+      const searchLower = filter.manufacturer.toLowerCase();
+      items = items.filter(item =>
+        item.manufacturer.toLowerCase().includes(searchLower)
+      );
+    }
+  }
+
+  // Sort
+  items.sort((a, b) => {
+    let aVal: string | number;
+    let bVal: string | number;
+
+    switch (sortBy) {
+      case 'confidence':
+        aVal = a.confidence;
+        bVal = b.confidence;
+        break;
+      case 'manufacturer':
+        aVal = a.manufacturer.toLowerCase();
+        bVal = b.manufacturer.toLowerCase();
+        break;
+      case 'model':
+        aVal = a.model.toLowerCase();
+        bVal = b.model.toLowerCase();
+        break;
+      case 'status':
+        aVal = a.status;
+        bVal = b.status;
+        break;
+      case 'created_at':
+      default:
+        aVal = a.created_at;
+        bVal = b.created_at;
+        break;
+    }
+
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      return sortOrder === 'asc'
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    } else {
+      return sortOrder === 'asc'
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
+    }
+  });
+
+  // Apply limit
+  if (limit !== undefined && limit > 0) {
+    items = items.slice(0, limit);
+  }
+
+  return items;
+}
+
+/**
+ * Get staging statistics
+ */
+export async function getStagingStats(): Promise<{
+  total: number;
+  byStatus: Record<string, number>;
+  highConfidence: number;
+  mediumConfidence: number;
+  lowConfidence: number;
+  averageConfidence: number;
+}> {
+  const index = await loadStagingIndex();
+
+  const byStatus: Record<string, number> = {};
+  let highConfidence = 0;
+  let mediumConfidence = 0;
+  let lowConfidence = 0;
+  let totalConfidence = 0;
+
+  for (const item of index.items) {
+    byStatus[item.status] = (byStatus[item.status] || 0) + 1;
+
+    if (item.confidence >= 90) highConfidence++;
+    else if (item.confidence >= 60) mediumConfidence++;
+    else lowConfidence++;
+
+    totalConfidence += item.confidence;
+  }
+
+  return {
+    total: index.items.length,
+    byStatus,
+    highConfidence,
+    mediumConfidence,
+    lowConfidence,
+    averageConfidence:
+      index.items.length > 0 ? totalConfidence / index.items.length : 0,
+  };
+}
+
+/**
+ * Find staging item by ZEREZ product ID
+ */
+export async function findByZerezId(
+  zerezId: string
+): Promise<StagingItem | null> {
+  const index = await loadStagingIndex();
+
+  for (const indexItem of index.items) {
+    const fullItem = await getStagingItem(indexItem.id);
+    if (fullItem && fullItem.zerez_product_id === zerezId) {
+      return fullItem;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Bulk delete staging items
+ */
+export async function bulkDeleteStagingItems(ids: string[]): Promise<number> {
+  let deleted = 0;
+
+  for (const id of ids) {
+    const success = await deleteStagingItem(id);
+    if (success) deleted++;
+  }
+
+  return deleted;
+}
+
+/**
+ * Bulk update status
+ */
+export async function bulkUpdateStatus(
+  ids: string[],
+  status: StagingItem['status']
+): Promise<number> {
+  let updated = 0;
+
+  for (const id of ids) {
+    const result = await updateStagingItem(id, { status });
+    if (result) updated++;
+  }
+
+  return updated;
+}

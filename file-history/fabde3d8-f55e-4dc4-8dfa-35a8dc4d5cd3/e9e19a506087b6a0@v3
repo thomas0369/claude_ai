@@ -1,0 +1,381 @@
+'use client';
+
+import React, { useState } from 'react';
+import { X, Save, Lock, Edit3, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
+import type { EnhancedProductData } from '@/lib/types-enhanced';
+import { getDataSource } from '@/lib/edit-permissions';
+import { validateFieldValue, getFieldValidationHint } from '@/lib/edit-validation-schemas';
+
+interface ProductDetailModalProps {
+  product: EnhancedProductData;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave?: (updatedProduct: EnhancedProductData) => void;
+}
+
+/**
+ * Product Detail Modal
+ *
+ * Zeigt alle Produktdetails an:
+ * - ZEREZ Daten: Nur lesbar (🔒 Icon)
+ * - PDF Daten: Editierbar (✏️ Icon)
+ */
+export default function ProductDetailModal({
+  product,
+  isOpen,
+  onClose,
+  onSave,
+}: ProductDetailModalProps) {
+  const [editedProduct, setEditedProduct] = useState<EnhancedProductData>(product);
+  const [editingFields, setEditingFields] = useState<Set<string>>(new Set());
+  const [changedFields, setChangedFields] = useState<Map<string, any>>(new Map());
+  const [isSaving, setIsSaving] = useState(false);
+
+  const dataSource = getDataSource(product);
+  const isZerez = dataSource === 'zerez';
+  const isPdf = dataSource === 'pdf';
+  const isManual = dataSource === 'manual';
+  const isEditable = isPdf || isManual;
+
+  if (!isOpen) return null;
+
+  const handleFieldEdit = (fieldPath: string, value: any) => {
+    // Update editedProduct
+    const keys = fieldPath.split('.');
+    const newProduct = { ...editedProduct };
+    let current: any = newProduct;
+
+    for (let i = 0; i < keys.length - 1; i++) {
+      current = current[keys[i]];
+    }
+    current[keys[keys.length - 1]] = value;
+
+    setEditedProduct(newProduct);
+
+    // Track changed field
+    setChangedFields(prev => new Map(prev).set(fieldPath, value));
+  };
+
+  const handleSave = async () => {
+    if (isZerez) {
+      toast.error('ZEREZ Daten können nicht bearbeitet werden');
+      return;
+    }
+
+    if (changedFields.size === 0) {
+      toast.info('Keine Änderungen zum Speichern');
+      onClose();
+      return;
+    }
+
+    setIsSaving(true);
+    let savedCount = 0;
+    let failedCount = 0;
+
+    try {
+      // Save each changed field via API
+      for (const [fieldPath, newValue] of changedFields.entries()) {
+        try {
+          // Validate field value
+          const validation = validateFieldValue(fieldPath, newValue);
+          if (!validation.success) {
+            toast.error(`${fieldPath}: ${validation.error}`);
+            failedCount++;
+            continue;
+          }
+
+          // Call API to save field
+          const response = await fetch('/api/products/edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: product.identification.zerez_id,
+              field: fieldPath,
+              newValue: validation.data,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Fehler beim Speichern');
+          }
+
+          savedCount++;
+        } catch (error) {
+          console.error(`Failed to save ${fieldPath}:`, error);
+          toast.error(`Fehler bei ${fieldPath}: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
+          failedCount++;
+        }
+      }
+
+      // Show result
+      if (savedCount > 0) {
+        toast.success(`${savedCount} Feld${savedCount > 1 ? 'er' : ''} gespeichert`);
+      }
+      if (failedCount > 0) {
+        toast.error(`${failedCount} Feld${failedCount > 1 ? 'er' : ''} fehlgeschlagen`);
+      }
+
+      // Refresh data if any fields were saved
+      if (savedCount > 0) {
+        if (onSave) {
+          onSave(editedProduct);
+        }
+        onClose();
+      }
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const renderField = (
+    label: string,
+    value: any,
+    fieldPath?: string,
+    unit?: string
+  ) => {
+    const canEdit = isEditable && fieldPath;
+    const isEditing = fieldPath && editingFields.has(fieldPath);
+    const hasChanged = fieldPath && changedFields.has(fieldPath);
+    const validationHint = fieldPath ? getFieldValidationHint(fieldPath) : '';
+
+    return (
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          {label}
+          {isZerez && <Lock size={14} className="inline ml-2 text-red-600" title="ZEREZ - Nur lesbar" />}
+          {canEdit && !hasChanged && <Edit3 size={14} className="inline ml-2 text-blue-600" title="Editierbar" />}
+          {hasChanged && <span className="inline ml-2 text-xs text-orange-600">●</span>}
+        </label>
+
+        {canEdit && isEditing ? (
+          <div>
+            <input
+              type={typeof value === 'number' ? 'number' : 'text'}
+              value={value ?? ''}
+              onChange={(e) => {
+                const newValue = typeof value === 'number'
+                  ? parseFloat(e.target.value)
+                  : e.target.value;
+                handleFieldEdit(fieldPath!, newValue);
+              }}
+              onBlur={() => {
+                setEditingFields(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete(fieldPath!);
+                  return newSet;
+                });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setEditingFields(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(fieldPath!);
+                    return newSet;
+                  });
+                } else if (e.key === 'Escape') {
+                  // Revert changes
+                  setChangedFields(prev => {
+                    const newMap = new Map(prev);
+                    newMap.delete(fieldPath!);
+                    return newMap;
+                  });
+                  setEditingFields(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(fieldPath!);
+                    return newSet;
+                  });
+                }
+              }}
+              className="w-full px-3 py-2 border border-blue-500 rounded-md focus:ring-2 focus:ring-blue-500"
+              placeholder={validationHint}
+              autoFocus
+            />
+            {validationHint && (
+              <p className="text-xs text-gray-500 mt-1">{validationHint}</p>
+            )}
+          </div>
+        ) : (
+          <div
+            onClick={() => {
+              if (canEdit && fieldPath) {
+                setEditingFields(prev => new Set(prev).add(fieldPath));
+              }
+            }}
+            className={`w-full px-3 py-2 border rounded-md ${
+              hasChanged
+                ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20'
+                : canEdit
+                ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 border-gray-300'
+                : 'bg-gray-50 dark:bg-gray-800 border-gray-200 cursor-not-allowed'
+            }`}
+            title={canEdit ? 'Klicken zum Bearbeiten' : ''}
+          >
+            {value ?? 'N/A'} {unit && value && unit}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-hidden">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="absolute inset-y-0 right-0 max-w-4xl w-full bg-white dark:bg-gray-900 shadow-xl">
+        <div className="h-full flex flex-col">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {product.identification.manufacturer} {product.identification.model}
+              </h2>
+              <div className="flex items-center gap-3 mt-1">
+                <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                  isZerez
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-green-100 text-green-800'
+                }`}>
+                  {isZerez && '🔒 ZEREZ - Nur lesbar'}
+                  {isPdf && '📄 PDF - Editierbar'}
+                  {isManual && '✏️ Manuell - Editierbar'}
+                </span>
+                {isZerez && (
+                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <AlertCircle size={14} />
+                    Änderungen nur über ZEREZ Import möglich
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="grid grid-cols-2 gap-6">
+              {/* Identification */}
+              <div className="col-span-2">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Identifikation</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {renderField('Hersteller', product.identification.manufacturer)}
+                  {renderField('Modell', product.identification.model)}
+                  {renderField('ZEREZ ID', product.identification.zerez_id)}
+                  {renderField('Varianten', product.identification.zerez_variant_count)}
+                </div>
+              </div>
+
+              {/* Power */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Leistung</h3>
+                {renderField('Nennleistung', product.power.rated_power_kw, 'power.rated_power_kw', 'kW')}
+                {renderField('Max. Leistung', product.power.max_power_kw, 'power.max_power_kw', 'kW')}
+                {renderField('Standby Leistung', product.power.standby_power_w, 'power.standby_power_w', 'W')}
+                {renderField('Leistungsfaktor', product.power.power_factor, 'power.power_factor')}
+              </div>
+
+              {/* Efficiency */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Wirkungsgrad</h3>
+                {renderField('Peak Wirkungsgrad', product.efficiency.peak_percent, 'efficiency.peak_percent', '%')}
+                {renderField('EURO Wirkungsgrad', product.efficiency.euro_percent, 'efficiency.euro_percent', '%')}
+                {renderField('CEC Wirkungsgrad', product.efficiency.cec_percent, 'efficiency.cec_percent', '%')}
+                {renderField('Gewichtet', product.efficiency.weighted_efficiency, 'efficiency.weighted_efficiency', '%')}
+              </div>
+
+              {/* Physical */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Physische Daten</h3>
+                {renderField('Gewicht', product.physical.weight_kg, 'physical.weight_kg', 'kg')}
+                {renderField('Breite', product.physical.width_mm, 'physical.width_mm', 'mm')}
+                {renderField('Höhe', product.physical.height_mm, 'physical.height_mm', 'mm')}
+                {renderField('Tiefe', product.physical.depth_mm, 'physical.depth_mm', 'mm')}
+                {renderField('Volumen', product.volume_m3, undefined, 'm³')}
+                {renderField('IP Schutzklasse', product.physical.ip_rating, 'physical.ip_rating')}
+                {renderField('Kühlung', product.physical.cooling, 'physical.cooling')}
+              </div>
+
+              {/* Electrical */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Elektrische Parameter</h3>
+                {renderField('Max DC Spannung', product.electrical.max_dc_voltage_v, 'electrical.max_dc_voltage_v', 'V')}
+                {renderField('Min DC Spannung', product.electrical.min_dc_voltage_v, 'electrical.min_dc_voltage_v', 'V')}
+                {renderField('MPPT Anzahl', product.electrical.mppt_count, 'electrical.mppt_count')}
+                {renderField('Max Eingangsstrom', product.electrical.max_input_current_a, 'electrical.max_input_current_a', 'A')}
+                {renderField('THD', product.electrical.thd_percent, 'electrical.thd_percent', '%')}
+                {renderField('Frequenz', product.electrical.frequency_hz, 'electrical.frequency_hz', 'Hz')}
+              </div>
+
+              {/* Environmental */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Umweltbedingungen</h3>
+                {renderField('Min. Temperatur', product.environmental.temp_min_c, 'environmental.temp_min_c', '°C')}
+                {renderField('Max. Temperatur', product.environmental.temp_max_c, 'environmental.temp_max_c', '°C')}
+                {renderField('Max. Luftfeuchtigkeit', product.environmental.humidity_max_percent, 'environmental.humidity_max_percent', '%')}
+                {renderField('Max. Höhe', product.environmental.altitude_max_m, 'environmental.altitude_max_m', 'm')}
+                {renderField('Geräuschpegel', product.environmental.noise_level_db, 'environmental.noise_level_db', 'dB')}
+              </div>
+
+              {/* Competitive Metrics */}
+              <div className="col-span-2">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Wettbewerbsanalyse</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {renderField('Marktposition', product.competitive.market_position)}
+                  {renderField('Innovation Score', product.competitive.innovation_score?.toFixed(1))}
+                  {renderField('Marktanteil', product.competitive.market_share_estimate_percent, undefined, '%')}
+                  {renderField('Power Density', product.power_density?.toFixed(1), undefined, 'kW/m³')}
+                  {renderField('Power-to-Weight', product.power_to_weight?.toFixed(3), undefined, 'kW/kg')}
+                  {renderField('Empfehlung Score', product.insights.recommendation_score?.toFixed(1))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {changedFields.size > 0 && (
+                <span className="flex items-center gap-2">
+                  <span className="text-orange-600">●</span>
+                  {changedFields.size} Feld{changedFields.size > 1 ? 'er' : ''} geändert
+                </span>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                {isEditable ? 'Abbrechen' : 'Schließen'}
+              </button>
+              {isEditable && (
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving || changedFields.size === 0}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  <Save size={18} />
+                  {isSaving ? 'Speichern...' : `Speichern${changedFields.size > 0 ? ` (${changedFields.size})` : ''}`}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

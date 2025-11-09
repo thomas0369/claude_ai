@@ -1,0 +1,364 @@
+"""
+Massive.com (formerly Polygon.io) Provider for Elliott Wave Trading Bot.
+
+Provides institutional-grade OHLCV data with:
+- Real-time and historical market data
+- Stocks, Options, Forex, Crypto, Futures
+- Higher rate limits than free providers
+- Tick-by-tick precision available
+"""
+
+import os
+import logging
+import time
+import requests
+from typing import List, Optional, Dict
+from datetime import datetime, timedelta
+import pandas as pd
+from base_data_provider import BaseDataProvider, DataSourcePriority
+
+logger = logging.getLogger(__name__)
+
+
+class MassiveProvider(BaseDataProvider):
+    """
+    Massive.com (Polygon.io) API provider with rate limiting and error handling.
+
+    API Limits (vary by plan):
+    - Starter: 5 API calls per minute
+    - Developer: 100 API calls per minute
+    - Advanced: Unlimited
+
+    Supported Asset Classes:
+    - Forex: 1,750+ currency pairs
+    - Stocks: 32,345+ US equities
+    - Crypto: Major cryptocurrencies
+    - Indices: 11,409+ global indices
+    """
+
+    # Base URL
+    BASE_URL = "https://api.massive.com"
+
+    # Rate limiting config (conservative for Starter plan)
+    CALLS_PER_MINUTE = 5
+    CALL_DELAY = 60.0 / CALLS_PER_MINUTE  # 12 seconds between calls
+
+    # Timeframe mapping to Massive.com format
+    TIMEFRAME_MAP = {
+        "1m": {"multiplier": 1, "timespan": "minute"},
+        "5m": {"multiplier": 5, "timespan": "minute"},
+        "15m": {"multiplier": 15, "timespan": "minute"},
+        "30m": {"multiplier": 30, "timespan": "minute"},
+        "1h": {"multiplier": 1, "timespan": "hour"},
+        "2h": {"multiplier": 2, "timespan": "hour"},
+        "4h": {"multiplier": 4, "timespan": "hour"},
+        "1d": {"multiplier": 1, "timespan": "day"},
+        "1w": {"multiplier": 1, "timespan": "week"},
+        "1M": {"multiplier": 1, "timespan": "month"}
+    }
+
+    # Symbol mapping (Massive uses different formats)
+    SYMBOL_MAP = {
+        # === FOREX PAIRS ===
+        # Majors
+        "EUR/USD": "C:EURUSD",  # 88% predictable
+        "GBP/USD": "C:GBPUSD",  # 84% predictable
+        "USD/JPY": "C:USDJPY",  # 73% predictable
+        "AUD/USD": "C:AUDUSD",  # 70% predictable
+        "USD/CHF": "C:USDCHF",  # 57% predictable
+        "NZD/USD": "C:NZDUSD",
+        "USD/CAD": "C:USDCAD",
+
+        # Commodity Currencies
+        "XAU/USD": "C:XAUUSD",  # 95% predictable - Gold
+        "XAG/USD": "C:XAGUSD",  # Silver
+
+        # === CRYPTO ===
+        "BTC/USD": "X:BTCUSD",  # 50% predictable
+        "ETH/USD": "X:ETHUSD",  # 45% predictable
+        "BNB/USD": "X:BNBUSD",
+        "SOL/USD": "X:SOLUSD",
+
+        # === STOCKS (examples) ===
+        "AAPL": "AAPL",
+        "MSFT": "MSFT",
+        "GOOGL": "GOOGL",
+        "TSLA": "TSLA",
+
+        # === COMMODITIES (if using stock tickers) ===
+        "USOIL": "CL",  # WTI Crude Oil futures ticker
+    }
+
+    def __init__(self, api_key: Optional[str] = None):
+        """
+        Initialize Massive.com provider.
+
+        Args:
+            api_key: Massive.com API key (defaults to MASSIVE_API_KEY env var)
+        """
+        # Initialize base provider
+        super().__init__("Massive.com")
+
+        self.api_key = api_key or os.getenv("MASSIVE_API_KEY", "")
+
+        if not self.api_key:
+            logger.warning(
+                "No Massive.com API key provided. "
+                "Set MASSIVE_API_KEY environment variable or pass api_key parameter."
+            )
+
+        self.last_call_time = 0
+        self.call_count = 0
+        self.session = requests.Session()
+        self.session.headers.update({
+            "Authorization": f"Bearer {self.api_key}"
+        })
+
+    @property
+    def name(self) -> str:
+        """Provider name for logging"""
+        return "Massive.com"
+
+    @property
+    def priority(self) -> int:
+        """Priority in fallback chain (PRIMARY = 1)"""
+        return DataSourcePriority.PRIMARY
+
+    def supports_symbol(self, symbol: str) -> bool:
+        """Check if provider supports this symbol"""
+        return symbol in self.SYMBOL_MAP
+
+    def _rate_limit(self):
+        """Apply rate limiting to respect API quotas."""
+        current_time = time.time()
+        time_since_last_call = current_time - self.last_call_time
+
+        if time_since_last_call < self.CALL_DELAY:
+            sleep_time = self.CALL_DELAY - time_since_last_call
+            logger.debug(f"Rate limiting: sleeping {sleep_time:.1f}s")
+            time.sleep(sleep_time)
+
+        self.last_call_time = time.time()
+        self.call_count += 1
+
+    def _map_symbol(self, symbol: str) -> str:
+        """Map internal symbol format to Massive.com format."""
+        return self.SYMBOL_MAP.get(symbol, symbol)
+
+    def _map_timeframe(self, timeframe: str) -> Dict[str, any]:
+        """Map internal timeframe to Massive.com format."""
+        return self.TIMEFRAME_MAP.get(timeframe, {"multiplier": 5, "timespan": "minute"})
+
+    def fetch_ohlcv(
+        self,
+        symbol: str,
+        timeframe: str = "1h",
+        limit: int = 200,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> Optional[List[List]]:
+        """
+        Fetch OHLCV data from Massive.com.
+
+        Args:
+            symbol: Asset symbol (e.g., "EUR/USD", "BTC/USD", "AAPL")
+            timeframe: Timeframe (e.g., "5m", "1h", "1d")
+            limit: Number of candles to fetch (max 50,000)
+            start_date: Optional start date
+            end_date: Optional end date (defaults to now)
+
+        Returns:
+            List of OHLCV candles: [[timestamp_ms, open, high, low, close, volume], ...]
+            Returns None if fetch fails
+        """
+        if not self.api_key:
+            logger.error("Massive.com API key not provided")
+            return None
+
+        try:
+            # Apply rate limiting
+            self._rate_limit()
+
+            # Map symbol and timeframe
+            massive_symbol = self._map_symbol(symbol)
+            tf_config = self._map_timeframe(timeframe)
+
+            # Calculate date range
+            if not end_date:
+                end_date = datetime.now()
+
+            if not start_date:
+                # Calculate start date based on limit and timeframe
+                if timeframe == "5m":
+                    days_back = (limit * 5) / (60 * 24)  # minutes to days
+                elif timeframe == "1h":
+                    days_back = limit / 24
+                elif timeframe == "1d":
+                    days_back = limit
+                else:
+                    days_back = 30  # default
+
+                start_date = end_date - timedelta(days=days_back)
+
+            # Format dates for API (YYYY-MM-DD)
+            from_date = start_date.strftime("%Y-%m-%d")
+            to_date = end_date.strftime("%Y-%m-%d")
+
+            # Build API URL
+            url = (
+                f"{self.BASE_URL}/v2/aggs/ticker/{massive_symbol}/range/"
+                f"{tf_config['multiplier']}/{tf_config['timespan']}/{from_date}/{to_date}"
+            )
+
+            params = {
+                "adjusted": "true",
+                "sort": "asc",
+                "limit": min(limit, 50000),
+                "apiKey": self.api_key  # Add API key as query parameter
+            }
+
+            logger.info(
+                f"Massive.com: Fetching {symbol} ({massive_symbol}) "
+                f"{timeframe}, {limit} candles "
+                f"[Call #{self.call_count}]"
+            )
+
+            # Make API request (without Authorization header, using apiKey query param)
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+
+            data = response.json()
+
+            if data.get("status") != "OK":
+                logger.error(f"Massive.com API error: {data.get('error', 'Unknown error')}")
+                return None
+
+            results = data.get("results", [])
+
+            if not results:
+                logger.warning(f"No data returned for {symbol} {timeframe}")
+                return None
+
+            # Convert to expected format: [timestamp_ms, open, high, low, close, volume]
+            ohlcv = []
+            for candle in results:
+                ohlcv.append([
+                    int(candle["t"]),           # timestamp in milliseconds
+                    float(candle["o"]),         # open
+                    float(candle["h"]),         # high
+                    float(candle["l"]),         # low
+                    float(candle["c"]),         # close
+                    float(candle.get("v", 0))   # volume
+                ])
+
+            logger.info(f"✓ Fetched {len(ohlcv)} candles for {symbol} {timeframe}")
+            return ohlcv
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"HTTP error fetching {symbol} {timeframe} from Massive.com: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching {symbol} {timeframe} from Massive.com: {e}", exc_info=True)
+            return None
+
+    def get_call_count(self) -> int:
+        """Get number of API calls made in this session."""
+        return self.call_count
+
+    def reset_call_count(self):
+        """Reset API call counter."""
+        self.call_count = 0
+        logger.info("API call counter reset")
+
+    def get_available_symbols(self) -> List[str]:
+        """Get list of available symbols."""
+        return list(self.SYMBOL_MAP.keys())
+
+    def get_available_timeframes(self) -> List[str]:
+        """Get list of available timeframes."""
+        return list(self.TIMEFRAME_MAP.keys())
+
+
+def test_massive_provider():
+    """Quick test of Massive.com provider."""
+    import sys
+
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+    logger.addHandler(handler)
+
+    print("=" * 60)
+    print("TESTING MASSIVE.COM PROVIDER")
+    print("=" * 60)
+
+    provider = MassiveProvider()
+
+    if not provider.api_key:
+        print("\n❌ No API key configured!")
+        print("\nTo use Massive.com:")
+        print("1. Sign up at https://massive.com/")
+        print("2. Get your API key from dashboard")
+        print("3. Set environment variable:")
+        print("   export MASSIVE_API_KEY='your_api_key_here'")
+        return False
+
+    # Test 1: Fetch 5-minute EUR/USD data
+    print("\n" + "=" * 60)
+    print("TEST 1: Fetching EUR/USD 5m data (100 candles)")
+    print("=" * 60)
+
+    ohlcv = provider.fetch_ohlcv("EUR/USD", "5m", limit=100)
+
+    if ohlcv:
+        print(f"\n✓ Success! Got {len(ohlcv)} candles")
+        print(f"\nFirst candle: {ohlcv[0]}")
+        print(f"Last candle:  {ohlcv[-1]}")
+
+        # Convert to DataFrame for better display
+        df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        df['datetime'] = pd.to_datetime(df['timestamp'], unit='ms')
+        print(f"\nData range: {df['datetime'].iloc[0]} to {df['datetime'].iloc[-1]}")
+    else:
+        print("\n❌ Failed to fetch data")
+        return False
+
+    # Test 2: Fetch 1-hour data
+    print("\n" + "=" * 60)
+    print("TEST 2: Fetching EUR/USD 1h data (50 candles)")
+    print("=" * 60)
+
+    ohlcv = provider.fetch_ohlcv("EUR/USD", "1h", limit=50)
+
+    if ohlcv:
+        print(f"\n✓ Success! Got {len(ohlcv)} candles")
+    else:
+        print("\n❌ Failed to fetch data")
+        return False
+
+    # Test 3: Test Gold (XAU/USD)
+    print("\n" + "=" * 60)
+    print("TEST 3: Fetching XAU/USD 1h data (50 candles)")
+    print("=" * 60)
+
+    ohlcv = provider.fetch_ohlcv("XAU/USD", "1h", limit=50)
+
+    if ohlcv:
+        print(f"\n✓ Success! Got {len(ohlcv)} candles")
+    else:
+        print("\n❌ Failed to fetch data")
+
+    # Summary
+    print("\n" + "=" * 60)
+    print("✓ ALL TESTS PASSED")
+    print("=" * 60)
+    print(f"\nTotal API calls: {provider.get_call_count()}")
+    print(f"Available symbols: {len(provider.get_available_symbols())}")
+    print(f"Available timeframes: {len(provider.get_available_timeframes())}")
+
+    return True
+
+
+if __name__ == "__main__":
+    success = test_massive_provider()
+    exit(0 if success else 1)

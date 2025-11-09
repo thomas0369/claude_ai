@@ -1,0 +1,947 @@
+"""
+Multi-Timeframe Asset Screener with Fibonacci-Optimized Indicators
+"""
+
+import os
+import pandas as pd
+import numpy as np
+from typing import Dict, List, Optional, Tuple
+from datetime import datetime
+import logging
+import json
+from functools import wraps
+
+import config
+from capital_api import get_api
+from tradingview_integration import TradingViewAlertGenerator, create_tradingview_alert_file
+from tracked_trading_journal import TrackedPaperTradingJournal
+from file_utils import atomic_json_write
+from chart_generator import ChartGenerator
+from constants import MAX_SCORE, OPTIMAL_SCORE, FIB_LEVELS
+from indicators import (
+    calculate_rsi,
+    calculate_adx,
+    calculate_stochastic,
+    calculate_elliott_wave_oscillator,
+    calculate_macd,
+    detect_rsi_divergence,
+    detect_macd_divergence,
+    detect_volume_divergence,
+    detect_fibonacci_bounce,
+)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+# Define all required indicator columns (single source of truth)
+# This list must be kept synchronized with _calculate_indicators() implementation
+# Any new indicator must be added here to pass validation
+REQUIRED_INDICATOR_COLUMNS = [
+    # OHLCV data (5 columns)
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    # EMAs - Fibonacci periods (5 columns)
+    "ema_3",
+    "ema_8",
+    "ema_13",
+    "ema_21",
+    "ema_55",
+    # Bollinger Bands (3 columns)
+    "bb_upper",
+    "bb_middle",
+    "bb_lower",
+    # Oscillators (8 columns)
+    "stoch_k",
+    "stoch_d",
+    "rsi",
+    "adx",
+    "ewo",  # Elliott Wave Oscillator
+    "macd_line",  # MACD line
+    "macd_signal",  # MACD signal line
+    "macd_histogram",  # MACD histogram
+]
+
+
+def validate_indicators(func):
+    """
+    Decorator to validate indicator DataFrame has all required columns.
+
+    Prevents KeyError exceptions by failing fast with clear error messages
+    when required indicator columns are missing.
+
+    Args:
+        func: Function that takes indicators Dict[str, pd.DataFrame] as parameter
+
+    Returns:
+        Wrapped function with validation
+
+    Raises:
+        ValueError: If required columns are missing from any timeframe DataFrame
+
+    Example:
+        @validate_indicators
+        def _calculate_score(self, indicators: Dict[str, pd.DataFrame]) -> Tuple[int, Dict]:
+            # Safe to access all columns in REQUIRED_INDICATOR_COLUMNS
+            pass
+    """
+
+    @wraps(func)
+    def wrapper(self, indicators: Dict[str, pd.DataFrame], *args, **kwargs):
+        for tf_name, df in indicators.items():
+            missing = set(REQUIRED_INDICATOR_COLUMNS) - set(df.columns)
+            if missing:
+                raise ValueError(
+                    f"Missing required indicator columns in {tf_name} timeframe: {sorted(missing)}\n"
+                    f"Required: {sorted(REQUIRED_INDICATOR_COLUMNS)}\n"
+                    f"Present: {sorted(df.columns.tolist())}"
+                )
+        return func(self, indicators, *args, **kwargs)
+
+    return wrapper
+
+
+class AssetScreener:
+    """
+    World-Class Elliott Wave & Fibonacci Asset Screener
+
+    Professional-grade Elliott Wave analysis with:
+    - Elliott Wave Oscillator (EWO) - #1 professional Wave indicator
+    - MACD & RSI Divergence Detection - Wave 5 reversal signals
+    - Automated Fibonacci Bounce Detection - Wave 2/4 continuation setups
+    - Multi-timeframe confluence analysis
+
+    Scoring System: MAX_SCORE (194) points maximum
+    - Traditional indicators: 113 points
+    - EWO: 21 points (Wave momentum detection)
+    - Divergence: 21 points (Wave 5 exhaustion)
+    - Fibonacci Bounce: 34 points (Wave 2/4 retracements)
+    - Confluence Bonus: 13 points
+
+    Required DataFrame Columns
+    --------------------------
+    All indicator DataFrames must contain the following columns (see REQUIRED_INDICATOR_COLUMNS):
+
+    OHLCV Data:
+        - open, high, low, close, volume
+
+    EMAs (Fibonacci periods):
+        - ema_3, ema_8, ema_13, ema_21, ema_55
+
+    Bollinger Bands:
+        - bb_upper, bb_middle, bb_lower
+
+    Oscillators:
+        - stoch_k, stoch_d (Stochastic)
+        - rsi (Relative Strength Index)
+        - adx (Average Directional Index)
+        - ewo (Elliott Wave Oscillator)
+
+    Note: All columns are created by _calculate_indicators() method.
+    Tests should use test_fixtures.create_indicator_dataframe() to ensure consistency.
+    """
+
+    def __init__(self):
+        self.api = get_api()
+        self.results = []
+
+    def screen_all_assets(self) -> List[Dict]:
+        """
+        Screen all assets in the universe
+
+        Returns:
+            List of screening results sorted by score
+        """
+        logger.info("=" * 60)
+        logger.info("Starting Daily Asset Screening")
+        logger.info(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info("=" * 60)
+
+        self.results = []
+
+        for asset in config.ALL_ASSETS:
+            logger.info(f"\nScreening: {asset}")
+            result = self.screen_asset(asset)
+            if result:
+                self.results.append(result)
+
+        # Sort by score (descending)
+        self.results.sort(key=lambda x: x["score"], reverse=True)
+
+        logger.info("\n" + "=" * 60)
+        logger.info("Screening Complete")
+        logger.info(f"Assets analyzed: {len(self.results)}/{len(config.ALL_ASSETS)}")
+        if self.results:
+            logger.info(f"Best score: {self.results[0]['score']} ({self.results[0]['symbol']})")
+        logger.info("=" * 60)
+
+        return self.results
+
+    def screen_asset(self, symbol: str) -> Optional[Dict]:
+        """
+        Screen a single asset across all timeframes
+
+        Args:
+            symbol: Asset symbol (e.g., 'EUR/USD')
+
+        Returns:
+            Screening result dictionary or None if failed
+        """
+        try:
+            # Fetch multi-timeframe data
+            data = self._fetch_multi_timeframe_data(symbol)
+            if not data:
+                logger.warning(f"Failed to fetch data for {symbol}")
+                return None
+
+            # Calculate indicators for each timeframe
+            indicators = self._calculate_indicators(data)
+
+            # Calculate score
+            score, score_breakdown = self._calculate_score(indicators)
+
+            # Determine trade direction
+            direction = self._determine_direction(indicators)
+
+            # Get current price
+            current_price = data["h1"]["close"].iloc[-1]
+
+            # Calculate SL/TP levels
+            sl_price, tp_price = self._calculate_sl_tp(current_price, direction)
+
+            # Determine leverage based on score
+            leverage = self._get_leverage(score)
+
+            result = {
+                "symbol": symbol,
+                "timestamp": datetime.now().isoformat(),
+                "score": score,
+                "score_breakdown": score_breakdown,
+                "direction": direction,
+                "current_price": current_price,
+                "stop_loss": sl_price,
+                "take_profit": tp_price,
+                "leverage": leverage,
+                "tradeable": score >= config.MIN_SCORE,
+                "indicators": {
+                    "h1": self._extract_key_indicators(indicators["h1"]),
+                    "m15": self._extract_key_indicators(indicators["m15"]),
+                },
+            }
+
+            logger.info(
+                f"  Score: {score}/{MAX_SCORE} | Direction: {direction} | Tradeable: {result['tradeable']}"
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error screening {symbol}: {e}")
+            return None
+
+    def _fetch_multi_timeframe_data(self, symbol: str) -> Optional[Dict[str, pd.DataFrame]]:
+        """
+        Fetch OHLCV data for all timeframes
+
+        Args:
+            symbol: Asset symbol
+
+        Returns:
+            Dictionary with DataFrames for each timeframe
+        """
+        data = {}
+
+        for tf_name, tf_value in config.TIMEFRAMES.items():
+            ohlcv = self.api.get_ohlcv(symbol, tf_value, limit=200)
+            if not ohlcv:
+                logger.error(f"No data returned for {symbol} {tf_value}")
+                return None
+
+            # Validate minimum data points (need 200 for EMA_200)
+            if len(ohlcv) < 200:
+                logger.warning(
+                    f"Insufficient data for {symbol} {tf_value}: "
+                    f"{len(ohlcv)} candles (need 200)"
+                )
+                return None
+
+            df = pd.DataFrame(
+                ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
+            )
+            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+            df.set_index("timestamp", inplace=True)
+
+            # Validate data quality
+            if df["close"].isnull().any():
+                logger.error(f"Null values in {symbol} {tf_value} data")
+                return None
+
+            data[tf_name] = df
+
+        return data
+
+    def _calculate_indicators(self, data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+        """
+        Calculate Fibonacci-optimized indicators for all timeframes
+
+        Args:
+            data: Multi-timeframe OHLCV data
+
+        Returns:
+            Dictionary with indicator DataFrames
+        """
+        indicators = {}
+
+        for tf_name, df in data.items():
+            df = df.copy()
+
+            # EMAs (all Fibonacci numbers)
+            for period in config.EMA_PERIODS:
+                df[f"ema_{period}"] = df["close"].ewm(span=period, adjust=False).mean()
+
+            # Bollinger Bands (Golden Ratio)
+            df["bb_middle"] = df["close"].rolling(window=config.BB_PERIOD).mean()
+            df["bb_std"] = df["close"].rolling(window=config.BB_PERIOD).std()
+            df["bb_upper"] = df["bb_middle"] + (config.BB_STD_DEV * df["bb_std"])
+            df["bb_lower"] = df["bb_middle"] - (config.BB_STD_DEV * df["bb_std"])
+
+            # Stochastic (Fibonacci periods) - using shared indicator function
+            stoch_k, stoch_d = calculate_stochastic(
+                df,
+                k_period=config.STOCH_K,
+                d_period=config.STOCH_D,
+                smooth=1,  # Fast stochastic (no smoothing) for faster signal generation
+            )
+            df["stoch_k"] = stoch_k
+            df["stoch_d"] = stoch_d
+
+            # ADX (Fibonacci period) - using shared indicator function
+            df["adx"] = calculate_adx(df, config.ADX_PERIOD)
+
+            # RSI - using shared indicator function
+            df["rsi"] = calculate_rsi(df, config.RSI_PERIOD)
+
+            # Elliott Wave Oscillator (EWO) - Professional Wave 5 detection
+            df["ewo"] = calculate_elliott_wave_oscillator(df, fast_period=5, slow_period=35)
+
+            # MACD - Essential for divergence detection
+            macd_line, macd_signal, macd_histogram = calculate_macd(
+                df, fast_period=12, slow_period=26, signal_period=9
+            )
+            df["macd_line"] = macd_line
+            df["macd_signal"] = macd_signal
+            df["macd_histogram"] = macd_histogram
+
+            indicators[tf_name] = df
+
+        # VALIDATION: Ensure all required columns were created (defense in depth)
+        for tf_name, df in indicators.items():
+            missing = set(REQUIRED_INDICATOR_COLUMNS) - set(df.columns)
+            if missing:
+                raise RuntimeError(
+                    f"BUG: _calculate_indicators() failed to create columns for {tf_name}: {sorted(missing)}\n"
+                    f"This indicates a logic error in indicator calculation.\n"
+                    f"Required: {sorted(REQUIRED_INDICATOR_COLUMNS)}\n"
+                    f"Present: {sorted(df.columns.tolist())}"
+                )
+
+        return indicators
+
+    def _calculate_fibonacci_levels(self, df: pd.DataFrame) -> int:
+        """
+        Calculate Fibonacci retracement/extension levels
+
+        Returns:
+            Score 0-34 based on price position relative to Fib levels
+        """
+        # Find swing high/low in last 89 candles (Fibonacci number)
+        lookback = 89
+        recent = df.tail(lookback)
+
+        swing_high = recent["high"].max()
+        swing_low = recent["low"].min()
+        current_price = df["close"].iloc[-1]
+
+        # Calculate Fibonacci retracement levels
+        diff = swing_high - swing_low
+        if diff == 0:
+            return 0
+
+        fib_levels = {
+            FIB_LEVELS["SHALLOW"]: swing_high - (diff * FIB_LEVELS["SHALLOW"]),
+            FIB_LEVELS["WAVE4"]: swing_high - (diff * FIB_LEVELS["WAVE4"]),
+            FIB_LEVELS["HALF"]: swing_high - (diff * FIB_LEVELS["HALF"]),
+            FIB_LEVELS["GOLDEN"]: swing_high - (diff * FIB_LEVELS["GOLDEN"]),
+            FIB_LEVELS["DEEP"]: swing_high - (diff * FIB_LEVELS["DEEP"]),
+        }
+
+        score = 0
+        tolerance = diff * 0.01  # 1% tolerance
+
+        # Score based on proximity to key Fibonacci levels
+        if abs(current_price - fib_levels[FIB_LEVELS["GOLDEN"]]) < tolerance:
+            score = 34  # At Golden Ratio - perfect
+        elif abs(current_price - fib_levels[FIB_LEVELS["WAVE4"]]) < tolerance:
+            score = 21  # At 0.382
+        elif abs(current_price - fib_levels[FIB_LEVELS["HALF"]]) < tolerance:
+            score = 13  # At midpoint
+        elif (
+            abs(current_price - fib_levels[FIB_LEVELS["SHALLOW"]]) < tolerance
+            or abs(current_price - fib_levels[FIB_LEVELS["DEEP"]]) < tolerance
+        ):
+            score = 8  # At outer levels
+
+        return score
+
+    def _detect_elliott_wave(self, df: pd.DataFrame) -> int:
+        """
+        Simplified Elliott Wave pattern detection
+
+        Returns:
+            8 points if potential Wave 5 or C wave, else 0
+        """
+        # Use last 144 candles (Fibonacci)
+        recent = df.tail(144)
+
+        # Simplified: count swing highs/lows
+        # Elliott Wave typically has 5 waves in trend
+        # Bug #18 fix: Remove look-ahead bias - exclude current bar from wave count
+        highs = (recent["high"] > recent["high"].shift(1, fill_value=recent["high"].iloc[0])) & (
+            recent["high"] > recent["high"].shift(2, fill_value=recent["high"].iloc[0])
+        )
+        lows = (recent["low"] < recent["low"].shift(1, fill_value=recent["low"].iloc[0])) & (
+            recent["low"] < recent["low"].shift(2, fill_value=recent["low"].iloc[0])
+        )
+
+        # Exclude current bar (last detection) from count to avoid look-ahead bias
+        wave_count = highs.iloc[:-1].sum() + lows.iloc[:-1].sum()
+
+        # If we see 5+ waves and trend is strong, potential Wave 5
+        if wave_count >= 5 and df["adx"].iloc[-1] > 25:
+            return 8
+
+        return 0
+
+    def _calculate_fibonacci_time(self, df: pd.DataFrame) -> int:
+        """
+        Time-based Fibonacci analysis
+
+        Returns:
+            5 points if timing aligns with Fibonacci periods
+        """
+        # Check if current candle index aligns with Fibonacci numbers
+        # Fibonacci: 3, 5, 8, 13, 21, 34, 55, 89
+
+        # Find last significant swing
+        lookback = 89
+        recent = df.tail(lookback)
+        high_idx = recent["high"].idxmax()
+        low_idx = recent["low"].idxmin()
+
+        # Bars since last swing
+        try:
+            bars_since_high = len(df) - df.index.get_loc(high_idx)
+            bars_since_low = len(df) - df.index.get_loc(low_idx)
+        except KeyError:
+            return 0
+
+        fib_numbers = [3, 5, 8, 13, 21, 34, 55, 89]
+
+        # If bars since swing is near a Fibonacci number (±2 bars)
+        for fib in fib_numbers:
+            if abs(bars_since_high - fib) <= 2 or abs(bars_since_low - fib) <= 2:
+                return 5
+
+        return 0
+
+    def _calculate_volume_score(self, df: pd.DataFrame) -> int:
+        """
+        Calculate volume-based score
+
+        Returns:
+            0-3 points based on volume relative to average
+        """
+        current_volume = df["volume"].iloc[-1]
+        avg_volume = df["volume"].rolling(window=21).mean().iloc[-1]
+
+        if avg_volume == 0:
+            return 0
+
+        if current_volume > avg_volume * 1.5:  # 50% above average
+            return 3
+        elif current_volume > avg_volume * 1.2:  # 20% above average
+            return 2
+
+        return 0
+
+    def _calculate_ewo_score(self, indicators_df: pd.DataFrame) -> int:
+        """
+        Calculate Elliott Wave Oscillator score
+
+        Args:
+            indicators_df: DataFrame with EWO indicator
+
+        Returns:
+            0-21 points based on EWO momentum and direction
+        """
+        h1 = indicators_df.iloc[-1]
+
+        if not pd.notna(h1["ewo"]):
+            return 0
+
+        # Get previous EWO for trend detection
+        ewo_prev = indicators_df["ewo"].iloc[-2] if len(indicators_df) > 1 else 0
+
+        if h1["ewo"] > 0 and h1["ewo"] > ewo_prev:
+            return 21  # Bullish momentum - Wave 3 or Wave 5
+        elif h1["ewo"] < 0 and h1["ewo"] < ewo_prev:
+            return 21  # Bearish momentum - Wave 3 or Wave 5
+        elif abs(h1["ewo"]) < 0.0001 and ewo_prev != 0:
+            return 13  # EWO crossing zero - Wave 1 start
+        elif h1["ewo"] > 0 and h1["ewo"] < ewo_prev:
+            return 8  # EWO declining but positive - Wave 4 correction
+        elif h1["ewo"] < 0 and h1["ewo"] > ewo_prev:
+            return 8  # EWO rising but negative - Wave 4 correction
+
+        return 0
+
+    def _calculate_divergence_score(self, indicators_df: pd.DataFrame) -> int:
+        """
+        Calculate divergence detection score
+
+        Detects Wave 5 exhaustion signals across RSI, MACD, and Volume.
+
+        Args:
+            indicators_df: DataFrame with RSI, MACD, and volume
+
+        Returns:
+            0-21 points based on number of divergences detected
+        """
+        # Check RSI divergence (most reliable)
+        rsi_div = detect_rsi_divergence(indicators_df, lookback=14)
+        # Check MACD divergence (momentum confirmation)
+        macd_div = detect_macd_divergence(indicators_df, lookback=14)
+        # Check Volume divergence (Wave 5 characteristic)
+        volume_div = detect_volume_divergence(indicators_df, lookback=14)
+
+        # Count total divergences detected
+        divergence_signals = sum(
+            [
+                rsi_div in ["bearish", "bullish"],
+                macd_div in ["bearish", "bullish"],
+                volume_div in ["bearish", "bullish"],
+            ]
+        )
+
+        if divergence_signals >= 2:
+            return 21  # Multiple divergences - very strong signal
+        elif divergence_signals == 1:
+            return 13  # Single divergence - moderate signal
+
+        return 0
+
+    def _calculate_fibonacci_bounce_score(self, indicators_df: pd.DataFrame) -> int:
+        """
+        Calculate Fibonacci bounce detection score
+
+        Automated detection of bounces from key Fibonacci levels.
+        This directly implements the user's "Bounce from 0.382" request.
+
+        Args:
+            indicators_df: DataFrame with OHLCV data
+
+        Returns:
+            0-34 points based on Fibonacci level and bounce confidence
+        """
+        fib_bounce = detect_fibonacci_bounce(indicators_df, lookback=89, tolerance_pct=1.0)
+
+        if not fib_bounce["detected"]:
+            return 0
+
+        level = fib_bounce["level"]
+        confidence = fib_bounce["confidence"]
+
+        # Golden Ratio (0.618) - Highest probability
+        if level == FIB_LEVELS["GOLDEN"]:
+            return int(34 * confidence)  # Up to 34 points
+        # Wave 4 typical retracement (0.382) - User's example!
+        elif level == FIB_LEVELS["WAVE4"]:
+            return int(21 * confidence)  # Up to 21 points
+        # Wave 2 typical retracement (0.5)
+        elif level == FIB_LEVELS["HALF"]:
+            return int(21 * confidence)  # Up to 21 points
+        # Other levels (0.236, 0.786)
+        else:
+            return int(13 * confidence)  # Up to 13 points
+
+    @validate_indicators
+    def _calculate_score(self, indicators: Dict[str, pd.DataFrame]) -> Tuple[int, Dict]:
+        """
+        Calculate total score based on Fibonacci indicators
+
+        Args:
+            indicators: Multi-timeframe indicators
+
+        Returns:
+            Tuple of (total_score, score_breakdown)
+        """
+        h1 = indicators["h1"].iloc[-1]
+        h4 = indicators["h4"].iloc[-1]
+        daily = indicators["daily"].iloc[-1]
+
+        scores = {}
+
+        # 1. EMA Structure (21 points)
+        ema_score = 0
+        if h1["ema_3"] > h1["ema_8"] > h1["ema_13"] > h1["ema_21"]:
+            ema_score = 21  # Perfect bullish alignment
+        elif h1["ema_3"] < h1["ema_8"] < h1["ema_13"] < h1["ema_21"]:
+            ema_score = 21  # Perfect bearish alignment
+        elif h1["ema_8"] > h1["ema_21"]:
+            ema_score = 13  # Partial bullish
+        elif h1["ema_8"] < h1["ema_21"]:
+            ema_score = 13  # Partial bearish
+        scores["ema_structure"] = ema_score
+
+        # 2. Fibonacci Levels (34 points)
+        scores["fibonacci_levels"] = self._calculate_fibonacci_levels(indicators["h1"])
+
+        # 3. Stochastic (13 points)
+        stoch_score = 0
+        if h1["stoch_k"] < 20 and h1["stoch_d"] < 20:
+            stoch_score = 13  # Oversold
+        elif h1["stoch_k"] > 80 and h1["stoch_d"] > 80:
+            stoch_score = 13  # Overbought
+        elif h1["stoch_k"] < 30 or h1["stoch_k"] > 70:
+            stoch_score = 8  # Approaching extremes
+        scores["stochastic"] = stoch_score
+
+        # 4. Bollinger Bands (13 points)
+        bb_score = 0
+        # Bug #9 fix: Handle division by zero when bands collapse and explicit NaN check
+        bb_width = h1["bb_upper"] - h1["bb_lower"]
+        # Explicit NaN check for clarity (early candles < 21 periods have NaN bands)
+        if pd.notna(bb_width) and bb_width > 0:
+            bb_position = (h1["close"] - h1["bb_lower"]) / bb_width
+            if bb_position < 0.1 or bb_position > 0.9:
+                bb_score = 13  # Near bands (potential reversal)
+            elif bb_position < 0.2 or bb_position > 0.8:
+                bb_score = 8
+        scores["bollinger_bands"] = bb_score
+
+        # 5. ADX (8 points)
+        adx_score = 0
+        if h1["adx"] > 25:
+            adx_score = 8  # Strong trend
+        elif h1["adx"] > 20:
+            adx_score = 5  # Developing trend
+        scores["adx"] = adx_score
+
+        # 6. Elliott Wave (8 points)
+        scores["elliott_wave"] = self._detect_elliott_wave(indicators["h1"])
+
+        # 7. Fibonacci Time (5 points)
+        scores["fibonacci_time"] = self._calculate_fibonacci_time(indicators["h1"])
+
+        # 8. Volume (3 points)
+        scores["volume"] = self._calculate_volume_score(indicators["h1"])
+
+        # 9. Elliott Wave Oscillator (21 points) - PROFESSIONAL INDICATOR
+        scores["elliott_wave_oscillator"] = self._calculate_ewo_score(indicators["h1"])
+
+        # 10. Divergence Detection (21 points) - WAVE 5 REVERSAL SIGNAL
+        scores["divergence"] = self._calculate_divergence_score(indicators["h1"])
+
+        # 11. Fibonacci Bounce Detection (34 points) - USER'S "BOUNCE FROM 0.382" REQUEST
+        scores["fibonacci_bounce"] = self._calculate_fibonacci_bounce_score(indicators["h1"])
+
+        # 12. Confluence Bonus (13 points)
+        confluence_score = 0
+        # Multi-timeframe alignment
+        if (
+            daily["ema_21"] > daily["ema_55"]
+            and h4["ema_21"] > h4["ema_55"]
+            and h1["ema_21"] > h1["ema_55"]
+        ):
+            confluence_score += 5  # All timeframes bullish
+        elif (
+            daily["ema_21"] < daily["ema_55"]
+            and h4["ema_21"] < h4["ema_55"]
+            and h1["ema_21"] < h1["ema_55"]
+        ):
+            confluence_score += 5  # All timeframes bearish
+
+        # Multiple indicator confirmation
+        confirming_indicators = sum([ema_score > 0, stoch_score > 0, bb_score > 0, adx_score > 0])
+        if confirming_indicators >= 3:
+            confluence_score += 8
+
+        scores["confluence_bonus"] = confluence_score
+
+        total_score = sum(scores.values())
+
+        return total_score, scores
+
+    def _determine_direction(self, indicators: Dict[str, pd.DataFrame]) -> str:
+        """
+        Determine trade direction based on indicators
+
+        Args:
+            indicators: Multi-timeframe indicators
+
+        Returns:
+            'long', 'short', or 'neutral'
+        """
+        h1 = indicators["h1"].iloc[-1]
+
+        bullish_signals = 0
+        bearish_signals = 0
+
+        # EMA structure
+        if h1["ema_8"] > h1["ema_21"]:
+            bullish_signals += 1
+        else:
+            bearish_signals += 1
+
+        # Price vs EMA
+        if h1["close"] > h1["ema_21"]:
+            bullish_signals += 1
+        else:
+            bearish_signals += 1
+
+        # Stochastic
+        if h1["stoch_k"] < 30:
+            bullish_signals += 1
+        elif h1["stoch_k"] > 70:
+            bearish_signals += 1
+
+        if bullish_signals > bearish_signals:
+            return "long"
+        elif bearish_signals > bullish_signals:
+            return "short"
+        else:
+            return "neutral"
+
+    def _calculate_sl_tp(self, current_price: float, direction: str) -> Tuple[float, float]:
+        """
+        Calculate Stop-Loss and Take-Profit prices
+
+        Args:
+            current_price: Current market price
+            direction: 'long' or 'short'
+
+        Returns:
+            Tuple of (stop_loss_price, take_profit_price)
+        """
+        if direction == "long":
+            sl_price = current_price * (1 - config.STOP_LOSS_PCT)
+            tp_price = current_price * (1 + config.TAKE_PROFIT_PCT)
+        elif direction == "short":
+            sl_price = current_price * (1 + config.STOP_LOSS_PCT)
+            tp_price = current_price * (1 - config.TAKE_PROFIT_PCT)
+        else:
+            sl_price = current_price
+            tp_price = current_price
+
+        return round(sl_price, 5), round(tp_price, 5)
+
+    def _get_leverage(self, score: int) -> int:
+        """
+        Determine leverage based on score
+
+        Args:
+            score: Total score
+
+        Returns:
+            Leverage multiplier (3, 5, or 8)
+        """
+        if score >= OPTIMAL_SCORE:
+            return config.LEVERAGE_MAP["high"]
+        elif score >= 80:
+            return config.LEVERAGE_MAP["medium"]
+        else:
+            return config.LEVERAGE_MAP["low"]
+
+    def _extract_key_indicators(self, df: pd.DataFrame) -> Dict:
+        """
+        Extract key indicator values for logging
+
+        Args:
+            df: Indicator DataFrame
+
+        Returns:
+            Dictionary of key values
+        """
+        latest = df.iloc[-1]
+
+        # Detect divergences - cleaner API (auto-uses existing columns)
+        rsi_div = detect_rsi_divergence(df, lookback=14)
+        macd_div = detect_macd_divergence(df, lookback=14)
+        volume_div = detect_volume_divergence(df, lookback=14)
+
+        # Detect Fibonacci bounce
+        fib_bounce = detect_fibonacci_bounce(df, lookback=89, tolerance_pct=1.0)
+
+        return {
+            "close": round(latest["close"], 5),
+            "ema_8": round(latest["ema_8"], 5),
+            "ema_21": round(latest["ema_21"], 5),
+            "rsi": round(latest["rsi"], 2),
+            "stoch_k": round(latest["stoch_k"], 2),
+            "adx": round(latest["adx"], 2),
+            "ewo": round(latest["ewo"], 4) if pd.notna(latest["ewo"]) else None,
+            "macd_histogram": (
+                round(latest["macd_histogram"], 5) if pd.notna(latest["macd_histogram"]) else None
+            ),
+            "rsi_divergence": rsi_div,
+            "macd_divergence": macd_div,
+            "volume_divergence": volume_div,
+            "fibonacci_bounce": fib_bounce["detected"],
+            "fibonacci_level": fib_bounce["level"] if fib_bounce["detected"] else None,
+            "fibonacci_confidence": (
+                round(fib_bounce["confidence"], 2) if fib_bounce["detected"] else None
+            ),
+        }
+
+    def save_results(self):
+        """Save screening results to JSON file using atomic write"""
+        try:
+            # Ensure data directory exists
+            os.makedirs(config.DATA_DIR, exist_ok=True)
+
+            success = atomic_json_write(
+                config.SCREENING_RESULTS_FILE,
+                {"timestamp": datetime.now().isoformat(), "results": self.results},
+                indent=2,
+            )
+
+            if success:
+                logger.info(f"Results saved to {config.SCREENING_RESULTS_FILE}")
+            else:
+                logger.error("Failed to save screening results")
+        except Exception as e:
+            logger.error(f"Failed to save results: {e}")
+
+    def get_best_setup(self) -> Optional[Dict]:
+        """
+        Get the best trading setup (highest score ≥ MIN_SCORE)
+
+        Returns:
+            Best setup dictionary or None if no valid setup
+        """
+        if not self.results:
+            logger.warning("No screening results available")
+            return None
+
+        # Filter tradeable setups
+        tradeable = [r for r in self.results if r["tradeable"]]
+
+        if not tradeable:
+            logger.warning(f"No setups meet minimum score ({config.MIN_SCORE})")
+            return None
+
+        best = tradeable[0]
+        logger.info(f"\nBest Setup: {best['symbol']} (Score: {best['score']})")
+        logger.info(f"  Direction: {best['direction']}")
+        logger.info(f"  Price: {best['current_price']}")
+        logger.info(f"  SL: {best['stop_loss']} | TP: {best['take_profit']}")
+        logger.info(f"  Leverage: {best['leverage']}x")
+
+        return best
+
+
+def main():
+    """Main screening workflow"""
+    logger.info("=" * 60)
+    logger.info("ELLIOTT WAVE SCREENING + TRADINGVIEW PAPER TRADING")
+    logger.info("=" * 60)
+    logger.info("📊 Capital.com: Data & Screening")
+    logger.info("📈 TradingView: Paper Trading Execution")
+    logger.info("📊 Chart Generation: Interactive Visualizations")
+    logger.info("=" * 60)
+
+    # Step 1: Screen assets using Capital.com data
+    screener = AssetScreener()
+    results = screener.screen_all_assets()
+
+    # Step 2: Generate charts for tradeable setups
+    tradeable_count = sum(1 for r in results if r.get("tradeable", False))
+    if tradeable_count > 0:
+        logger.info("\n" + "=" * 60)
+        logger.info("GENERATING SIGNAL CHARTS")
+        logger.info("=" * 60)
+
+        # Generate both HTML (for artifacts) and JSON (for dashboard)
+        chart_gen = ChartGenerator(output_dir="data/charts", export_format="both")
+        screener.results = chart_gen.generate_charts_for_results(
+            results=results, data_provider=screener.api, timeframe="h1"
+        )
+
+        logger.info(f"✅ Generated {tradeable_count} charts")
+    else:
+        logger.info("\n❌ No tradeable setups - skipping chart generation")
+
+    # Step 3: Save results (now includes chart URLs)
+    screener.save_results()
+
+    best_setup = screener.get_best_setup()
+
+    if not best_setup:
+        logger.info("\n❌ No valid setups today - no paper trade will be created")
+        return
+
+    # Step 2: Generate TradingView alert for paper trading
+    logger.info("\n" + "=" * 60)
+    logger.info("GENERATING TRADINGVIEW ALERT")
+    logger.info("=" * 60)
+
+    signal = {
+        "symbol": best_setup["symbol"],
+        "direction": best_setup["direction"].upper(),
+        "entry_price": best_setup["current_price"],
+        "stop_loss": best_setup["stop_loss"],
+        "take_profit": best_setup["take_profit"],
+        "score": best_setup["score"],
+    }
+
+    # Create TradingView alert files
+    create_tradingview_alert_file(signal)
+
+    # Step 3: Add to paper trading journal (with memory bank tracking)
+    logger.info("\n" + "=" * 60)
+    logger.info("ADDING TO PAPER TRADING JOURNAL")
+    logger.info("=" * 60)
+
+    journal = TrackedPaperTradingJournal()  # Automatic memory bank tracking
+    trade = journal.add_trade(
+        symbol=signal["symbol"],
+        direction=signal["direction"],
+        entry_price=signal["entry_price"],
+        stop_loss=signal["stop_loss"],
+        take_profit=signal["take_profit"],
+        score=signal["score"],
+        position_size=10.0,
+    )
+
+    logger.info(f"\n✅ Paper trade created: {trade.trade_id}")
+    logger.info(f"📋 Check data/tradingview_alerts.txt for alert message")
+    logger.info(f"📊 Paper trading journal: data/paper_trades.json")
+
+    # Show current statistics
+    logger.info("\n" + "=" * 60)
+    journal.print_statistics()
+
+    logger.info("=" * 60)
+    logger.info("NEXT STEPS:")
+    logger.info("1. Open TradingView")
+    logger.info("2. Create alert using data/tradingview_alerts.txt")
+    logger.info("3. Execute paper trade manually or wait for alert")
+    logger.info("4. Update trade exit in journal when closed")
+    logger.info("=" * 60)
+
+
+if __name__ == "__main__":
+    main()

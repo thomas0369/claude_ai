@@ -1,0 +1,377 @@
+#!/usr/bin/env python3
+"""
+ZEREZ PDF Matcher - Enhanced Version
+=====================================
+
+Improved matching algorithm with better confidence scoring.
+
+Features:
+- Multi-factor confidence scoring
+- Field completeness tracking
+- Manufacturer verification
+- Power rating validation
+- Enhanced similarity metrics
+
+Usage:
+    python3 zerez_pdf_matcher_enhanced.py --products '[...]' --pdf-dir datasheets
+"""
+
+import argparse
+import json
+import logging
+import sys
+import re
+from pathlib import Path
+from typing import List, Dict, Optional, Tuple
+from difflib import SequenceMatcher
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
+class EnhancedZEREZPDFMatcher:
+    """Enhanced PDF matcher with multi-factor confidence scoring."""
+
+    DEFAULT_MIN_CONFIDENCE = 40  # Lowered from 50 to catch more matches
+
+    def __init__(self, pdf_dir: Path, min_confidence: int = DEFAULT_MIN_CONFIDENCE):
+        """
+        Initialize matcher.
+
+        Args:
+            pdf_dir: Directory containing PDFs
+            min_confidence: Minimum confidence score (0-100) for matches
+        """
+        self.pdf_dir = pdf_dir
+        self.min_confidence = min_confidence
+        self.pdf_index = self._build_pdf_index()
+
+    def _build_pdf_index(self) -> Dict[str, List[Dict]]:
+        """Build index of PDFs and JSON data by manufacturer."""
+        index = {}
+
+        for pdf_file in self.pdf_dir.rglob('*.pdf'):
+            manufacturer = pdf_file.parent.name
+
+            if manufacturer not in index:
+                index[manufacturer] = []
+
+            # Check for accompanying JSON file
+            json_file = pdf_file.with_suffix('.json')
+            json_data = None
+
+            if json_file.exists():
+                try:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        json_data = json.load(f)
+                except Exception as e:
+                    logger.warning(f"Failed to load {json_file.name}: {e}")
+
+            index[manufacturer].append({
+                'pdf_path': pdf_file,
+                'pdf_name': pdf_file.stem,
+                'json_data': json_data
+            })
+
+        total_pdfs = sum(len(v) for v in index.values())
+        total_jsons = sum(1 for v in index.values() for item in v if item['json_data'])
+
+        logger.info(f"📚 Indexed {total_pdfs} PDFs from {len(index)} manufacturers")
+        logger.info(f"📄 Found {total_jsons} JSON files with extracted data")
+
+        return index
+
+    def _normalize_model_name(self, name: str) -> str:
+        """Normalize model name for matching."""
+        if not name:
+            return ""
+
+        # Remove common prefixes/suffixes
+        name = re.sub(r'^ZEREZ-', '', name, flags=re.IGNORECASE)
+        name = re.sub(r'^Model[:\s]+', '', name, flags=re.IGNORECASE)
+
+        # Remove special characters but keep alphanumeric and hyphens
+        name = re.sub(r'[^a-zA-Z0-9\s-]', '', name)
+
+        # Normalize whitespace and convert to lowercase
+        name = ' '.join(name.split()).lower()
+
+        return name
+
+    def _similarity_score(self, str1: str, str2: str) -> float:
+        """Calculate similarity score between two strings."""
+        return SequenceMatcher(None, str1.lower(), str2.lower()).ratio()
+
+    def _calculate_field_completeness(self, json_data: Dict) -> float:
+        """
+        Calculate how complete the extracted data is.
+
+        Returns score 0.0 - 1.0
+        """
+        if not json_data:
+            return 0.0
+
+        critical_fields = [
+            ('power', 'rated_power_kw'),
+            ('efficiency', 'peak_percent'),
+            ('physical', 'weight_kg'),
+            ('identification', 'model')
+        ]
+
+        filled_count = 0
+        for category, field in critical_fields:
+            value = json_data.get(category, {}).get(field)
+            if value is not None and value != "":
+                filled_count += 1
+
+        return filled_count / len(critical_fields)
+
+    def _validate_power_rating(self, zerez_product: Dict, pdf_json: Dict) -> Tuple[bool, float]:
+        """
+        Validate if power ratings are compatible.
+
+        Returns: (is_valid, confidence_boost)
+        """
+        if not pdf_json:
+            return True, 0.0
+
+        # Get power from ZEREZ product (if available)
+        zerez_power = None
+        if 'power' in zerez_product:
+            zerez_power = zerez_product['power'].get('rated_power_kw')
+
+        # Get power from PDF
+        pdf_power = pdf_json.get('power', {}).get('rated_power_kw')
+
+        if not zerez_power or not pdf_power:
+            return True, 0.0
+
+        # Check if powers are within 10% of each other
+        power_diff = abs(zerez_power - pdf_power)
+        tolerance = zerez_power * 0.1
+
+        if power_diff <= tolerance:
+            # Powers match - high confidence boost
+            return True, 0.3
+        elif power_diff <= zerez_power * 0.3:
+            # Powers somewhat close - small boost
+            return True, 0.1
+        else:
+            # Powers don't match - penalty
+            return False, -0.2
+
+    def _calculate_comprehensive_confidence(
+        self,
+        model_similarity: float,
+        manufacturer_match: bool,
+        field_completeness: float,
+        power_valid: bool,
+        power_boost: float,
+        extraction_method: str
+    ) -> int:
+        """
+        Calculate comprehensive confidence score.
+
+        Scoring factors:
+        - Model similarity: 0-50 points
+        - Manufacturer match: 0-20 points
+        - Field completeness: 0-15 points
+        - Power validation: -20 to +30 points
+        - Extraction method: 0-10 points
+
+        Total: 0-125 points (normalized to 0-100)
+        """
+        score = 0.0
+
+        # Model similarity (0-50 points)
+        score += model_similarity * 50
+
+        # Manufacturer match (20 points)
+        if manufacturer_match:
+            score += 20
+
+        # Field completeness (15 points)
+        score += field_completeness * 15
+
+        # Power validation boost/penalty
+        if power_valid:
+            score += power_boost * 100  # Convert to points
+        else:
+            score += power_boost * 100  # Negative penalty
+
+        # Extraction method quality (10 points)
+        if extraction_method == 'deepseek_vision_api':
+            score += 10
+        elif extraction_method == 'pdf_text_extraction':
+            score += 5
+
+        # Normalize to 0-100
+        normalized = min(100, max(0, (score / 125) * 100))
+
+        return int(normalized)
+
+    def match_product(self, product: Dict) -> Dict:
+        """Match a single product with enhanced scoring."""
+        model_name = product.get('modelName', '')
+        normalized_model = self._normalize_model_name(model_name)
+
+        # Get manufacturer if available
+        manufacturer_hint = product.get('manufacturer', '')
+
+        best_match = None
+        best_score = 0
+        best_details = {}
+
+        # Search relevant PDFs
+        search_manufacturers = list(self.pdf_index.keys())
+
+        # Prioritize matching manufacturer
+        if manufacturer_hint:
+            # Move matching manufacturer to front
+            search_manufacturers = [m for m in search_manufacturers if manufacturer_hint.lower() in m.lower()] + \
+                                  [m for m in search_manufacturers if manufacturer_hint.lower() not in m.lower()]
+
+        for manufacturer in search_manufacturers:
+            manufacturer_match = manufacturer_hint.lower() in manufacturer.lower() if manufacturer_hint else False
+
+            for pdf_entry in self.pdf_index[manufacturer]:
+                pdf_name = pdf_entry['pdf_name'].lower()
+                json_data = pdf_entry['json_data']
+
+                # Calculate model similarity
+                model_similarity = self._similarity_score(normalized_model, pdf_name)
+
+                # If we have JSON data, also check against extracted model name
+                if json_data and 'identification' in json_data:
+                    extracted_model = json_data['identification'].get('model', '')
+                    if extracted_model:
+                        extracted_similarity = self._similarity_score(
+                            normalized_model,
+                            self._normalize_model_name(extracted_model)
+                        )
+                        model_similarity = max(model_similarity, extracted_similarity)
+
+                # Calculate field completeness
+                field_completeness = self._calculate_field_completeness(json_data)
+
+                # Validate power rating
+                power_valid, power_boost = self._validate_power_rating(product, json_data or {})
+
+                # Get extraction method
+                extraction_method = json_data.get('data_source', {}).get('extraction_method', 'unknown') if json_data else 'none'
+
+                # Calculate comprehensive confidence
+                confidence = self._calculate_comprehensive_confidence(
+                    model_similarity,
+                    manufacturer_match,
+                    field_completeness,
+                    power_valid,
+                    power_boost,
+                    extraction_method
+                )
+
+                if confidence > best_score:
+                    best_score = confidence
+                    best_match = str(pdf_entry['pdf_path'].relative_to(self.pdf_dir))
+                    best_details = {
+                        'model_similarity': f"{model_similarity:.2f}",
+                        'manufacturer_match': manufacturer_match,
+                        'field_completeness': f"{field_completeness:.2f}",
+                        'power_valid': power_valid,
+                        'extraction_method': extraction_method,
+                        'has_json_data': json_data is not None
+                    }
+
+        # Apply minimum threshold (configurable)
+        if best_score < self.min_confidence:
+            best_match = None
+            best_score = 0
+
+        result = {
+            'zerezProduct': model_name,
+            'pdfMatch': best_match,
+            'confidence': best_score,
+            'details': best_details if best_match else {}
+        }
+
+        if best_match:
+            logger.info(f"✓ Matched: {model_name} → {best_match} ({best_score}%)")
+            logger.debug(f"  Details: {json.dumps(best_details, indent=2)}")
+        else:
+            logger.info(f"✗ No match: {model_name}")
+
+        return result
+
+    def match_products(self, products: List[Dict]) -> List[Dict]:
+        """Match multiple products."""
+        results = []
+
+        for product in products:
+            result = self.match_product(product)
+            results.append(result)
+
+        # Summary statistics
+        matched_count = sum(1 for r in results if r['pdfMatch'])
+        avg_confidence = sum(r['confidence'] for r in results if r['pdfMatch']) / max(matched_count, 1)
+
+        logger.info(f"\n{'='*70}")
+        logger.info(f"MATCHING STATISTICS")
+        logger.info(f"{'='*70}")
+        logger.info(f"Total products:      {len(results)}")
+        logger.info(f"Matched:             {matched_count} ({matched_count/len(results)*100:.1f}%)")
+        logger.info(f"Not matched:         {len(results) - matched_count}")
+        logger.info(f"Average confidence:  {avg_confidence:.1f}%")
+
+        return results
+
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(description='Enhanced ZEREZ PDF matcher')
+    parser.add_argument('--products', required=True, help='JSON array of products')
+    parser.add_argument('--pdf-dir', required=True, help='PDF directory')
+    parser.add_argument('--format', default='json', choices=['json', 'table'], help='Output format')
+    parser.add_argument('--min-confidence', type=int, default=EnhancedZEREZPDFMatcher.DEFAULT_MIN_CONFIDENCE,
+                       help=f'Minimum confidence score for matches (default: {EnhancedZEREZPDFMatcher.DEFAULT_MIN_CONFIDENCE})')
+
+    args = parser.parse_args()
+
+    # Parse products
+    try:
+        products = json.loads(args.products)
+    except json.JSONDecodeError as e:
+        print(json.dumps({'error': f'Invalid JSON: {e}'}), file=sys.stderr)
+        sys.exit(1)
+
+    # Run matcher
+    pdf_dir = Path(args.pdf_dir)
+
+    if not pdf_dir.exists():
+        print(json.dumps({'error': f'PDF directory not found: {pdf_dir}'}), file=sys.stderr)
+        sys.exit(1)
+
+    matcher = EnhancedZEREZPDFMatcher(pdf_dir, min_confidence=args.min_confidence)
+
+    try:
+        results = matcher.match_products(products)
+
+        # Output results
+        if args.format == 'json':
+            print(json.dumps(results, indent=2))
+        else:
+            # Table format
+            print(f"{'Product':<40} {'PDF Match':<50} {'Confidence':>10}")
+            print("-" * 105)
+            for r in results:
+                pdf = r['pdfMatch'] or '-'
+                conf = f"{r['confidence']}%" if r['pdfMatch'] else '-'
+                print(f"{r['zerezProduct']:<40} {pdf:<50} {conf:>10}")
+
+    except Exception as e:
+        error_data = {'error': str(e)}
+        print(json.dumps(error_data), file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,286 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export interface LeaderboardEntry {
+  rank: number;
+  score: number;
+  level?: number;
+  mode: string;
+  stars?: number;
+  date: string;
+  playerName?: string;
+}
+
+export interface LeaderboardProps {
+  mode: 'campaign' | 'time-attack' | 'puzzle' | 'zen' | 'daily' | 'all';
+  limit?: number;
+  showMode?: boolean;
+}
+
+export function Leaderboard({ mode, limit = 10, showMode = false }: LeaderboardProps) {
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Load from localStorage
+    loadLeaderboard();
+  }, [mode]);
+
+  const loadLeaderboard = () => {
+    try {
+      const stored = localStorage.getItem('block-puzzle-leaderboard');
+      if (stored) {
+        const allEntries: LeaderboardEntry[] = JSON.parse(stored);
+
+        // Filter by mode if not 'all'
+        const filtered = mode === 'all'
+          ? allEntries
+          : allEntries.filter(e => e.mode === mode);
+
+        // Sort by score descending
+        const sorted = filtered.sort((a, b) => b.score - a.score);
+
+        // Take top N
+        const topEntries = sorted.slice(0, limit);
+
+        // Add ranks
+        const ranked = topEntries.map((entry, index) => ({
+          ...entry,
+          rank: index + 1,
+        }));
+
+        setEntries(ranked);
+      } else {
+        // Generate sample data for demo
+        setEntries(generateSampleData(mode, limit));
+      }
+    } catch (error) {
+      console.error('Failed to load leaderboard:', error);
+      setEntries(generateSampleData(mode, limit));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-gray-800 border border-gray-700 rounded-xl p-8 text-center">
+        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
+        <p className="text-gray-400">Loading leaderboard...</p>
+      </div>
+    );
+  }
+
+  if (entries.length === 0) {
+    return (
+      <div className="bg-gray-800 border border-gray-700 rounded-xl p-8 text-center">
+        <span className="text-6xl mb-4 block">🏆</span>
+        <p className="text-gray-400 text-lg mb-2">No scores yet</p>
+        <p className="text-gray-500 text-sm">Be the first to set a high score!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-gray-700 rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-4xl">🏆</span>
+            <div>
+              <h2 className="text-2xl font-bold text-white">Leaderboard</h2>
+              <p className="text-blue-100 text-sm capitalize">
+                {mode === 'all' ? 'All Modes' : mode.replace('-', ' ')}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={loadLeaderboard}
+            className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Leaderboard Entries */}
+      <div className="p-4">
+        {entries.map((entry, index) => (
+          <LeaderboardRow
+            key={`${entry.mode}-${entry.score}-${index}`}
+            entry={entry}
+            showMode={showMode}
+            isTopThree={entry.rank <= 3}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface LeaderboardRowProps {
+  entry: LeaderboardEntry;
+  showMode: boolean;
+  isTopThree: boolean;
+}
+
+function LeaderboardRow({ entry, showMode, isTopThree }: LeaderboardRowProps) {
+  const getRankDisplay = (rank: number) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return `#${rank}`;
+  };
+
+  const getRankColor = (rank: number) => {
+    if (rank === 1) return 'from-yellow-500/20 to-yellow-600/20 border-yellow-500/50';
+    if (rank === 2) return 'from-gray-400/20 to-gray-500/20 border-gray-400/50';
+    if (rank === 3) return 'from-orange-600/20 to-orange-700/20 border-orange-600/50';
+    return 'from-gray-700/20 to-gray-800/20 border-gray-600/30';
+  };
+
+  return (
+    <div
+      className={`mb-3 bg-gradient-to-r ${getRankColor(entry.rank)} border rounded-xl p-4 transition-all hover:scale-[1.02] ${
+        isTopThree ? 'shadow-lg' : ''
+      }`}
+    >
+      <div className="flex items-center gap-4">
+        {/* Rank */}
+        <div className="text-3xl font-bold min-w-[60px] text-center">
+          {getRankDisplay(entry.rank)}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-white font-semibold">
+              {entry.playerName || 'Player'}
+            </p>
+            {showMode && (
+              <span className="text-xs bg-blue-500/30 text-blue-300 px-2 py-1 rounded-full">
+                {entry.mode}
+              </span>
+            )}
+            {entry.level && (
+              <span className="text-xs bg-purple-500/30 text-purple-300 px-2 py-1 rounded-full">
+                Level {entry.level}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 text-sm">
+            <span className="text-2xl font-bold text-white font-mono">
+              {entry.score.toLocaleString()}
+            </span>
+            {entry.stars !== undefined && entry.stars > 0 && (
+              <div className="flex gap-0.5">
+                {Array.from({ length: entry.stars }, (_, i) => (
+                  <span key={i} className="text-yellow-400">★</span>
+                ))}
+              </div>
+            )}
+            <span className="text-gray-400 text-xs ml-auto">
+              {formatDate(entry.date)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper function to format date
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+// Generate sample data for demo purposes
+function generateSampleData(mode: string, limit: number): LeaderboardEntry[] {
+  const modes = mode === 'all' ? ['campaign', 'time-attack', 'puzzle', 'zen', 'daily'] : [mode];
+  const entries: LeaderboardEntry[] = [];
+
+  const names = ['Alex', 'Jordan', 'Sam', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Avery', 'Quinn', 'Skyler'];
+
+  for (let i = 0; i < limit; i++) {
+    const randomMode = modes[Math.floor(Math.random() * modes.length)];
+    const baseScore = 10000 - (i * 500);
+    const variance = Math.floor(Math.random() * 500);
+
+    entries.push({
+      rank: i + 1,
+      score: baseScore + variance,
+      level: Math.floor(Math.random() * 50) + 1,
+      mode: randomMode,
+      stars: Math.min(Math.floor((limit - i) / 3), 3),
+      date: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+      playerName: names[i % names.length],
+    });
+  }
+
+  return entries.sort((a, b) => b.score - a.score).map((e, i) => ({ ...e, rank: i + 1 }));
+}
+
+/**
+ * Utility functions for managing leaderboard data
+ */
+export const LeaderboardUtils = {
+  /**
+   * Add a new score to the leaderboard
+   */
+  addScore(entry: Omit<LeaderboardEntry, 'rank'>): void {
+    try {
+      const stored = localStorage.getItem('block-puzzle-leaderboard');
+      const entries: LeaderboardEntry[] = stored ? JSON.parse(stored) : [];
+
+      entries.push({ ...entry, rank: 0 });
+
+      // Keep only top 100 scores
+      const sorted = entries.sort((a, b) => b.score - a.score).slice(0, 100);
+
+      localStorage.setItem('block-puzzle-leaderboard', JSON.stringify(sorted));
+    } catch (error) {
+      console.error('Failed to save score:', error);
+    }
+  },
+
+  /**
+   * Get high score for a specific mode and level
+   */
+  getHighScore(mode: string, level?: number): number {
+    try {
+      const stored = localStorage.getItem('block-puzzle-leaderboard');
+      if (!stored) return 0;
+
+      const entries: LeaderboardEntry[] = JSON.parse(stored);
+      const filtered = entries.filter(e => {
+        if (e.mode !== mode) return false;
+        if (level !== undefined && e.level !== level) return false;
+        return true;
+      });
+
+      if (filtered.length === 0) return 0;
+      return Math.max(...filtered.map(e => e.score));
+    } catch (error) {
+      console.error('Failed to get high score:', error);
+      return 0;
+    }
+  },
+
+  /**
+   * Clear all leaderboard data
+   */
+  clearAll(): void {
+    localStorage.removeItem('block-puzzle-leaderboard');
+  },
+};

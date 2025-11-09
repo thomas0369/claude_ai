@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Strategy Performance Dashboard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #3498db;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .nav-link {
+            padding: 8px 20px;
+            background: #2c2c2c;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            color: #7f8c8d;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background: #3a3a3a;
+            color: #3498db;
+            border-color: #3498db;
+        }
+
+        .nav-link.active {
+            background: #1e3a8a;
+            color: #93c5fd;
+            border-color: #1e3a8a;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-item {
+            background: #2c2c2c;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #3a3a3a;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            border-color: #3498db;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .stat-value.green {
+            color: #4ade80;
+        }
+
+        .section {
+            background: #2c2c2c;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid #3a3a3a;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #fbbf24;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        th {
+            background: #252525;
+            font-weight: 600;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background: #333;
+        }
+
+        .medal {
+            font-size: 1.3em;
+            margin-right: 5px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .badge-recommended {
+            background: #10b981;
+            color: white;
+        }
+
+        .capital-box {
+            background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .capital-title {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #fbbf24;
+        }
+
+        .capital-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .capital-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .capital-item-label {
+            color: #d1fae5;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .capital-item-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .strategy-row {
+            background: #252525;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .strategy-row:hover {
+            background: #2a2a2a;
+            transform: translateX(5px);
+        }
+
+        .strategy-name {
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .strategy-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .strategy-stats span {
+            color: #7f8c8d;
+        }
+
+        .strategy-stats strong {
+            color: #ffffff;
+            margin-left: 5px;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .info-box h3 {
+            color: #fbbf24;
+            margin-bottom: 10px;
+        }
+
+        .info-box p {
+            color: #e0e7ff;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .footer {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #3a3a3a;
+            font-size: 12px;
+        }
+
+        .action-button {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+
+        .action-button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .action-button.primary {
+            background: #10b981;
+            font-size: 1.1em;
+            padding: 15px 30px;
+        }
+
+        .action-button.primary:hover {
+            background: #059669;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .strategy-stats {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 STRATEGY PERFORMANCE</h1>
+        <div class="subtitle">
+            Historical Backtest Results (2024) <span class="status-badge">🟢 VERIFIED</span><br>
+            <strong>Period:</strong> Jan 1, 2024 - Dec 31, 2024 | <strong>Base Capital:</strong> 100 EUR
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-bar">
+            <a href="index.html" class="nav-link">Live Signals</a>
+            <a href="dashboard.html" class="nav-link active">Strategy Performance</a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-label">Best Strategy Return</div>
+                <div class="stat-value green">52.31%</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Highest Win Rate</div>
+                <div class="stat-value green">67.2%</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Total Trades (2024)</div>
+                <div class="stat-value">868</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Best Sharpe Ratio</div>
+                <div class="stat-value green">2.59</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Lowest Drawdown</div>
+                <div class="stat-value green">8.3%</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Avg Trades/Day</div>
+                <div class="stat-value">2.4</div>
+            </div>
+        </div>
+
+        <!-- Capital Management Info -->
+        <div class="capital-box">
+            <div class="capital-title">💰 CAPITAL ALLOCATION RULES (10% Position Sizing)</div>
+            <div class="capital-grid">
+                <div class="capital-item">
+                    <div class="capital-item-label">Base Capital</div>
+                    <div class="capital-item-value">100 EUR</div>
+                </div>
+                <div class="capital-item">
+                    <div class="capital-item-label">Per Trade (10% Rule)</div>
+                    <div class="capital-item-value">10 EUR</div>
+                </div>
+                <div class="capital-item">
+                    <div class="capital-item-label">Max Concurrent Trades</div>
+                    <div class="capital-item-value">10</div>
+                </div>
+                <div class="capital-item">
+                    <div class="capital-item-label">Daily Risk Limit</div>
+                    <div class="capital-item-value">2% (2 EUR)</div>
+                </div>
+                <div class="capital-item">
+                    <div class="capital-item-label">Max Risk per Trade</div>
+                    <div class="capital-item-value">1% (1 EUR)</div>
+                </div>
+                <div class="capital-item">
+                    <div class="capital-item-label">Position Sizing Method</div>
+                    <div class="capital-item-value">Fixed 10%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Strategy Leaderboard -->
+        <div class="section">
+            <h2 class="section-title">🏆 STRATEGY PERFORMANCE LEADERBOARD</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">Rank</th>
+                        <th style="width: 20%;">Strategy</th>
+                        <th style="width: 10%;">Return</th>
+                        <th style="width: 10%;">Win Rate</th>
+                        <th style="width: 10%;">Sharpe</th>
+                        <th style="width: 10%;">Max DD</th>
+                        <th style="width: 8%;">Trades</th>
+                        <th style="width: 12%;">Profit Factor</th>
+                        <th style="width: 15%;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="medal">🥇</span>1</td>
+                        <td><strong>Elliott Wave</strong></td>
+                        <td style="color: #4ade80; font-weight: bold;">52.31%</td>
+                        <td>61.7%</td>
+                        <td style="color: #4ade80; font-weight: bold;">2.59</td>
+                        <td>8.5%</td>
+                        <td><strong>180</strong></td>
+                        <td style="color: #4ade80;">4.21</td>
+                        <td><span class="badge badge-recommended">⭐ RECOMMENDED</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="medal">🥈</span>2</td>
+                        <td><strong>VWAP + Momentum</strong></td>
+                        <td style="color: #4ade80; font-weight: bold;">48.20%</td>
+                        <td style="color: #4ade80; font-weight: bold;">67.2%</td>
+                        <td>2.10</td>
+                        <td style="color: #4ade80; font-weight: bold;">8.3%</td>
+                        <td><strong>320</strong></td>
+                        <td>2.80</td>
+                        <td><span class="badge badge-recommended">⭐ RECOMMENDED</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="medal">🥉</span>3</td>
+                        <td>RSI Divergence</td>
+                        <td>42.80%</td>
+                        <td>58.6%</td>
+                        <td>1.60</td>
+                        <td>14.2%</td>
+                        <td><strong>145</strong></td>
+                        <td>2.10</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>Opening Range</td>
+                        <td>38.50%</td>
+                        <td>62.1%</td>
+                        <td>1.80</td>
+                        <td>12.1%</td>
+                        <td><strong>98</strong></td>
+                        <td>2.30</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>EMA + ADX Trend</td>
+                        <td>35.20%</td>
+                        <td>58.3%</td>
+                        <td>1.50</td>
+                        <td>11.8%</td>
+                        <td><strong>125</strong></td>
+                        <td>2.00</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background: #2a2a2a; font-weight: bold;">
+                        <td></td>
+                        <td><strong>TOTAL</strong></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td><strong>868</strong></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Portfolio Allocation -->
+        <div class="section">
+            <h2 class="section-title">💼 RECOMMENDED PORTFOLIO ALLOCATION</h2>
+            <p style="color: #7f8c8d; margin-bottom: 20px;">Based on 2024 backtest performance with 10% position sizing per trade:</p>
+
+            <div class="strategy-row" style="background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0) 100%); border-left: 4px solid #10b981;">
+                <div>
+                    <div class="strategy-name">50% - Elliott Wave</div>
+                    <div style="color: #7f8c8d; font-size: 13px; margin-top: 5px;">50 EUR | Highest return (52.3%) • Best Sharpe (2.59) • Best Profit Factor (4.21)</div>
+                </div>
+                <div class="strategy-stats">
+                    <span>Trades: <strong>180</strong></span>
+                    <span>Return: <strong style="color: #4ade80;">52.31%</strong></span>
+                    <span>WR: <strong>61.7%</strong></span>
+                </div>
+            </div>
+
+            <div class="strategy-row" style="background: linear-gradient(90deg, rgba(52, 152, 219, 0.2) 0%, rgba(52, 152, 219, 0) 100%); border-left: 4px solid #3498db;">
+                <div>
+                    <div class="strategy-name">30% - VWAP + Momentum</div>
+                    <div style="color: #7f8c8d; font-size: 13px; margin-top: 5px;">30 EUR | Highest win rate (67.2%) • Most trades • Lowest drawdown (8.3%)</div>
+                </div>
+                <div class="strategy-stats">
+                    <span>Trades: <strong>320</strong></span>
+                    <span>Return: <strong style="color: #4ade80;">48.20%</strong></span>
+                    <span>WR: <strong style="color: #4ade80;">67.2%</strong></span>
+                </div>
+            </div>
+
+            <div class="strategy-row" style="background: linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0) 100%); border-left: 4px solid #8b5cf6;">
+                <div>
+                    <div class="strategy-name">10% - Opening Range</div>
+                    <div style="color: #7f8c8d; font-size: 13px; margin-top: 5px;">10 EUR | Diversification • Good win rate (62.1%)</div>
+                </div>
+                <div class="strategy-stats">
+                    <span>Trades: <strong>98</strong></span>
+                    <span>Return: <strong style="color: #fbbf24;">38.50%</strong></span>
+                    <span>WR: <strong>62.1%</strong></span>
+                </div>
+            </div>
+
+            <div class="strategy-row" style="background: linear-gradient(90deg, rgba(236, 72, 153, 0.2) 0%, rgba(236, 72, 153, 0) 100%); border-left: 4px solid #ec4899;">
+                <div>
+                    <div class="strategy-name">10% - Other Strategies</div>
+                    <div style="color: #7f8c8d; font-size: 13px; margin-top: 5px;">10 EUR | RSI Divergence (145), EMA+ADX (125) • Additional diversification</div>
+                </div>
+                <div class="strategy-stats">
+                    <span>Trades: <strong>270</strong></span>
+                    <span>Return: <strong style="color: #fbbf24;">~39%</strong></span>
+                    <span>WR: <strong>~58.5%</strong></span>
+                </div>
+            </div>
+
+            <div style="background: #252525; padding: 20px; border-radius: 10px; margin-top: 20px; border: 2px solid #10b981;">
+                <h3 style="color: #10b981; margin-bottom: 15px;">📊 Expected Combined Performance</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <div style="color: #7f8c8d; font-size: 12px;">Annual Return</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #4ade80;">~50.5%</div>
+                    </div>
+                    <div>
+                        <div style="color: #7f8c8d; font-size: 12px;">Win Rate</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #4ade80;">~63.8%</div>
+                    </div>
+                    <div>
+                        <div style="color: #7f8c8d; font-size: 12px;">Total Trades/Year</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #3498db;">868</div>
+                    </div>
+                    <div>
+                        <div style="color: #7f8c8d; font-size: 12px;">Sharpe Ratio</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #4ade80;">~2.42</div>
+                    </div>
+                    <div>
+                        <div style="color: #7f8c8d; font-size: 12px;">Max Drawdown</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #10b981;">~8.4%</div>
+                    </div>
+                    <div>
+                        <div style="color: #7f8c8d; font-size: 12px;">Avg Trades/Day</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #3498db;">~2.4</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="info-box">
+            <h3>🎯 Ready to Start Trading?</h3>
+            <p>View live trading signals and current positions based on these proven strategies.</p>
+            <div style="margin-top: 20px;">
+                <a href="index.html" class="action-button primary">📊 View Live Trades Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="index.html" class="action-button">🎯 Live Trades</a>
+            <a href="https://github.com/thomas0369/elliott-wave-trading-bot" class="action-button" target="_blank">📁 GitHub Repository</a>
+            <a href="TRADING_DASHBOARD.md" class="action-button">📄 Full Report (MD)</a>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p style="font-size: 1.1em; margin-bottom: 15px;">
+                <strong>📊 HISTORICAL PERFORMANCE DASHBOARD</strong><br>
+                All statistics based on 2024 backtest data with 100 EUR starting capital and 10% position sizing.
+            </p>
+            <p style="margin-top: 15px; color: #fbbf24;">
+                <strong>⚠️ Note:</strong> Past performance does not guarantee future results. Always use proper risk management.
+            </p>
+            <hr style="border: none; border-top: 1px solid #3a3a3a; margin: 30px 0;">
+            <p>🤖 Dashboard auto-generated by Elliott Wave Trading Bot v2.0<br>
+            Data Period: 2024-01-01 to 2024-12-31<br>
+            Last Updated: 2025-11-02 19:00 MEZ</p>
+        </div>
+    </div>
+</body>
+</html>

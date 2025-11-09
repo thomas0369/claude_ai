@@ -1,0 +1,273 @@
+"""
+Integration tests for TradingView Data Provider
+
+Tests the tradingview_data_provider module to ensure:
+- Data fetching works for forex and crypto
+- OHLCV format matches CCXT specification
+- Symbol conversion works correctly
+- Error handling is appropriate
+"""
+
+import pytest
+import logging
+from datetime import datetime
+from tradingview_data_provider import get_tradingview_provider, TradingViewDataProvider
+
+# Setup logging for tests
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class TestTradingViewDataProvider:
+    """Test suite for TradingViewDataProvider"""
+
+    def setup_method(self):
+        """Initialize provider before each test"""
+        self.provider = get_tradingview_provider()
+
+    def test_provider_initialization(self):
+        """Test that provider initializes correctly"""
+        assert self.provider is not None
+        assert self.provider.is_available() is True
+        assert self.provider.Streamer is not None
+
+    def test_singleton_pattern(self):
+        """Test that get_tradingview_provider returns singleton"""
+        provider1 = get_tradingview_provider()
+        provider2 = get_tradingview_provider()
+        assert provider1 is provider2
+
+    def test_fetch_forex_ohlcv(self):
+        """Test fetching forex OHLCV data (EUR/USD)"""
+        symbol = "EUR/USD"
+        timeframe = "1h"
+        limit = 20
+
+        logger.info(f"\n=== Test: Fetch {symbol} {timeframe} data ===")
+
+        ohlcv = self.provider.fetch_ohlcv(symbol, timeframe, limit)
+
+        # Validate response
+        assert ohlcv is not None, "Should return data"
+        assert (
+            len(ohlcv) >= limit * 0.9
+        ), f"Should return at least {limit * 0.9} candles"  # 90% threshold
+        assert (
+            len(ohlcv) <= limit * 1.2
+        ), f"Should return at most {limit * 1.2} candles"  # Allow some real-time updates
+
+        logger.info(f"✅ Received {len(ohlcv)} candles")
+
+        # Validate first candle structure
+        first_candle = ohlcv[0]
+        assert len(first_candle) == 6, "Candle should have 6 elements [t, o, h, l, c, v]"
+
+        timestamp, open_price, high, low, close, volume = first_candle
+
+        # Validate CCXT format
+        assert isinstance(timestamp, int), "Timestamp should be integer (ms)"
+        assert timestamp > 1_600_000_000_000, "Timestamp should be in milliseconds (> 2020-09-01)"
+        assert timestamp < 9_999_999_999_999, "Timestamp should be reasonable"
+
+        assert isinstance(open_price, (int, float)), "Open should be numeric"
+        assert isinstance(high, (int, float)), "High should be numeric"
+        assert isinstance(low, (int, float)), "Low should be numeric"
+        assert isinstance(close, (int, float)), "Close should be numeric"
+        assert isinstance(volume, (int, float)), "Volume should be numeric"
+
+        # Validate OHLC relationships
+        assert high >= low, f"High ({high}) should be >= Low ({low})"
+        assert low <= open_price <= high, f"Open ({open_price}) should be between Low-High"
+        assert low <= close <= high, f"Close ({close}) should be between Low-High"
+        assert volume >= 0, f"Volume ({volume}) should be non-negative"
+
+        # Validate price ranges (EUR/USD should be 0.80 - 1.40)
+        assert 0.80 < open_price < 1.40, f"EUR/USD Open price ({open_price}) out of range"
+        assert 0.80 < close < 1.40, f"EUR/USD Close price ({close}) out of range"
+
+        logger.info(f"✅ First candle: {first_candle}")
+        logger.info(f"✅ OHLCV format validated")
+
+    def test_fetch_crypto_ohlcv(self):
+        """Test fetching crypto OHLCV data (BTC/USD)"""
+        symbol = "BTC/USD"
+        timeframe = "1h"
+        limit = 20
+
+        logger.info(f"\n=== Test: Fetch {symbol} {timeframe} data ===")
+
+        ohlcv = self.provider.fetch_ohlcv(symbol, timeframe, limit)
+
+        # Validate response
+        assert ohlcv is not None, "Should return data"
+        assert len(ohlcv) >= limit * 0.9, f"Should return at least {limit * 0.9} candles"
+
+        logger.info(f"✅ Received {len(ohlcv)} candles")
+
+        # Validate first candle
+        first_candle = ohlcv[0]
+        timestamp, open_price, high, low, close, volume = first_candle
+
+        # Validate BTC price ranges (should be $10k - $200k)
+        assert 10_000 < open_price < 200_000, f"BTC Open price ({open_price}) out of range"
+        assert 10_000 < close < 200_000, f"BTC Close price ({close}) out of range"
+
+        # Validate OHLC relationships
+        assert high >= low, "High >= Low"
+        assert low <= open_price <= high, "Open between Low-High"
+        assert low <= close <= high, "Close between Low-High"
+
+        logger.info(f"✅ First candle: {first_candle}")
+
+    def test_symbol_conversion_forex(self):
+        """Test symbol conversion for forex pairs"""
+        test_cases = [
+            ("EUR/USD", ("EURUSD", "FX")),
+            ("EURUSD", ("EURUSD", "FX")),
+            ("GBP/JPY", ("GBPJPY", "FX")),
+            ("USD/CHF", ("USDCHF", "FX")),
+        ]
+
+        for input_symbol, expected in test_cases:
+            tv_symbol, tv_exchange = self.provider._convert_symbol(input_symbol)
+            assert (tv_symbol, tv_exchange) == expected, f"Failed for {input_symbol}"
+            logger.info(f"✅ {input_symbol} -> {tv_exchange}:{tv_symbol}")
+
+    def test_symbol_conversion_crypto(self):
+        """Test symbol conversion for crypto pairs"""
+        test_cases = [
+            ("BTC/USD", ("BTCUSDT", "BINANCE")),
+            ("BTC/USDT", ("BTCUSDT", "BINANCE")),
+            ("BTCUSDT", ("BTCUSDT", "BINANCE")),
+            ("ETH/USD", ("ETHUSDT", "BINANCE")),
+        ]
+
+        for input_symbol, expected in test_cases:
+            tv_symbol, tv_exchange = self.provider._convert_symbol(input_symbol)
+            assert (tv_symbol, tv_exchange) == expected, f"Failed for {input_symbol}"
+            logger.info(f"✅ {input_symbol} -> {tv_exchange}:{tv_symbol}")
+
+    def test_invalid_symbol(self):
+        """Test handling of invalid symbols"""
+        invalid_symbols = ["INVALID", "ABC", "123", ""]
+
+        for symbol in invalid_symbols:
+            with pytest.raises(ValueError):
+                self.provider._convert_symbol(symbol)
+            logger.info(f"✅ Correctly rejected: {symbol}")
+
+    def test_supports_symbol(self):
+        """Test supports_symbol method"""
+        # Should support
+        assert self.provider.supports_symbol("EUR/USD") is True
+        assert self.provider.supports_symbol("BTC/USD") is True
+        assert self.provider.supports_symbol("GBP/JPY") is True
+
+        # Should NOT support
+        assert self.provider.supports_symbol("INVALID") is False
+        assert self.provider.supports_symbol("ABC") is False
+
+    def test_multiple_timeframes(self):
+        """Test fetching data with different timeframes"""
+        timeframes = ["1h", "4h"]
+
+        for tf in timeframes:
+            logger.info(f"\n=== Test: Timeframe {tf} ===")
+            ohlcv = self.provider.fetch_ohlcv("EUR/USD", tf, 10)
+            assert ohlcv is not None, f"Should fetch data for {tf}"
+            assert len(ohlcv) >= 5, f"Should get candles for {tf}"
+            logger.info(f"✅ {tf}: {len(ohlcv)} candles")
+
+    def test_timestamp_ordering(self):
+        """Test that candles are ordered chronologically"""
+        ohlcv = self.provider.fetch_ohlcv("EUR/USD", "1h", 20)
+        assert ohlcv is not None
+
+        timestamps = [candle[0] for candle in ohlcv]
+
+        # Check ascending order
+        for i in range(1, len(timestamps)):
+            assert timestamps[i] >= timestamps[i - 1], "Timestamps should be in ascending order"
+
+        logger.info("✅ Timestamps are chronologically ordered")
+
+    def test_data_consistency(self):
+        """Test that repeated fetches return consistent data"""
+        # Fetch same data twice
+        ohlcv1 = self.provider.fetch_ohlcv("EUR/USD", "1h", 10)
+        ohlcv2 = self.provider.fetch_ohlcv("EUR/USD", "1h", 10)
+
+        assert ohlcv1 is not None
+        assert ohlcv2 is not None
+
+        # Historical data should be same (ignoring last candle which might be real-time)
+        # Compare first 5 candles
+        for i in range(min(5, len(ohlcv1), len(ohlcv2))):
+            assert ohlcv1[i][0] == ohlcv2[i][0], f"Timestamps should match for candle {i}"
+            # Prices might differ slightly due to real-time updates, but should be close
+            assert (
+                abs(ohlcv1[i][4] - ohlcv2[i][4]) < 0.01
+            ), f"Close prices should be similar for candle {i}"
+
+        logger.info("✅ Data consistency validated")
+
+
+class TestTradingViewProviderEdgeCases:
+    """Edge case tests"""
+
+    def setup_method(self):
+        """Initialize provider before each test"""
+        self.provider = get_tradingview_provider()
+
+    def test_large_limit(self):
+        """Test fetching many candles"""
+        logger.info("\n=== Test: Large limit (500 candles) ===")
+        ohlcv = self.provider.fetch_ohlcv("EUR/USD", "1h", 500)
+        assert ohlcv is not None
+        assert len(ohlcv) >= 400, "Should fetch at least 400 candles"
+        logger.info(f"✅ Fetched {len(ohlcv)} candles")
+
+    def test_small_limit(self):
+        """Test fetching few candles"""
+        ohlcv = self.provider.fetch_ohlcv("EUR/USD", "1h", 5)
+        assert ohlcv is not None
+        assert len(ohlcv) >= 4, "Should fetch at least 4 candles"
+        logger.info(f"✅ Fetched {len(ohlcv)} candles")
+
+
+# Integration test for use with actual capital_api.py pattern
+class TestIntegrationWithCapitalAPI:
+    """Test integration patterns matching capital_api.py"""
+
+    def test_ohlcv_format_matches_ccxt(self):
+        """
+        Test that TradingView data format exactly matches CCXT format.
+
+        This is CRITICAL for seamless integration with existing screener code.
+        """
+        provider = get_tradingview_provider()
+        ohlcv = provider.fetch_ohlcv("EUR/USD", "1h", 10)
+
+        assert ohlcv is not None
+
+        # CCXT format: [[timestamp, open, high, low, close, volume], ...]
+        for candle in ohlcv:
+            assert isinstance(candle, list), "Candle should be a list"
+            assert len(candle) == 6, "Candle should have exactly 6 elements"
+
+            timestamp, o, h, l, c, v = candle
+
+            # Type checks
+            assert isinstance(timestamp, int), "Timestamp must be int (milliseconds)"
+            assert isinstance(o, (int, float)), "Open must be numeric"
+            assert isinstance(h, (int, float)), "High must be numeric"
+            assert isinstance(l, (int, float)), "Low must be numeric"
+            assert isinstance(c, (int, float)), "Close must be numeric"
+            assert isinstance(v, (int, float)), "Volume must be numeric"
+
+        logger.info("✅ OHLCV format exactly matches CCXT specification")
+
+
+if __name__ == "__main__":
+    # Run tests with pytest
+    pytest.main([__file__, "-v", "-s"])

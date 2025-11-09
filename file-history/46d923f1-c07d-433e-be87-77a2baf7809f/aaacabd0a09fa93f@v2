@@ -1,0 +1,483 @@
+"""
+Capital.com API Integration via CCXT
+
+Supports multiple data providers with automatic fallback:
+- TradingView (if enabled)
+- Yahoo Finance (forex)
+- CCXT/Binance (crypto)
+"""
+
+import ccxt
+import logging
+from typing import Optional, Dict, List
+from datetime import datetime
+import config
+from forex_data_provider import get_forex_provider
+from data_provider_manager import DataProviderManager
+from ccxt_data_provider import create_ccxt_provider
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class CapitalAPI:
+    """
+    Capital.com API wrapper using CCXT library
+    """
+
+    def __init__(self, demo_mode: bool = True, use_tradingview: bool = None):
+        """
+        Initialize Capital.com API connection
+
+        Args:
+            demo_mode: Use demo account (True) or live account (False)
+            use_tradingview: Enable TradingView data provider (default: from config)
+        """
+        self.demo_mode = demo_mode
+        self.exchange = None
+        self.is_geo_blocked = False  # Track if API is geo-blocked
+        self._initialize_exchange()
+
+        # Initialize data provider manager with fallback chain
+        self.use_tradingview = (
+            use_tradingview
+            if use_tradingview is not None
+            else getattr(config, "TRADINGVIEW_ENABLED", False)
+        )
+        self._initialize_provider_manager()
+
+    def _initialize_exchange(self):
+        """Initialize CCXT exchange object"""
+        try:
+            # For backtesting/demo mode, use Binance (free historical data)
+            # For live trading, would use Capital.com (if supported)
+            if self.demo_mode:
+                logger.info("Initializing Binance for historical data (demo mode)")
+                self.exchange = ccxt.binance(
+                    {
+                        "enableRateLimit": True,
+                        "options": {"defaultType": "future"},  # Use futures for forex-like pairs
+                    }
+                )
+            else:
+                # Check if Capital.com credentials are available
+                if "capitalcom" not in ccxt.exchanges:
+                    logger.warning("Capital.com not supported by CCXT")
+                    logger.info("Falling back to Binance for live mode")
+                    self.exchange = ccxt.binance(
+                        {
+                            "apiKey": getattr(config, "CAPITAL_API_KEY", ""),
+                            "secret": getattr(config, "CAPITAL_API_SECRET", ""),
+                            "enableRateLimit": True,
+                        }
+                    )
+                else:
+                    self.exchange = ccxt.capitalcom(
+                        {
+                            "apiKey": config.CAPITAL_API_KEY,
+                            "secret": config.CAPITAL_API_SECRET,
+                            "password": config.CAPITAL_PASSWORD,
+                            "enableRateLimit": True,
+                            "options": {"defaultType": "spot", "demo": self.demo_mode},
+                        }
+                    )
+
+            # Test connection by loading markets (skip if geo-blocked)
+            try:
+                self.exchange.load_markets()
+                logger.info(f"API initialized using {self.exchange.id} (Demo: {self.demo_mode})")
+                logger.info(f"Available markets: {len(self.exchange.markets)}")
+            except Exception as e:
+                error_str = str(e).lower()
+                if (
+                    "451" in str(e)
+                    or "restricted location" in error_str
+                    or "unavailable for legal reasons" in error_str
+                ):
+                    logger.warning(f"{self.exchange.id} API is geo-blocked (HTTP 451)")
+                    logger.info("Continuing without market data (limited functionality)")
+                    logger.debug(f"Full error: {e}")
+                    # Set geo-blocked flag and initialize empty markets dict
+                    self.is_geo_blocked = True
+                    self.exchange.markets = {}
+                else:
+                    raise
+
+        except Exception as e:
+            logger.error(f"Failed to initialize exchange: {e}")
+            logger.error("Verify: 1) CCXT version, 2) Exchange support, 3) Network connection")
+            raise
+
+    def _initialize_provider_manager(self):
+        """
+        Initialize DataProviderManager with Twelve Data as PRIMARY provider.
+
+        Priority order:
+        1. Twelve Data (if API key present) - PRIMARY for ELITE 4-asset portfolio
+
+        NOTE: Other providers (TradingView, Yahoo Finance, CCXT) are DEACTIVATED
+        to ensure we only use Twelve Data for consistent, reliable data.
+        """
+        self.provider_manager = DataProviderManager()
+
+        # Priority 1: Twelve Data (PRIMARY - for EUR/USD, GBP/USD, XAU/USD, USOIL)
+        import os
+        twelvedata_key = os.getenv("TWELVEDATA_API_KEY")
+
+        if twelvedata_key:
+            try:
+                from twelvedata_provider import TwelveDataProvider
+
+                td_provider = TwelveDataProvider(api_key=twelvedata_key)
+                self.provider_manager.register(td_provider)
+                logger.info("✅ Twelve Data provider registered (Priority 1 - PRIMARY)")
+                logger.info(f"   Supports: {', '.join(td_provider.get_available_symbols()[:10])}...")
+            except Exception as e:
+                logger.error(f"Failed to register Twelve Data provider: {e}")
+                logger.error("CRITICAL: No data provider available!")
+                raise
+        else:
+            logger.error("TWELVEDATA_API_KEY not found in environment!")
+            logger.error("Set TWELVEDATA_API_KEY in .env file")
+            raise ValueError("Twelve Data API key required")
+
+        # OTHER PROVIDERS DEACTIVATED (per user request for security)
+        # To re-enable, uncomment the sections below:
+
+        # # Priority 2: TradingView (if enabled)
+        # if self.use_tradingview:
+        #     try:
+        #         from tradingview_data_provider import get_tradingview_provider
+        #         tv_provider = get_tradingview_provider()
+        #         self.provider_manager.register(tv_provider)
+        #         logger.info("✅ TradingView provider registered (Priority 2)")
+        #     except Exception as e:
+        #         logger.warning(f"Failed to register TradingView provider: {e}")
+
+        # # Priority 3: Yahoo Finance (forex)
+        # forex_provider = get_forex_provider()
+        # self.provider_manager.register(forex_provider)
+        # logger.info("✅ Yahoo Finance provider registered (Priority 3)")
+
+        # # Priority 4: CCXT/Binance (crypto)
+        # ccxt_provider = create_ccxt_provider(self.exchange, self._convert_symbol)
+        # self.provider_manager.register(ccxt_provider)
+        # logger.info("✅ CCXT/Binance provider registered (Priority 4)")
+
+        logger.info(
+            f"✅ Data provider manager initialized with {len(self.provider_manager.get_providers())} provider(s)"
+        )
+        logger.info("   Using TWELVE DATA ONLY for consistent, high-quality market data")
+
+    def _check_geo_blocked(self, operation: str) -> bool:
+        """
+        Check if operation should be skipped due to geo-blocking
+
+        Args:
+            operation: Name of operation being attempted
+
+        Returns:
+            True if operation should be skipped, False otherwise
+        """
+        if self.is_geo_blocked:
+            logger.warning(f"Skipping {operation} - API is geo-blocked")
+            return True
+        return False
+
+    def get_balance(self) -> Optional[Dict]:
+        """
+        Get account balance
+
+        Returns:
+            Dictionary with balance information or None if geo-blocked/failed
+        """
+        if self._check_geo_blocked("fetch_balance"):
+            return None
+
+        try:
+            balance = self.exchange.fetch_balance()
+            logger.info(f"Balance fetched: {balance['total']}")
+            return balance
+        except Exception as e:
+            error_str = str(e).lower()
+            if "451" in str(e) or "restricted location" in error_str:
+                self.is_geo_blocked = True
+                logger.warning("API became geo-blocked during fetch_balance")
+            logger.error(f"Failed to fetch balance: {e}")
+            return None
+
+    def get_ohlcv(
+        self,
+        symbol: str,
+        timeframe: str,
+        limit: int = 200,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+    ) -> Optional[List]:
+        """
+        Fetch OHLCV data for a symbol using DataProviderManager with automatic fallback.
+
+        Priority chain (configurable):
+        1. TradingView (if enabled) - most reliable
+        2. Yahoo Finance - good for forex
+        3. CCXT/Binance - good for crypto
+
+        Args:
+            symbol: Trading pair (e.g., 'EUR/USD', 'BTC/USD')
+            timeframe: Timeframe (e.g., '1h', '15m', '4h', '1d')
+            limit: Number of candles to fetch (default: 200)
+            start_date: Optional start date for data fetch
+            end_date: Optional end date for data fetch
+
+        Returns:
+            List of OHLCV data [[timestamp_ms, o, h, l, c, v], ...] or None if all providers failed
+        """
+        return self.provider_manager.fetch_ohlcv(symbol, timeframe, limit, start_date, end_date)
+
+    def _convert_symbol(self, symbol: str) -> str:
+        """
+        Convert symbol to exchange-specific format
+
+        Args:
+            symbol: Standard format (e.g., 'EUR/USD', 'XAU/USD')
+
+        Returns:
+            Exchange-specific format
+        """
+        if self.exchange.id == "binance":
+            # Binance crypto mapping (all pairs trade against USDT on spot)
+            # Note: Traditional forex pairs (EUR/USD, GBP/USD) are not available
+            # on Binance - they only have crypto pairs
+            symbol_map = {
+                "BTC/USD": "BTC/USDT",
+                "ETH/USD": "ETH/USDT",
+                "BNB/USD": "BNB/USDT",
+                "XRP/USD": "XRP/USDT",
+                "ADA/USD": "ADA/USDT",
+                "SOL/USD": "SOL/USDT",
+                "DOGE/USD": "DOGE/USDT",
+                "MATIC/USD": "MATIC/USDT",
+            }
+
+            # Check if symbol exists in map
+            if symbol in symbol_map:
+                return symbol_map[symbol]
+
+            # Try to convert /USD to /USDT for any crypto
+            if symbol.endswith("/USD"):
+                potential_symbol = symbol.replace("/USD", "/USDT")
+                logger.info(f"Converting {symbol} to {potential_symbol} for Binance")
+                return potential_symbol
+
+            return symbol
+
+        return symbol
+
+    def create_market_order(
+        self,
+        symbol: str,
+        side: str,
+        amount: float,
+        stop_loss: Optional[float] = None,
+        take_profit: Optional[float] = None,
+    ) -> Optional[Dict]:
+        """
+        Create a market order with SL/TP
+
+        Args:
+            symbol: Trading pair (e.g., 'EUR/USD')
+            side: 'buy' or 'sell'
+            amount: Position size in base currency
+            stop_loss: Stop-loss price
+            take_profit: Take-profit price
+
+        Returns:
+            Order information or None if geo-blocked/failed
+        """
+        if self._check_geo_blocked("create_market_order"):
+            return None
+
+        try:
+            # Create market order
+            order = self.exchange.create_order(
+                symbol=symbol, type="market", side=side, amount=amount, params={}
+            )
+
+            logger.info(f"Market order created: {side.upper()} {amount} {symbol}")
+
+            # Set Stop-Loss and Take-Profit if provided
+            if stop_loss or take_profit:
+                self._set_sl_tp(order["id"], symbol, stop_loss, take_profit)
+
+            return order
+
+        except Exception as e:
+            error_str = str(e).lower()
+            if "451" in str(e) or "restricted location" in error_str:
+                self.is_geo_blocked = True
+                logger.error("Cannot create order - API is geo-blocked")
+            logger.error(f"Failed to create market order: {e}")
+            return None
+
+    def _set_sl_tp(
+        self,
+        order_id: str,
+        symbol: str,
+        stop_loss: Optional[float] = None,
+        take_profit: Optional[float] = None,
+    ):
+        """
+        Set Stop-Loss and Take-Profit for an order
+
+        NOTE: Capital.com implementation may vary.
+        Test thoroughly in demo mode first.
+
+        Args:
+            order_id: Order ID
+            symbol: Trading pair
+            stop_loss: Stop-loss price
+            take_profit: Take-profit price
+        """
+        sl_success = False
+        tp_success = False
+
+        try:
+            if stop_loss:
+                try:
+                    self.exchange.create_order(
+                        symbol=symbol,
+                        type="stop_loss",
+                        side="sell",  # Opposite of entry
+                        amount=0,  # Linked to position
+                        price=stop_loss,
+                        params={"stopLoss": {"triggerPrice": stop_loss}},
+                    )
+                    logger.info(f"Stop-Loss set at {stop_loss}")
+                    sl_success = True
+                except Exception as e:
+                    logger.error(f"Failed to set Stop-Loss: {e}")
+                    logger.warning("⚠️  MANUAL MONITORING REQUIRED - No Stop-Loss active!")
+
+            if take_profit:
+                try:
+                    self.exchange.create_order(
+                        symbol=symbol,
+                        type="take_profit",
+                        side="sell",  # Opposite of entry
+                        amount=0,  # Linked to position
+                        price=take_profit,
+                        params={"takeProfit": {"triggerPrice": take_profit}},
+                    )
+                    logger.info(f"Take-Profit set at {take_profit}")
+                    tp_success = True
+                except Exception as e:
+                    logger.error(f"Failed to set Take-Profit: {e}")
+                    logger.warning("Take-Profit not set - position must be monitored manually")
+
+            # Critical: If SL failed, this is dangerous - consider canceling the trade
+            if stop_loss and not sl_success:
+                logger.error("CRITICAL: Trading without Stop-Loss is extremely risky!")
+                # TODO: Consider implementing auto-close logic here
+
+        except Exception as e:
+            logger.error(f"Critical error in _set_sl_tp: {e}")
+            raise  # Re-raise to prevent trading without SL/TP
+
+    def get_open_positions(self) -> Optional[List[Dict]]:
+        """
+        Get all open positions
+
+        Returns:
+            List of open positions or None if failed
+        """
+        try:
+            positions = self.exchange.fetch_positions()
+            open_positions = [p for p in positions if p["contracts"] > 0]
+            logger.info(f"Open positions: {len(open_positions)}")
+            return open_positions
+        except Exception as e:
+            logger.error(f"Failed to fetch positions: {e}")
+            return None
+
+    def close_position(self, symbol: str) -> Optional[Dict]:
+        """
+        Close an open position
+
+        Args:
+            symbol: Trading pair (e.g., 'EUR/USD')
+
+        Returns:
+            Close order information or None if failed
+        """
+        try:
+            # Get position info
+            positions = self.get_open_positions()
+            if not positions:
+                logger.warning(f"No open positions found for {symbol}")
+                return None
+
+            position = next((p for p in positions if p["symbol"] == symbol), None)
+            if not position:
+                logger.warning(f"Position not found for {symbol}")
+                return None
+
+            # Close position (opposite side)
+            side = "sell" if position["side"] == "long" else "buy"
+            amount = abs(position["contracts"])
+
+            close_order = self.exchange.create_order(
+                symbol=symbol, type="market", side=side, amount=amount
+            )
+
+            logger.info(f"Position closed: {symbol}")
+            return close_order
+
+        except Exception as e:
+            logger.error(f"Failed to close position {symbol}: {e}")
+            return None
+
+    def close_all_positions(self) -> int:
+        """
+        Close all open positions (for EOD force close)
+
+        Returns:
+            Number of positions closed
+        """
+        try:
+            positions = self.get_open_positions()
+            if not positions:
+                logger.info("No open positions to close")
+                return 0
+
+            closed_count = 0
+            for position in positions:
+                result = self.close_position(position["symbol"])
+                if result:
+                    closed_count += 1
+
+            logger.info(f"Closed {closed_count}/{len(positions)} positions")
+            return closed_count
+
+        except Exception as e:
+            logger.error(f"Failed to close all positions: {e}")
+            return 0
+
+
+# Singleton instance
+_api_instance = None
+
+
+def get_api(demo_mode: bool = config.DEMO_MODE) -> CapitalAPI:
+    """
+    Get or create Capital.com API instance (Singleton)
+
+    Args:
+        demo_mode: Use demo account
+
+    Returns:
+        CapitalAPI instance
+    """
+    global _api_instance
+    if _api_instance is None:
+        _api_instance = CapitalAPI(demo_mode=demo_mode)
+    return _api_instance

@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+"""
+ZEREZ Field Coverage Analyzer
+Analyzes what percentage of units have technical specifications populated
+"""
+
+import requests
+import json
+import sys
+
+ZEREZ_ENDPOINT = 'https://app-zerez-weeu-gatewaysvc-prod-01.azurewebsites.net/graphql/'
+
+# Fields to analyze
+CRITICAL_FIELDS = [
+    'manufacturerName',
+    'primaryEnergySource',
+    'category',
+    'maxActivePower',
+    'ratedActivePower',
+    'maxApparentPower',
+    'ratedApparentPower',
+    'ratedVoltage',
+    'ratedCurrent',
+    'shortCircuitPeakCurrent',
+    'initialShortCircuitAlternatingCurrent'
+]
+
+def fetch_sample_units(power_min=50, power_max=200, sample_size=20):
+    """Fetch a sample of units for analysis"""
+    query = """
+    query GetUnitsForUnitsOverview($skip: Int, $take: Int, $where: UnitOverviewFilterInput) {
+      unitOverview(skip: $skip, take: $take, where: $where) {
+        totalCount
+        items {
+          id
+          modelName
+          manufacturerName
+          primaryEnergySource
+          category
+        }
+      }
+    }
+    """
+
+    response = requests.post(
+        ZEREZ_ENDPOINT,
+        json={
+            'query': query,
+            'variables': {
+                'skip': 0,
+                'take': sample_size,
+                'where': {
+                    'maxActivePower': {'gte': power_min, 'lte': power_max}
+                }
+            }
+        },
+        timeout=15
+    )
+
+    data = response.json()
+    return data.get('data', {}).get('unitOverview', {}).get('items', [])
+
+def fetch_detailed_unit(unit_id):
+    """Fetch detailed technical specifications for a single unit"""
+    query = """
+    query GetDetailedUnit($id: UUID!) {
+      unit(id: $id) {
+        id
+        modelName
+        maxActivePower
+        ratedActivePower
+        maxApparentPower
+        ratedApparentPower
+        ratedVoltage
+        ratedCurrent
+        shortCircuitPeakCurrent
+        initialShortCircuitAlternatingCurrent
+      }
+    }
+    """
+
+    response = requests.post(
+        ZEREZ_ENDPOINT,
+        json={
+            'operationName': 'GetDetailedUnit',
+            'variables': {'id': unit_id},
+            'query': query
+        },
+        timeout=10
+    )
+
+    data = response.json()
+    return data.get('data', {}).get('unit')
+
+def analyze_coverage(basic_units):
+    """Analyze field coverage across sample units"""
+    print(f'\n{"="*70}')
+    print(f'  ZEREZ Field Coverage Analysis')
+    print(f'{"="*70}\n')
+    print(f'Sample size: {len(basic_units)} units')
+    print(f'Power range: 50-200 kW\n')
+
+    # Fetch detailed data for all units
+    print('Fetching detailed specifications...')
+    detailed_units = []
+    for i, unit in enumerate(basic_units, 1):
+        sys.stdout.write(f'\r  Progress: {i}/{len(basic_units)}')
+        sys.stdout.flush()
+        detailed = fetch_detailed_unit(unit['id'])
+        if detailed:
+            # Merge basic and detailed data (simulating our enrichment logic)
+            enriched = {**unit, **detailed}
+            detailed_units.append(enriched)
+
+    print(f'\n\nSuccessfully enriched: {len(detailed_units)}/{len(basic_units)} units\n')
+
+    if not detailed_units:
+        print('ERROR: No units could be enriched')
+        return
+
+    # Calculate coverage for each field
+    field_coverage = {}
+    for field in CRITICAL_FIELDS:
+        count = sum(1 for unit in detailed_units if unit.get(field) is not None)
+        percentage = (count / len(detailed_units) * 100)
+        field_coverage[field] = {
+            'count': count,
+            'total': len(detailed_units),
+            'percentage': percentage
+        }
+
+    # Print results
+    print(f'{"Field":<45} {"Populated":<15} {"Percentage":<10}')
+    print(f'{"-"*70}')
+
+    for field in CRITICAL_FIELDS:
+        cov = field_coverage[field]
+        bar_length = int(cov['percentage'] / 2)  # 50 chars = 100%
+        bar = '█' * bar_length + '░' * (50 - bar_length)
+
+        print(f'{field:<45} {cov["count"]:>3}/{cov["total"]:<8} {cov["percentage"]:>5.1f}%  {bar}')
+
+    # Show examples of units with complete vs incomplete data
+    complete_units = [u for u in detailed_units if all(u.get(f) is not None for f in CRITICAL_FIELDS)]
+    incomplete_units = [u for u in detailed_units if any(u.get(f) is None for f in CRITICAL_FIELDS)]
+
+    print(f'\n{"="*70}')
+    print(f'  Summary')
+    print(f'{"="*70}\n')
+    print(f'Units with ALL fields populated: {len(complete_units)}/{len(detailed_units)} ({len(complete_units)/len(detailed_units)*100:.1f}%)')
+    print(f'Units with SOME missing fields:  {len(incomplete_units)}/{len(detailed_units)} ({len(incomplete_units)/len(detailed_units)*100:.1f}%)')
+
+    if complete_units:
+        print(f'\n✓ Example of COMPLETE unit:')
+        unit = complete_units[0]
+        print(f'  Model: {unit.get("modelName")}')
+        print(f'  Manufacturer: {unit.get("manufacturerName")}')
+        print(f'  ID: {unit.get("id")}')
+
+    if incomplete_units:
+        print(f'\n✗ Example of INCOMPLETE unit:')
+        unit = incomplete_units[0]
+        print(f'  Model: {unit.get("modelName")}')
+        print(f'  Manufacturer: {unit.get("manufacturerName")}')
+        print(f'  ID: {unit.get("id")}')
+        print(f'  Missing fields:')
+        for field in CRITICAL_FIELDS:
+            if unit.get(field) is None:
+                print(f'    - {field}')
+
+if __name__ == '__main__':
+    try:
+        units = fetch_sample_units(power_min=50, power_max=200, sample_size=20)
+
+        if not units:
+            print('ERROR: No units found in power range 50-200 kW')
+            sys.exit(1)
+
+        analyze_coverage(units)
+
+    except Exception as e:
+        print(f'\nERROR: {e}')
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

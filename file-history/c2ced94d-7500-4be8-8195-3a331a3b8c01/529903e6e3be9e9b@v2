@@ -1,0 +1,165 @@
+"""MACD Crossover Momentum Strategy"""
+
+from typing import Dict, Tuple
+import pandas as pd
+from .base_strategy import BaseStrategy, SignalDirection
+
+
+class MACDCrossoverStrategy(BaseStrategy):
+    """
+    MACD Crossover Strategy - MACD line crosses signal line
+
+    Entry Conditions:
+    - LONG: MACD crosses above signal line + MACD histogram turning positive
+    - SHORT: MACD crosses below signal line + MACD histogram turning negative
+
+    Scoring (100 points max):
+    - Cross Signal: 35 points
+    - Histogram Momentum: 25 points
+    - Zero Line Position: 15 points
+    - Divergence: 15 points
+    - Trend Alignment: 10 points
+    """
+
+    def __init__(self):
+        super().__init__(
+            name="MACD Crossover",
+            max_score=100,
+            min_score=55
+        )
+
+    def calculate_score(self, indicators: Dict, ohlcv: pd.DataFrame) -> Tuple[float, Dict]:
+        """Calculate MACD crossover strategy score"""
+        score = 0
+        breakdown = {}
+
+        macd_dict = indicators.get('macd', {})
+        close_prices = ohlcv['close'].values
+
+        if 'macd' not in macd_dict or 'signal' not in macd_dict:
+            return 0, breakdown
+
+        macd_line = macd_dict['macd']
+        signal_line = macd_dict['signal']
+
+        if len(macd_line) < 3 or len(signal_line) < 3:
+            return 0, breakdown
+
+        # Calculate histogram
+        histogram = [macd_line[i] - signal_line[i] for i in range(len(macd_line))]
+
+        # 1. Cross Signal (35 points)
+        current_diff = histogram[-1]
+        prev_diff = histogram[-2]
+        prev2_diff = histogram[-3]
+
+        cross_score = 0
+        if (current_diff > 0 and prev_diff <= 0):  # Bullish cross
+            cross_score = 35
+        elif (current_diff < 0 and prev_diff >= 0):  # Bearish cross
+            cross_score = 35
+        elif (current_diff > 0 and prev2_diff <= 0):  # Recent cross
+            cross_score = 25
+        elif (current_diff < 0 and prev2_diff >= 0):
+            cross_score = 25
+        elif abs(current_diff) < 0.0001:  # Very close to cross
+            cross_score = 15
+
+        score += cross_score
+        breakdown['cross_signal'] = cross_score
+
+        # 2. Histogram Momentum (25 points)
+        if len(histogram) >= 5:
+            # Check if histogram is expanding
+            hist_change = histogram[-1] - histogram[-2]
+            hist_momentum = histogram[-1] - histogram[-5]
+
+            if abs(hist_change) > 0 and abs(hist_momentum) > 0:
+                # Both moving in same direction (strengthening)
+                if (hist_change > 0 and hist_momentum > 0) or (hist_change < 0 and hist_momentum < 0):
+                    score += 25
+                    breakdown['histogram_momentum'] = 25
+                else:
+                    score += 12
+                    breakdown['histogram_momentum'] = 12
+            else:
+                breakdown['histogram_momentum'] = 0
+        else:
+            breakdown['histogram_momentum'] = 0
+
+        # 3. Zero Line Position (15 points)
+        if macd_line[-1] > 0 and histogram[-1] > 0:
+            # Above zero line and bullish = strong uptrend
+            score += 15
+            breakdown['zero_line'] = 15
+        elif macd_line[-1] < 0 and histogram[-1] < 0:
+            # Below zero line and bearish = strong downtrend
+            score += 15
+            breakdown['zero_line'] = 15
+        elif abs(macd_line[-1]) < 0.0005:
+            # Near zero line (potential trend change)
+            score += 8
+            breakdown['zero_line'] = 8
+        else:
+            breakdown['zero_line'] = 0
+
+        # 4. Divergence (15 points)
+        if len(macd_line) >= 20 and len(close_prices) >= 20:
+            price_change = close_prices[-1] - close_prices[-20]
+            macd_change = macd_line[-1] - macd_line[-20]
+
+            # Bullish divergence: price down, MACD up
+            if price_change < 0 and macd_change > 0:
+                score += 15
+                breakdown['divergence'] = 15
+            # Bearish divergence: price up, MACD down
+            elif price_change > 0 and macd_change < 0:
+                score += 15
+                breakdown['divergence'] = 15
+            else:
+                breakdown['divergence'] = 0
+        else:
+            breakdown['divergence'] = 0
+
+        # 5. Trend Alignment (10 points)
+        if 'ema' in indicators and 'ema_55' in indicators['ema']:
+            ema_55 = indicators['ema']['ema_55'][-1]
+            current_price = close_prices[-1]
+
+            # MACD direction aligns with EMA trend
+            if (current_price > ema_55 and histogram[-1] > 0) or \
+               (current_price < ema_55 and histogram[-1] < 0):
+                score += 10
+                breakdown['trend_alignment'] = 10
+            else:
+                breakdown['trend_alignment'] = 0
+        else:
+            breakdown['trend_alignment'] = 0
+
+        return score, breakdown
+
+    def determine_direction(self, indicators: Dict, ohlcv: pd.DataFrame, score: float) -> SignalDirection:
+        """Determine trade direction based on MACD crossover"""
+        macd_dict = indicators.get('macd', {})
+
+        if 'macd' not in macd_dict or 'signal' not in macd_dict:
+            return SignalDirection.NEUTRAL
+
+        macd_line = macd_dict['macd']
+        signal_line = macd_dict['signal']
+
+        if len(macd_line) < 2 or len(signal_line) < 2:
+            return SignalDirection.NEUTRAL
+
+        current_hist = macd_line[-1] - signal_line[-1]
+        prev_hist = macd_line[-2] - signal_line[-2]
+
+        # LONG: MACD crosses above signal
+        if current_hist > 0 and (prev_hist <= 0 or current_hist > prev_hist):
+            return SignalDirection.LONG
+
+        # SHORT: MACD crosses below signal
+        elif current_hist < 0 and (prev_hist >= 0 or current_hist < prev_hist):
+            return SignalDirection.SHORT
+
+        return SignalDirection.NEUTRAL

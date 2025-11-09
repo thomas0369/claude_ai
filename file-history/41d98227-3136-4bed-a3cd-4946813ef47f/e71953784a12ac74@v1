@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+"""
+Fetch unique certificate authorities from ZEREZ by analyzing actual units.
+Returns only tenants that are actually used as certificateAuthorityId.
+
+This differs from zerez_list_tenants.py which returns ALL tenants (8,000+),
+including manufacturers that should not appear in certificate authority filters.
+
+Strategy:
+1. Fetch sample of units using unitOverview query
+2. Extract unique certificateAuthorityId values
+3. Resolve IDs to names using tenant() query
+4. Return sorted list of {id, name} objects
+
+Performance: ~5-10 seconds (fetches 10,000 units + resolves ~50 authority IDs)
+"""
+
+import json
+import sys
+import logging
+import requests
+from typing import List, Dict, Set
+
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+
+ZEREZ_ENDPOINT = "https://app-zerez-weeu-gatewaysvc-prod-01.azurewebsites.net/graphql/"
+
+HEADERS = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+}
+
+# Query to fetch units and extract certificate authority IDs
+UNIT_OVERVIEW_QUERY = """
+query GetUnitOverview($skip: Int, $take: Int) {
+  unitOverview(skip: $skip, take: $take) {
+    totalCount
+    items {
+      certificateAuthorityId
+    }
+  }
+}
+"""
+
+# Query to resolve tenant ID to name
+TENANT_QUERY = """
+query GetTenant($id: UUID!) {
+  tenant(id: $id) {
+    id
+    tenantName
+  }
+}
+"""
+
+
+def fetch_unique_authority_ids(sample_size: int = 10000) -> Set[str]:
+    """
+    Fetch a sample of units and extract unique certificate authority IDs.
+
+    Args:
+        sample_size: Number of units to sample (default: 10,000)
+
+    Returns:
+        Set of unique certificate authority UUIDs
+    """
+    authority_ids: Set[str] = set()
+    skip = 0
+    take = 1000
+    fetched = 0
+
+    while fetched < sample_size:
+        payload = {
+            "operationName": "GetUnitOverview",
+            "query": UNIT_OVERVIEW_QUERY,
+            "variables": {
+                "skip": skip,
+                "take": min(take, sample_size - fetched)
+            }
+        }
+
+        try:
+            response = requests.post(ZEREZ_ENDPOINT, json=payload, headers=HEADERS, timeout=30)
+
+            if response.status_code != 200:
+                raise Exception(f"API returned {response.status_code}")
+
+            data = response.json()
+
+            if 'errors' in data:
+                raise Exception(f"GraphQL errors: {data['errors']}")
+
+            overview = data.get('data', {}).get('unitOverview', {})
+            items = overview.get('items', [])
+
+            if not items:
+                break
+
+            # Extract certificate authority IDs
+            for item in items:
+                auth_id = item.get('certificateAuthorityId')
+                if auth_id:  # Only add non-null IDs
+                    authority_ids.add(auth_id)
+
+            fetched += len(items)
+            skip += len(items)
+
+        except requests.exceptions.Timeout:
+            logger.error("Request timed out after 30 seconds")
+            sys.exit(1)
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Network error: {e}")
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"Error fetching units: {e}")
+            sys.exit(1)
+
+    return authority_ids
+
+
+def resolve_tenant_names(tenant_ids: Set[str]) -> List[Dict[str, str]]:
+    """
+    Resolve tenant IDs to names using tenant() query.
+
+    Args:
+        tenant_ids: Set of tenant UUIDs
+
+    Returns:
+        List of {id, name} dictionaries
+    """
+    authorities = []
+
+    for tenant_id in tenant_ids:
+        payload = {
+            "operationName": "GetTenant",
+            "query": TENANT_QUERY,
+            "variables": {"id": tenant_id}
+        }
+
+        try:
+            response = requests.post(ZEREZ_ENDPOINT, json=payload, headers=HEADERS, timeout=10)
+
+            if response.status_code != 200:
+                logger.warning(f"Failed to resolve {tenant_id}: HTTP {response.status_code}")
+                continue
+
+            data = response.json()
+
+            if 'errors' in data:
+                logger.warning(f"Failed to resolve {tenant_id}: GraphQL errors")
+                continue
+
+            tenant = data.get('data', {}).get('tenant')
+            if tenant and tenant.get('id') and tenant.get('tenantName'):
+                authorities.append({
+                    "id": tenant['id'],
+                    "name": tenant['tenantName']
+                })
+
+        except requests.exceptions.Timeout:
+            logger.warning(f"Timeout resolving {tenant_id}")
+            continue
+        except Exception as e:
+            logger.warning(f"Error resolving {tenant_id}: {e}")
+            continue
+
+    return authorities
+
+
+def main():
+    """Main entry point."""
+    try:
+        # Step 1: Fetch unique certificate authority IDs from units
+        authority_ids = fetch_unique_authority_ids(sample_size=10000)
+
+        if not authority_ids:
+            # Fallback to empty list if no authorities found
+            print(json.dumps([]))
+            return
+
+        # Step 2: Resolve IDs to names
+        authorities = resolve_tenant_names(authority_ids)
+
+        # Step 3: Sort by name for better UX
+        authorities.sort(key=lambda x: x['name'].lower())
+
+        # Step 4: Output JSON for Node.js to parse
+        print(json.dumps(authorities))
+
+    except Exception as e:
+        sys.stderr.write(f"Error: {e}\n")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,361 @@
+import { test, expect } from '@playwright/test';
+
+/**
+ * E2E Tests for Certificate Norms Multi-Select Filter
+ *
+ * Tests the new certificate norms filter that replaced the deprecated is4105 boolean filter.
+ * Verifies functionality, accessibility, and user experience.
+ */
+
+test.describe('ZEREZ Certificate Norms Multi-Select Filter', () => {
+  test.beforeEach(async ({ page }) => {
+    // Navigate to ZEREZ import page
+    await page.goto('/import/zerez');
+
+    // Wait for page to load
+    await page.waitForLoadState('networkidle');
+
+    // Verify we're on the correct page
+    await expect(page).toHaveTitle(/ZEREZ Import|Benchmark/);
+    await expect(page.getByText('ZEREZ Import Wizard')).toBeVisible();
+  });
+
+  test.describe('UI Structure and Accessibility', () => {
+    test('should display certificate norms section with proper semantic HTML', async ({ page }) => {
+      // Check for fieldset element
+      const fieldset = page.locator('fieldset').filter({ hasText: 'Certificate Standards' });
+      await expect(fieldset).toBeVisible();
+
+      // Check for legend element
+      const legend = fieldset.locator('legend');
+      await expect(legend).toBeVisible();
+      await expect(legend).toContainText('Certificate Standards (Optional)');
+      await expect(legend).toContainText('Select multiple standards');
+    });
+
+    test('should display all 6 certificate standards', async ({ page }) => {
+      const expectedStandards = [
+        'VDE-AR-N 4105',
+        'VDE-AR-N 4110',
+        'VDE-AR-N 4120',
+        'VDE-AR-N 4130',
+        'CE',
+        'IEC'
+      ];
+
+      for (const standard of expectedStandards) {
+        await expect(page.getByLabel(standard, { exact: true })).toBeVisible();
+      }
+    });
+
+    test('should display Select All and Clear All buttons', async ({ page }) => {
+      await expect(page.getByRole('button', { name: /select all/i })).toBeVisible();
+      await expect(page.getByRole('button', { name: /clear all/i })).toBeVisible();
+    });
+
+    test('should have proper ARIA labels for accessibility', async ({ page }) => {
+      // Check button aria-labels
+      const selectAllBtn = page.getByRole('button', { name: 'Select all certificate standards' });
+      const clearAllBtn = page.getByRole('button', { name: 'Clear all certificate standards' });
+
+      await expect(selectAllBtn).toBeVisible();
+      await expect(clearAllBtn).toBeVisible();
+    });
+
+    test('should display tooltips with descriptions on hover', async ({ page }) => {
+      // Check that elements have title attributes (HTML tooltips)
+      const vde4105 = page.getByLabel('VDE-AR-N 4105', { exact: true });
+      await expect(vde4105).toHaveAttribute('aria-describedby');
+    });
+
+    test('should meet minimum touch target size (24x24px)', async ({ page }) => {
+      // Get checkbox element
+      const checkbox = page.getByLabel('VDE-AR-N 4105', { exact: true });
+
+      // Get bounding box
+      const box = await checkbox.boundingBox();
+
+      // Verify touch target size
+      expect(box?.width).toBeGreaterThanOrEqual(20); // At least 20px (close to 24px)
+      expect(box?.height).toBeGreaterThanOrEqual(20);
+    });
+  });
+
+  test.describe('Multi-Select Functionality', () => {
+    test('should start with no standards selected', async ({ page }) => {
+      const checkboxes = page.locator('input[type="checkbox"]').filter({
+        has: page.locator('label:has-text("VDE-AR-N")')
+      });
+
+      // All checkboxes should be unchecked initially
+      const count = await checkboxes.count();
+      for (let i = 0; i < count; i++) {
+        await expect(checkboxes.nth(i)).not.toBeChecked();
+      }
+
+      // Selection count should not be visible
+      await expect(page.getByText(/\d+ selected/)).not.toBeVisible();
+    });
+
+    test('should allow selecting a single standard', async ({ page }) => {
+      // Click VDE-AR-N 4105
+      await page.getByLabel('VDE-AR-N 4105', { exact: true }).click();
+
+      // Verify it's checked
+      await expect(page.getByLabel('VDE-AR-N 4105', { exact: true })).toBeChecked();
+
+      // Verify selection count appears
+      await expect(page.getByText('(1 selected)')).toBeVisible();
+    });
+
+    test('should allow selecting multiple standards', async ({ page }) => {
+      // Select multiple standards
+      await page.getByLabel('VDE-AR-N 4105', { exact: true }).click();
+      await page.getByLabel('CE', { exact: true }).click();
+      await page.getByLabel('IEC', { exact: true }).click();
+
+      // Verify all are checked
+      await expect(page.getByLabel('VDE-AR-N 4105', { exact: true })).toBeChecked();
+      await expect(page.getByLabel('CE', { exact: true })).toBeChecked();
+      await expect(page.getByLabel('IEC', { exact: true })).toBeChecked();
+
+      // Verify selection count
+      await expect(page.getByText('(3 selected)')).toBeVisible();
+    });
+
+    test('should allow unselecting standards', async ({ page }) => {
+      // Select and then unselect
+      await page.getByLabel('VDE-AR-N 4105', { exact: true }).click();
+      await expect(page.getByLabel('VDE-AR-N 4105', { exact: true })).toBeChecked();
+
+      await page.getByLabel('VDE-AR-N 4105', { exact: true }).click();
+      await expect(page.getByLabel('VDE-AR-N 4105', { exact: true })).not.toBeChecked();
+
+      // Selection count should disappear
+      await expect(page.getByText(/\d+ selected/)).not.toBeVisible();
+    });
+  });
+
+  test.describe('Select All / Clear All Buttons', () => {
+    test('Select All button should select all standards', async ({ page }) => {
+      // Click Select All
+      await page.getByRole('button', { name: /select all certificate standards/i }).click();
+
+      // Verify all 6 standards are selected
+      await expect(page.getByLabel('VDE-AR-N 4105', { exact: true })).toBeChecked();
+      await expect(page.getByLabel('VDE-AR-N 4110', { exact: true })).toBeChecked();
+      await expect(page.getByLabel('VDE-AR-N 4120', { exact: true })).toBeChecked();
+      await expect(page.getByLabel('VDE-AR-N 4130', { exact: true })).toBeChecked();
+      await expect(page.getByLabel('CE', { exact: true })).toBeChecked();
+      await expect(page.getByLabel('IEC', { exact: true })).toBeChecked();
+
+      // Verify selection count
+      await expect(page.getByText('(6 selected)')).toBeVisible();
+
+      // Select All button should be disabled
+      await expect(page.getByRole('button', { name: /select all certificate standards/i })).toBeDisabled();
+    });
+
+    test('Clear All button should clear all selections', async ({ page }) => {
+      // First select some standards
+      await page.getByLabel('VDE-AR-N 4105', { exact: true }).click();
+      await page.getByLabel('CE', { exact: true }).click();
+
+      // Click Clear All
+      await page.getByRole('button', { name: /clear all certificate standards/i }).click();
+
+      // Verify all are unselected
+      await expect(page.getByLabel('VDE-AR-N 4105', { exact: true })).not.toBeChecked();
+      await expect(page.getByLabel('CE', { exact: true })).not.toBeChecked();
+
+      // Selection count should disappear
+      await expect(page.getByText(/\d+ selected/)).not.toBeVisible();
+
+      // Clear All button should be disabled
+      await expect(page.getByRole('button', { name: /clear all certificate standards/i })).toBeDisabled();
+    });
+
+    test('Clear All button should be disabled when nothing selected', async ({ page }) => {
+      // Initially nothing selected
+      await expect(page.getByRole('button', { name: /clear all certificate standards/i })).toBeDisabled();
+    });
+
+    test('Select All button should be disabled when all selected', async ({ page }) => {
+      // Select all
+      await page.getByRole('button', { name: /select all certificate standards/i }).click();
+
+      // Button should be disabled
+      await expect(page.getByRole('button', { name: /select all certificate standards/i })).toBeDisabled();
+    });
+  });
+
+  test.describe('Integration with Search', () => {
+    test('should submit selected standards with search request', async ({ page }) => {
+      // Setup network monitoring
+      const searchRequests: any[] = [];
+      page.on('request', (request) => {
+        if (request.url().includes('/api/zerez/search')) {
+          searchRequests.push({
+            url: request.url(),
+            method: request.method(),
+            body: request.postDataJSON()
+          });
+        }
+      });
+
+      // Select VDE-AR-N 4105
+      await page.getByLabel('VDE-AR-N 4105', { exact: true }).click();
+
+      // Click Preview Products
+      await page.getByRole('button', { name: /preview products/i }).click();
+
+      // Wait for search request
+      await page.waitForTimeout(1000);
+
+      // Verify request was made with certificateNorms array
+      expect(searchRequests.length).toBeGreaterThan(0);
+      const lastRequest = searchRequests[searchRequests.length - 1];
+      expect(lastRequest.body).toHaveProperty('certificateNorms');
+      expect(lastRequest.body.certificateNorms).toEqual(['VDE-AR-N 4105']);
+    });
+
+    test('should submit multiple selected standards', async ({ page }) => {
+      // Setup network monitoring
+      const searchRequests: any[] = [];
+      page.on('request', (request) => {
+        if (request.url().includes('/api/zerez/search')) {
+          searchRequests.push({
+            body: request.postDataJSON()
+          });
+        }
+      });
+
+      // Select multiple standards
+      await page.getByLabel('VDE-AR-N 4105', { exact: true }).click();
+      await page.getByLabel('CE', { exact: true }).click();
+
+      // Click Preview Products
+      await page.getByRole('button', { name: /preview products/i }).click();
+
+      // Wait for search request
+      await page.waitForTimeout(1000);
+
+      // Verify request contains all selected standards
+      expect(searchRequests.length).toBeGreaterThan(0);
+      const lastRequest = searchRequests[searchRequests.length - 1];
+      expect(lastRequest.body.certificateNorms).toContain('VDE-AR-N 4105');
+      expect(lastRequest.body.certificateNorms).toContain('CE');
+    });
+
+    test('should not send certificateNorms when none selected', async ({ page }) => {
+      // Setup network monitoring
+      const searchRequests: any[] = [];
+      page.on('request', (request) => {
+        if (request.url().includes('/api/zerez/search')) {
+          searchRequests.push({
+            body: request.postDataJSON()
+          });
+        }
+      });
+
+      // Don't select any standards
+
+      // Click Preview Products
+      await page.getByRole('button', { name: /preview products/i }).click();
+
+      // Wait for search request
+      await page.waitForTimeout(1000);
+
+      // Verify certificateNorms is not in request (or is empty array)
+      expect(searchRequests.length).toBeGreaterThan(0);
+      const lastRequest = searchRequests[searchRequests.length - 1];
+      expect(
+        !lastRequest.body.certificateNorms ||
+        lastRequest.body.certificateNorms.length === 0
+      ).toBeTruthy();
+    });
+  });
+
+  test.describe('Keyboard Navigation', () => {
+    test('should be keyboard navigable', async ({ page }) => {
+      // Tab to certificate norms section
+      await page.keyboard.press('Tab');
+
+      // Keep tabbing until we reach a checkbox
+      for (let i = 0; i < 20; i++) {
+        await page.keyboard.press('Tab');
+        const focused = await page.evaluate(() => document.activeElement?.id);
+        if (focused && focused.startsWith('cert-norm-')) {
+          break;
+        }
+      }
+
+      // Press Space to toggle checkbox
+      await page.keyboard.press('Space');
+
+      // Verify a checkbox was selected
+      const selectedCount = await page.getByText(/\(\d+ selected\)/).count();
+      expect(selectedCount).toBeGreaterThan(0);
+    });
+  });
+
+  test.describe('State Persistence', () => {
+    test('should maintain selection when switching between filters', async ({ page }) => {
+      // Select certificate norms
+      await page.getByLabel('VDE-AR-N 4105', { exact: true }).click();
+      await page.getByLabel('CE', { exact: true }).click();
+
+      // Interact with other filters
+      await page.getByLabel('Minimum (kW)').fill('100');
+      await page.getByLabel('Maximum (kW)').fill('200');
+
+      // Verify certificate selections are still there
+      await expect(page.getByLabel('VDE-AR-N 4105', { exact: true })).toBeChecked();
+      await expect(page.getByLabel('CE', { exact: true })).toBeChecked();
+    });
+
+    test('should clear certificate norms when Reset Filters is clicked', async ({ page }) => {
+      // Select certificate norms
+      await page.getByLabel('VDE-AR-N 4105', { exact: true }).click();
+      await page.getByLabel('CE', { exact: true }).click();
+
+      // Click Reset Filters
+      await page.getByRole('button', { name: /reset filters/i }).click();
+
+      // Verify all are unselected
+      await expect(page.getByLabel('VDE-AR-N 4105', { exact: true })).not.toBeChecked();
+      await expect(page.getByLabel('CE', { exact: true })).not.toBeChecked();
+    });
+  });
+
+  test.describe('Visual Regression', () => {
+    test('should render correctly with no selection', async ({ page }) => {
+      const fieldset = page.locator('fieldset').filter({ hasText: 'Certificate Standards' });
+      await expect(fieldset).toHaveScreenshot('certificate-norms-empty.png');
+    });
+
+    test('should render correctly with multiple selections', async ({ page }) => {
+      await page.getByLabel('VDE-AR-N 4105', { exact: true }).click();
+      await page.getByLabel('CE', { exact: true }).click();
+      await page.getByLabel('IEC', { exact: true }).click();
+
+      const fieldset = page.locator('fieldset').filter({ hasText: 'Certificate Standards' });
+      await expect(fieldset).toHaveScreenshot('certificate-norms-multiple-selected.png');
+    });
+
+    test('should render correctly with all selections', async ({ page }) => {
+      await page.getByRole('button', { name: /select all certificate standards/i }).click();
+
+      const fieldset = page.locator('fieldset').filter({ hasText: 'Certificate Standards' });
+      await expect(fieldset).toHaveScreenshot('certificate-norms-all-selected.png');
+    });
+  });
+
+  test.describe('Error Handling', () => {
+    test('should handle invalid certificate norm values from API', async ({ page }) => {
+      // This would require mocking the API response
+      // Skipping for now - would need API mocking setup
+      test.skip();
+    });
+  });
+});

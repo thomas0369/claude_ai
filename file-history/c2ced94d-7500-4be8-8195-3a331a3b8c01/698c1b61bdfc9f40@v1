@@ -1,0 +1,168 @@
+"""
+Elliott Wave Trading Bot - Setup Configuration
+
+This setup.py makes the src/ directory a proper Python package,
+enabling standard imports without sys.path manipulation.
+
+Key Features:
+- Auto-discovery of all Python modules in src/ directory
+- Eliminates manual maintenance of module lists
+- Prevents silent failures when new modules are added
+- Enables editable installs: pip install -e .[dev]
+
+Package Structure:
+- src/ contains individual Python modules (not packages)
+- Uses py_modules instead of packages for flat module structure
+- Auto-discovery function scans src/ for all .py files (excluding __init__.py)
+
+Usage:
+    # Development installation (editable mode)
+    pip install -e .[dev]
+
+    # Production installation
+    pip install .
+
+    # With specific extras
+    pip install -e .[security]
+"""
+from setuptools import setup
+from pathlib import Path
+
+
+# Explicit module list for editable installs
+# NOTE: Editable installs with py_modules require explicit listing
+# Auto-discovery doesn't work reliably with pip's PEP 517 build system
+PY_MODULES = [
+    "indicators",
+    "config",
+    "constants",
+    "screener",
+    "capital_api",
+    "chart_generator",
+    "memory_bank",
+    "memory_integration",
+    "file_utils",
+    "tradingview_integration",
+    "tracked_trading_journal",
+    "backtest_base",
+    "data_provider_manager",
+    "data_provider_validation",
+    "data_validator",
+    "elliott_ict_osok_strategy",
+    "fibonacci_price_action",
+    "forex_data_provider",
+    "ict_components",
+    "rate_limiter",
+    "sample_forex_data",
+    "tradingview_data_provider",
+    "yfinance_data_provider",
+]
+
+
+def validate_py_modules():
+    """
+    Validate that all .py files in src/ are listed in PY_MODULES.
+
+    This prevents silent failures when new modules are added but not
+    listed in PY_MODULES.
+
+    Raises:
+        ValueError: If modules are missing from PY_MODULES list
+    """
+    src_dir = Path(__file__).parent / "src"
+
+    if not src_dir.exists():
+        raise ValueError(f"src/ directory not found at {src_dir}")
+
+    # Find all .py files (excluding __init__.py)
+    actual_modules = {
+        f.stem
+        for f in src_dir.glob("*.py")
+        if not f.name.startswith("__")
+    }
+
+    listed_modules = set(PY_MODULES)
+
+    # Check for missing modules
+    missing = actual_modules - listed_modules
+    if missing:
+        raise ValueError(
+            f"Modules found in src/ but not listed in setup.py PY_MODULES:\n"
+            f"  {sorted(missing)}\n"
+            f"Add them to the PY_MODULES list in setup.py"
+        )
+
+    # Check for extra modules (listed but don't exist)
+    extra = listed_modules - actual_modules
+    if extra:
+        raise ValueError(
+            f"Modules listed in PY_MODULES but not found in src/:\n"
+            f"  {sorted(extra)}\n"
+            f"Remove them from PY_MODULES list or add the files to src/"
+        )
+
+    return PY_MODULES
+
+
+# Validate on setup
+validate_py_modules()
+
+
+# Read README for long description
+readme_file = Path(__file__).parent / "README.md"
+long_description = readme_file.read_text(encoding="utf-8") if readme_file.exists() else ""
+
+# Read requirements
+requirements_file = Path(__file__).parent / "requirements.txt"
+requirements = []
+if requirements_file.exists():
+    requirements = [
+        line.strip()
+        for line in requirements_file.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+
+setup(
+    name="elliott-wave-trading-bot",
+    version="2.0.0",
+    description="Multi-Timeframe Asset Screener with Fibonacci-Optimized Elliott Wave Indicators",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    author="Elliott Wave Trading Bot Team",
+    python_requires=">=3.9",
+
+    # Package discovery
+    # Explicit list required for editable installs with py_modules
+    # validate_py_modules() ensures list stays in sync with src/ directory
+    # Note: src/ contains modules (not packages), so we use py_modules instead of packages
+    package_dir={"": "src"},
+    py_modules=PY_MODULES,
+
+    # Dependencies
+    install_requires=requirements,
+
+    # NOTE: Optional dependencies (dev, security) are now defined in pyproject.toml
+    # This eliminates duplication and follows PEP 621 best practices.
+    # pip >=21.3 reads extras from pyproject.toml automatically.
+
+    # Entry points (if needed in future)
+    entry_points={
+        "console_scripts": [
+            # "elliott-wave-bot=screener:main",  # Uncomment when CLI is ready
+        ],
+    },
+
+    # Include package data
+    include_package_data=True,
+
+    # Metadata
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Financial and Insurance Industry",
+        "Topic :: Office/Business :: Financial :: Investment",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+    ],
+)

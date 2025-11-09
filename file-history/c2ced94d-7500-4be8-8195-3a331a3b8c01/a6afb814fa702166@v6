@@ -1,0 +1,176 @@
+{
+  "generated_at": "2025-11-02T20:59:30.684156",
+  "total_charts": 10,
+  "charts": [
+    {
+      "symbol": "AUD/USD",
+      "strategy": "Bollinger Bounce",
+      "timeframe": "h1",
+      "score": 100,
+      "direction": "short",
+      "entry_price": 1.26767,
+      "stop_loss": 1.29758,
+      "take_profit": 1.18932,
+      "data_file": "AUD_USD_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:59:30.187099",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "Bollinger Bounce",
+        "wave_confidence": 1.0
+      }
+    },
+    {
+      "symbol": "USOIL",
+      "strategy": "ADX Trend",
+      "timeframe": "h1",
+      "score": 93,
+      "direction": "short",
+      "entry_price": 89.81664,
+      "stop_loss": 91.93631,
+      "take_profit": 84.26597,
+      "data_file": "USOIL_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:59:30.325085",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "ADX Trend",
+        "wave_confidence": 0.93
+      }
+    },
+    {
+      "symbol": "EUR/USD",
+      "strategy": "Bollinger Bounce",
+      "timeframe": "h1",
+      "score": 85,
+      "direction": "long",
+      "entry_price": 1.14036,
+      "stop_loss": 1.11345,
+      "take_profit": 1.21083,
+      "data_file": "EUR_USD_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:59:30.002746",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "Bollinger Bounce",
+        "wave_confidence": 0.85
+      }
+    },
+    {
+      "symbol": "USD/JPY",
+      "strategy": "ADX Trend",
+      "timeframe": "h1",
+      "score": 85,
+      "direction": "short",
+      "entry_price": 1.17064,
+      "stop_loss": 1.19827,
+      "take_profit": 1.0983,
+      "data_file": "USD_JPY_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:59:30.156039",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "ADX Trend",
+        "wave_confidence": 0.85
+      }
+    },
+    {
+      "symbol": "USD/CHF",
+      "strategy": "Bollinger Bounce",
+      "timeframe": "h1",
+      "score": 85,
+      "direction": "short",
+      "entry_price": 1.43358,
+      "stop_loss": 1.46741,
+      "take_profit": 1.34498,
+      "data_file": "USD_CHF_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:59:30.218465",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "Bollinger Bounce",
+        "wave_confidence": 0.85
+      }
+    },
+    {
+      "symbol": "NAS100",
+      "strategy": "Bollinger Bounce",
+      "timeframe": "h1",
+      "score": 85,
+      "direction": "long",
+      "entry_price": 92.14102,
+      "stop_loss": 89.9665,
+      "take_profit": 97.83534,
+      "data_file": "NAS100_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:59:30.431010",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "Bollinger Bounce",
+        "wave_confidence": 0.85
+      }
+    },
+    {
+      "symbol": "NAS100",
+      "strategy": "EMA Cross",
+      "timeframe": "h1",
+      "score": 80,
+      "direction": "short",
+      "entry_price": 92.14102,
+      "stop_loss": 94.31555,
+      "take_profit": 86.44671,
+      "data_file": "NAS100_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:59:30.431010",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "EMA Cross",
+        "wave_confidence": 0.8
+      }
+    },
+    {
+      "symbol": "EUR/USD",
+      "strategy": "ADX Trend",
+      "timeframe": "h1",
+      "score": 75,
+      "direction": "short",
+      "entry_price": 1.14036,
+      "stop_loss": 1.16727,
+      "take_profit": 1.06989,
+      "data_file": "EUR_USD_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:59:30.002746",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "ADX Trend",
+        "wave_confidence": 0.75
+      }
+    },
+    {
+      "symbol": "AUD/USD",
+      "strategy": "ADX Trend",
+      "timeframe": "h1",
+      "score": 75,
+      "direction": "short",
+      "entry_price": 1.26767,
+      "stop_loss": 1.29758,
+      "take_profit": 1.18932,
+      "data_file": "AUD_USD_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:59:30.187099",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "ADX Trend",
+        "wave_confidence": 0.75
+      }
+    },
+    {
+      "symbol": "USD/JPY",
+      "strategy": "EMA Cross",
+      "timeframe": "h1",
+      "score": 70,
+      "direction": "short",
+      "entry_price": 1.17064,
+      "stop_loss": 1.19827,
+      "take_profit": 1.0983,
+      "data_file": "USD_JPY_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:59:30.156039",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "EMA Cross",
+        "wave_confidence": 0.7
+      }
+    }
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "generated_at": "2025-11-02T20:51:43.044823",
+  "total_charts": 10,
+  "charts": [
+    {
+      "symbol": "USD/CHF",
+      "strategy": "ADX Trend",
+      "timeframe": "h1",
+      "score": 100,
+      "direction": "long",
+      "entry_price": 1.46982,
+      "stop_loss": 1.43513,
+      "take_profit": 1.56065,
+      "data_file": "USD_CHF_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:51:42.698544",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "ADX Trend",
+        "wave_confidence": 1.0
+      }
+    },
+    {
+      "symbol": "UKOIL",
+      "strategy": "ADX Trend",
+      "timeframe": "h1",
+      "score": 100,
+      "direction": "long",
+      "entry_price": 114.91463,
+      "stop_loss": 112.20264,
+      "take_profit": 122.01635,
+      "data_file": "UKOIL_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:51:42.840372",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "ADX Trend",
+        "wave_confidence": 1.0
+      }
+    },
+    {
+      "symbol": "USD/JPY",
+      "strategy": "Bollinger Bounce",
+      "timeframe": "h1",
+      "score": 85,
+      "direction": "long",
+      "entry_price": 1.21219,
+      "stop_loss": 1.18359,
+      "take_profit": 1.28711,
+      "data_file": "USD_JPY_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:51:42.630380",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "Bollinger Bounce",
+        "wave_confidence": 0.85
+      }
+    },
+    {
+      "symbol": "USD/CHF",
+      "strategy": "Bollinger Bounce",
+      "timeframe": "h1",
+      "score": 85,
+      "direction": "short",
+      "entry_price": 1.46982,
+      "stop_loss": 1.50451,
+      "take_profit": 1.37898,
+      "data_file": "USD_CHF_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:51:42.698544",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "Bollinger Bounce",
+        "wave_confidence": 0.85
+      }
+    },
+    {
+      "symbol": "XAU/USD",
+      "strategy": "Bollinger Bounce",
+      "timeframe": "h1",
+      "score": 85,
+      "direction": "long",
+      "entry_price": 1.02084,
+      "stop_loss": 0.99675,
+      "take_profit": 1.08393,
+      "data_file": "XAU_USD_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:51:42.732957",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "Bollinger Bounce",
+        "wave_confidence": 0.85
+      }
+    },
+    {
+      "symbol": "USOIL",
+      "strategy": "Bollinger Bounce",
+      "timeframe": "h1",
+      "score": 85,
+      "direction": "long",
+      "entry_price": 107.79493,
+      "stop_loss": 105.25097,
+      "take_profit": 114.45666,
+      "data_file": "USOIL_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:51:42.805602",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "Bollinger Bounce",
+        "wave_confidence": 0.85
+      }
+    },
+    {
+      "symbol": "UKOIL",
+      "strategy": "Bollinger Bounce",
+      "timeframe": "h1",
+      "score": 85,
+      "direction": "short",
+      "entry_price": 114.91463,
+      "stop_loss": 117.62661,
+      "take_profit": 107.8129,
+      "data_file": "UKOIL_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:51:42.840372",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "Bollinger Bounce",
+        "wave_confidence": 0.85
+      }
+    },
+    {
+      "symbol": "XAG/USD",
+      "strategy": "ADX Trend",
+      "timeframe": "h1",
+      "score": 80,
+      "direction": "long",
+      "entry_price": 1.17384,
+      "stop_loss": 1.14614,
+      "take_profit": 1.24639,
+      "data_file": "XAG_USD_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:51:42.764712",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "ADX Trend",
+        "wave_confidence": 0.8
+      }
+    },
+    {
+      "symbol": "USOIL",
+      "strategy": "ADX Trend",
+      "timeframe": "h1",
+      "score": 80,
+      "direction": "short",
+      "entry_price": 107.79493,
+      "stop_loss": 110.33889,
+      "take_profit": 101.13321,
+      "data_file": "USOIL_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:51:42.805602",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "ADX Trend",
+        "wave_confidence": 0.8
+      }
+    },
+    {
+      "symbol": "UKOIL",
+      "strategy": "EMA Cross",
+      "timeframe": "h1",
+      "score": 70,
+      "direction": "long",
+      "entry_price": 114.91463,
+      "stop_loss": 112.20264,
+      "take_profit": 122.01635,
+      "data_file": "UKOIL_h1_2025-11-02.json",
+      "timestamp": "2025-11-02T20:51:42.840372",
+      "wave_analysis": {
+        "current_wave": 5,
+        "wave_type": "EMA Cross",
+        "wave_confidence": 0.7
+      }
+    }
+  ]
+}

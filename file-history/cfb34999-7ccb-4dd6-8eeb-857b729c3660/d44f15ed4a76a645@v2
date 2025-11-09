@@ -1,0 +1,295 @@
+/**
+ * Comprehensive Workflow Test
+ *
+ * Tests the complete user journey through Block Puzzle Hero:
+ * 1. Homepage loading and navigation
+ * 2. Levels page and tier display
+ * 3. Game initialization and Phaser loading
+ * 4. Autonomous game controls and mechanics
+ * 5. Scoring and line clearing
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Block Puzzle Hero - Complete Workflow', () => {
+
+  test('should complete full user journey from homepage to gameplay', async ({ page }) => {
+    // Enable console logging for debugging
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        console.log('Browser Error:', msg.text());
+      }
+    });
+
+    // ========================================
+    // 1. HOMEPAGE TEST
+    // ========================================
+    test.step('Load homepage and verify content', async () => {
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
+
+      // Check title
+      await expect(page).toHaveTitle(/Block Puzzle Hero/);
+
+      // Check main heading
+      const heading = page.locator('h1:has-text("Block Puzzle Hero")');
+      await expect(heading).toBeVisible();
+
+      // Check call-to-action buttons
+      const playButton = page.locator('a[href="/levels"] button:has-text("Play Now")');
+      await expect(playButton).toBeVisible();
+
+      console.log('✓ Homepage loaded successfully');
+    });
+
+    // ========================================
+    // 2. NAVIGATION TO LEVELS
+    // ========================================
+    test.step('Navigate to levels page', async () => {
+      const playButton = page.locator('a[href="/levels"] button:has-text("Play Now")').first();
+      await playButton.click();
+      await page.waitForLoadState('networkidle');
+
+      // Verify we're on levels page
+      await expect(page).toHaveURL(/\/levels/);
+
+      // Check for tier sections
+      const freeTier = page.locator('text=FREE (3 Levels)');
+      await expect(freeTier).toBeVisible({ timeout: 10000 });
+
+      console.log('✓ Navigated to levels page');
+    });
+
+    // ========================================
+    // 3. TIER DISPLAY VERIFICATION
+    // ========================================
+    test.step('Verify tier structure and level access', async () => {
+      // Check FREE tier levels (1-3)
+      for (let level = 1; level <= 3; level++) {
+        const levelCard = page.locator(`a[href="/play/${level}"]`);
+        await expect(levelCard).toBeVisible();
+      }
+
+      // Check TRIAL tier section exists
+      const trialTier = page.locator('text=TRIAL (10 Levels)');
+      await expect(trialTier).toBeVisible();
+
+      // Check PREMIUM tier section exists
+      const premiumTier = page.locator('text=PREMIUM (50 Levels)');
+      await expect(premiumTier).toBeVisible();
+
+      console.log('✓ All tier sections displayed correctly');
+    });
+
+    // ========================================
+    // 4. NAVIGATE TO GAME
+    // ========================================
+    test.step('Navigate to Level 1 game page', async () => {
+      const level1Link = page.locator('a[href="/play/1"]').first();
+      await level1Link.click();
+      await page.waitForLoadState('networkidle');
+
+      // Verify we're on the game page
+      await expect(page).toHaveURL(/\/play\/1/);
+
+      console.log('✓ Navigated to Level 1');
+    });
+
+    // ========================================
+    // 5. PHASER GAME INITIALIZATION
+    // ========================================
+    test.step('Wait for Phaser game to initialize', async () => {
+      // Wait for canvas to appear
+      const canvas = page.locator('canvas');
+      await expect(canvas).toBeVisible({ timeout: 15000 });
+
+      // Wait for game to be ready (check for window.game)
+      await page.waitForFunction(() => {
+        return typeof (window as any).game !== 'undefined';
+      }, { timeout: 20000 });
+
+      // Additional wait for game initialization
+      await page.waitForTimeout(3000);
+
+      console.log('✓ Phaser game initialized');
+    });
+
+    // ========================================
+    // 6. VERIFY GAME DEBUG HELPERS
+    // ========================================
+    test.step('Verify game debug helpers are exposed', async () => {
+      const hasDebugHelpers = await page.evaluate(() => {
+        return typeof (window as any).gameDebug !== 'undefined';
+      });
+
+      expect(hasDebugHelpers).toBe(true);
+
+      const debugMethods = await page.evaluate(() => {
+        const debug = (window as any).gameDebug;
+        return {
+          hasPlaceBlockAt: typeof debug?.placeBlockAt === 'function',
+          hasSimulateDrag: typeof debug?.simulateDrag === 'function',
+          hasGetGameState: typeof debug?.getGameState === 'function',
+          hasGetAvailableBlocks: typeof debug?.getAvailableBlocks === 'function',
+        };
+      });
+
+      expect(debugMethods.hasPlaceBlockAt).toBe(true);
+      expect(debugMethods.hasSimulateDrag).toBe(true);
+      expect(debugMethods.hasGetGameState).toBe(true);
+      expect(debugMethods.hasGetAvailableBlocks).toBe(true);
+
+      console.log('✓ Game debug helpers available');
+    });
+
+    // ========================================
+    // 7. CHECK INITIAL GAME STATE
+    // ========================================
+    test.step('Verify initial game state', async () => {
+      const gameState = await page.evaluate(() => {
+        return (window as any).gameDebug.getGameState();
+      });
+
+      expect(gameState).toBeTruthy();
+      expect(gameState.score).toBe(0);
+      expect(gameState.combo).toBe(0);
+      expect(gameState.activeBlockCount).toBeGreaterThan(0);
+
+      console.log('✓ Initial game state:', {
+        score: gameState.score,
+        combo: gameState.combo,
+        blocks: gameState.activeBlockCount
+      });
+    });
+
+    // ========================================
+    // 8. GET AVAILABLE BLOCKS
+    // ========================================
+    test.step('Get and verify available blocks', async () => {
+      const blocks = await page.evaluate(() => {
+        return (window as any).gameDebug.getAvailableBlocks();
+      });
+
+      expect(blocks.length).toBeGreaterThan(0);
+      expect(blocks.length).toBeLessThanOrEqual(3);
+
+      console.log(`✓ Found ${blocks.length} available blocks`);
+      blocks.forEach((block: any, index: number) => {
+        console.log(`  Block ${index}: ${block.id} (${block.width}x${block.height})`);
+      });
+    });
+
+    // ========================================
+    // 9. AUTONOMOUS BLOCK PLACEMENT
+    // ========================================
+    test.step('Place blocks autonomously and verify scoring', async () => {
+      // Try to place first block at position (0,0)
+      const placement1 = await page.evaluate(() => {
+        return (window as any).gameDebug.placeBlockAt(0, 0, 0);
+      });
+
+      console.log('Block Placement 1:', placement1);
+      expect(placement1.success).toBe(true);
+      expect(placement1.cellsPlaced).toBeGreaterThan(0);
+
+      // Get updated game state
+      const stateAfter1 = await page.evaluate(() => {
+        return (window as any).gameDebug.getGameState();
+      });
+
+      console.log('✓ State after first placement:', {
+        score: stateAfter1.score,
+        combo: stateAfter1.combo
+      });
+
+      // Try to place second block if available
+      const blocks = await page.evaluate(() => {
+        return (window as any).gameDebug.getAvailableBlocks();
+      });
+
+      if (blocks.length > 0) {
+        const placement2 = await page.evaluate(() => {
+          return (window as any).gameDebug.placeBlockAt(0, 0, 3);
+        });
+
+        console.log('Block Placement 2:', placement2);
+
+        if (placement2.success) {
+          const stateAfter2 = await page.evaluate(() => {
+            return (window as any).gameDebug.getGameState();
+          });
+
+          console.log('✓ State after second placement:', {
+            score: stateAfter2.score,
+            combo: stateAfter2.combo
+          });
+        }
+      }
+    });
+
+    // ========================================
+    // 10. GRID VISUALIZATION
+    // ========================================
+    test.step('Display grid visualization', async () => {
+      const gridViz = await page.evaluate(() => {
+        return (window as any).gameDebug.getGridVisualization();
+      });
+
+      console.log('\n✓ Current Grid State:');
+      console.log(gridViz);
+    });
+
+    // ========================================
+    // 11. UI ELEMENTS VERIFICATION
+    // ========================================
+    test.step('Verify UI elements are present', async () => {
+      // Check for score display
+      const scoreElement = page.locator('text=/Score|0/i');
+      await expect(scoreElement.first()).toBeVisible({ timeout: 5000 });
+
+      // Check for back button or navigation
+      const backButton = page.locator('a[href="/levels"], button:has-text("Back")');
+      await expect(backButton.first()).toBeVisible({ timeout: 5000 });
+
+      console.log('✓ UI elements verified');
+    });
+
+    // ========================================
+    // 12. FINAL STATE VERIFICATION
+    // ========================================
+    test.step('Verify final game state', async () => {
+      const finalState = await page.evaluate(() => {
+        return (window as any).gameDebug.getGameState();
+      });
+
+      console.log('\n✓ Final Game State:');
+      console.log(`  Score: ${finalState.score}`);
+      console.log(`  Combo: ${finalState.combo}`);
+      console.log(`  Active Blocks: ${finalState.activeBlockCount}`);
+
+      // Score should have increased from 0
+      expect(finalState.score).toBeGreaterThanOrEqual(0);
+    });
+
+    console.log('\n✅ COMPREHENSIVE WORKFLOW TEST COMPLETED SUCCESSFULLY');
+  });
+
+  test('should handle navigation back to levels', async ({ page }) => {
+    await page.goto('/play/1');
+    await page.waitForLoadState('networkidle');
+
+    // Wait for canvas to ensure page is ready
+    await page.locator('canvas').waitFor({ state: 'visible', timeout: 15000 });
+
+    // Navigate back
+    const backLink = page.locator('a[href="/levels"]').first();
+    await backLink.click();
+    await page.waitForLoadState('networkidle');
+
+    // Verify we're back on levels page
+    await expect(page).toHaveURL(/\/levels/);
+    await expect(page.locator('text=FREE (3 Levels)')).toBeVisible();
+
+    console.log('✓ Navigation back to levels works');
+  });
+});

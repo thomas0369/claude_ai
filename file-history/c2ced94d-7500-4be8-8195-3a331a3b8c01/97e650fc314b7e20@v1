@@ -1,0 +1,398 @@
+"""
+TradingView Data Provider
+
+Provides historical OHLCV data from TradingView using tradingview-scraper library.
+Includes rate limiting, validation, and comprehensive error handling.
+
+Priority: PRIMARY (highest priority in fallback chain)
+Cost: Free (no authentication required)
+Rate Limits: 20 requests per minute
+"""
+
+import logging
+from typing import Optional, List
+from datetime import datetime
+from base_data_provider import BaseDataProvider, SingletonProviderMixin, DataSourcePriority
+
+logger = logging.getLogger(__name__)
+
+
+def get_tradingview_provider():
+    """
+    Get singleton TradingView data provider instance.
+
+    Returns:
+        TradingViewDataProvider: Singleton instance
+    """
+    return TradingViewDataProvider.get_instance()
+
+
+class TradingViewDataProvider(SingletonProviderMixin, BaseDataProvider):
+    """
+    TradingView data provider using tradingview-scraper library.
+
+    Provides historical OHLCV data compatible with CCXT format for backtesting.
+
+    Features:
+    - Fetch historical OHLCV data (up to ~5000 candles)
+    - Convert timestamps from seconds to milliseconds (CCXT format)
+    - Support forex (FX) and crypto (BINANCE) symbols
+    - Rate limiting via RateLimiter (20 req/min)
+    - Validation via OHLCVValidator
+    - Comprehensive error handling
+    - Integration with DataProviderManager via BaseDataProvider
+    """
+
+    @classmethod
+    def get_instance(cls) -> 'TradingViewDataProvider':
+        """Get singleton instance"""
+        return cls._get_or_create_instance()
+
+    def __init__(self):
+        """
+        Initialize TradingView data provider.
+
+        No credentials needed for basic OHLCV streaming (POC validation).
+        """
+        super().__init__("TradingView")
+
+    def _initialize_provider(self):
+        """Provider-specific initialization"""
+        try:
+            # Suppress deprecation warnings from tradingview-scraper dependencies
+            import warnings
+
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning)
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+                # Import check only - create new Streamer per request
+                from tradingview_scraper.symbols.stream import Streamer
+
+            self.Streamer = Streamer  # Store class, not instance
+            logger.info("TradingView provider initialized successfully")
+
+        except ImportError as e:
+            raise Exception(f"tradingview-scraper not installed: {e}. Install with: pip install tradingview-scraper")
+
+        except Exception as e:
+            raise Exception(f"Failed to initialize TradingView provider: {e}")
+
+    def fetch_ohlcv(
+        self,
+        symbol: str,
+        timeframe: str = "1h",
+        limit: int = 200,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+    ) -> Optional[List]:
+        """
+        Fetch historical OHLCV data in CCXT-compatible format.
+
+        Matches ForexDataProvider.fetch_ohlcv() signature for consistency.
+
+        Args:
+            symbol: Trading pair (e.g., 'EUR/USD', 'BTC/USD')
+            timeframe: Timeframe (e.g., '1m', '5m', '15m', '1h', '4h', '1d')
+            limit: Number of candles to fetch (default: 200, max: ~5000)
+            start_date: Start date (not used - TradingView uses limit-based fetch)
+            end_date: End date (not used - TradingView uses limit-based fetch)
+
+        Returns:
+            List of OHLCV data: [[timestamp_ms, open, high, low, close, volume], ...]
+            Returns None if fetch fails.
+
+        Example:
+            >>> provider = get_tradingview_provider()
+            >>> ohlcv = provider.fetch_ohlcv("EUR/USD", "1h", 200)
+            >>> print(ohlcv[0])  # [1761756420000, 1.16585, 1.1659, 1.16585, 1.16587, 68.0]
+        """
+        if not self.is_available() or self.Streamer is None:
+            logger.error("TradingView provider not available")
+            return None
+
+        # Apply rate limiting to prevent HTTP 429 errors
+        self.apply_rate_limit("tradingview")
+
+        try:
+            # Convert symbol format and detect exchange
+            tv_symbol, tv_exchange = self._convert_symbol(symbol)
+
+            # Log fetch start
+            self.log_fetch_start(f"{tv_exchange}:{tv_symbol}", timeframe, limit)
+
+            # Create new Streamer instance for this request (fresh websocket connection)
+            streamer = self.Streamer(export_result=False, export_type="json")
+
+            # Request historical data stream
+            data_generator = streamer.stream(
+                exchange=tv_exchange,
+                symbol=tv_symbol,
+                timeframe=timeframe,
+                numb_price_candles=limit,
+            )
+
+            # Collect candles from stream packets
+            candles = self._extract_candles_from_stream(data_generator, limit)
+
+            if not candles:
+                logger.warning(f"No candles received for {tv_exchange}:{tv_symbol}")
+                return None
+
+            # Validate data format before returning (defense in depth)
+            if not self.validate_ohlcv_data(candles, symbol):
+                return None
+
+            self.log_fetch_success(symbol, len(candles))
+            return candles
+
+        except ValueError as e:
+            # Invalid symbol format
+            logger.error(f"Invalid symbol '{symbol}': {e}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to fetch data from TradingView: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return None
+
+    def _convert_symbol(self, symbol: str) -> tuple[str, str]:
+        """
+        Convert symbol format and detect appropriate TradingView exchange.
+
+        Args:
+            symbol: Symbol in various formats:
+                    'EUR/USD', 'EURUSD' -> ('EURUSD', 'FX')
+                    'BTC/USD', 'BTCUSD' -> ('BTCUSDT', 'BINANCE')
+                    'ETH/USD', 'ETHUSD' -> ('ETHUSDT', 'BINANCE')
+
+        Returns:
+            Tuple of (tv_symbol, tv_exchange)
+
+        Raises:
+            ValueError: If symbol format is invalid or unsupported
+        """
+        # Remove slashes for TradingView format
+        clean_symbol = symbol.replace("/", "").replace("-", "").upper()
+
+        # Detect exchange based on symbol pattern
+        if self._is_forex_pair(clean_symbol):
+            # Forex pairs -> FX exchange
+            return (clean_symbol, "FX")
+
+        elif self._is_crypto_pair(clean_symbol):
+            # Crypto pairs -> BINANCE exchange
+            # Ensure pair ends with USDT for Binance
+            if not clean_symbol.endswith("USDT"):
+                # Convert ETH/USD -> ETHUSDT, BTC/USD -> BTCUSDT
+                if clean_symbol.endswith("USD"):
+                    clean_symbol = clean_symbol.replace("USD", "USDT")
+
+            return (clean_symbol, "BINANCE")
+
+        else:
+            raise ValueError(
+                f"Unsupported symbol '{symbol}'. "
+                f"Supported: Forex (EUR/USD) or Crypto (BTC/USDT, ETH/USD)"
+            )
+
+    def _is_forex_pair(self, symbol: str) -> bool:
+        """
+        Check if symbol is a forex pair.
+
+        Args:
+            symbol: Clean symbol (no slashes)
+
+        Returns:
+            True if forex pair, False otherwise
+        """
+        # Common forex currency codes
+        forex_currencies = {
+            "EUR",
+            "USD",
+            "GBP",
+            "JPY",
+            "AUD",
+            "NZD",
+            "CAD",
+            "CHF",
+            "SEK",
+            "NOK",
+            "DKK",
+        }
+
+        # Forex pairs are 6 characters (EURUSD, GBPJPY, etc.)
+        if len(symbol) != 6:
+            return False
+
+        base = symbol[:3]
+        quote = symbol[3:6]
+
+        return base in forex_currencies and quote in forex_currencies
+
+    def _is_crypto_pair(self, symbol: str) -> bool:
+        """
+        Check if symbol is a crypto pair.
+
+        Args:
+            symbol: Clean symbol (no slashes)
+
+        Returns:
+            True if crypto pair, False otherwise
+        """
+        # Common crypto currencies
+        crypto_currencies = {
+            "BTC",
+            "ETH",
+            "USDT",
+            "BNB",
+            "XRP",
+            "ADA",
+            "SOL",
+            "DOT",
+            "DOGE",
+            "MATIC",
+            "AVAX",
+            "LINK",
+            "UNI",
+        }
+
+        # Check if starts with known crypto currency
+        for crypto in crypto_currencies:
+            if symbol.startswith(crypto):
+                return True
+
+        return False
+
+    def _extract_candles_from_stream(
+        self, data_generator, expected_count: int, max_packets: int = 50
+    ) -> List:
+        """
+        Extract OHLCV candles from TradingView stream packets.
+
+        Args:
+            data_generator: Generator from streamer.stream()
+            expected_count: Expected number of candles
+            max_packets: Maximum packets to process (safety limit)
+
+        Returns:
+            List of candles in CCXT format [[timestamp_ms, o, h, l, c, v], ...]
+        """
+        candles = []
+        packets_processed = 0
+
+        try:
+            for packet in data_generator:
+                packets_processed += 1
+
+                # Extract candle data from packet
+                if isinstance(packet, dict) and "p" in packet:
+                    packet_data = packet["p"]
+
+                    if isinstance(packet_data, list) and len(packet_data) > 1:
+                        data_section = packet_data[1]
+
+                        if isinstance(data_section, dict):
+                            # Look for series data (key usually 'sds_1')
+                            for key, value in data_section.items():
+                                if isinstance(value, dict) and "s" in value:
+                                    series = value["s"]
+
+                                    for item in series:
+                                        if (
+                                            "v" in item
+                                            and isinstance(item["v"], list)
+                                            and len(item["v"]) == 6
+                                        ):
+                                            candle = item["v"]
+
+                                            # Convert timestamp from seconds to milliseconds (CCXT format)
+                                            candle_ccxt = [
+                                                int(candle[0] * 1000),  # timestamp in ms
+                                                float(candle[1]),  # open
+                                                float(candle[2]),  # high
+                                                float(candle[3]),  # low
+                                                float(candle[4]),  # close
+                                                float(candle[5]),  # volume
+                                            ]
+
+                                            # Avoid duplicates (real-time updates repeat last candle)
+                                            if not candles or candle_ccxt[0] != candles[-1][0]:
+                                                candles.append(candle_ccxt)
+
+                # Stop conditions
+                if len(candles) >= expected_count:
+                    logger.debug(f"Received {len(candles)} candles, stopping stream")
+                    break
+
+                if packets_processed >= max_packets:
+                    logger.warning(f"Processed {max_packets} packets, stopping (safety limit)")
+                    break
+
+        except StopIteration:
+            pass
+
+        except Exception as e:
+            logger.error(f"Error extracting candles from stream: {e}")
+
+        return candles
+
+    def supports_symbol(self, symbol: str) -> bool:
+        """
+        Check if TradingView supports this symbol.
+
+        Args:
+            symbol: Trading pair symbol
+
+        Returns:
+            True if likely supported, False otherwise
+        """
+        try:
+            self._convert_symbol(symbol)
+            return True
+        except ValueError:
+            return False
+
+    @property
+    def name(self) -> str:
+        """
+        Provider name for logging and display
+
+        Returns:
+            Provider name string
+        """
+        return self._name
+
+    @property
+    def priority(self) -> int:
+        """
+        Provider priority in fallback chain
+
+        Returns:
+            1 (Primary provider - highest priority)
+        """
+        return DataSourcePriority.PRIMARY  # Priority 1
+
+
+# Convenience function for testing
+if __name__ == "__main__":
+    # Quick test
+    logging.basicConfig(level=logging.INFO)
+
+    provider = get_tradingview_provider()
+
+    print("\n=== Testing EUR/USD ===")
+    ohlcv = provider.fetch_ohlcv("EUR/USD", "1h", 20)
+    if ohlcv:
+        print(f"Received {len(ohlcv)} candles")
+        print(f"First candle: {ohlcv[0]}")
+        print(f"Last candle: {ohlcv[-1]}")
+
+    print("\n=== Testing BTC/USD ===")
+    ohlcv = provider.fetch_ohlcv("BTC/USD", "1h", 20)
+    if ohlcv:
+        print(f"Received {len(ohlcv)} candles")
+        print(f"First candle: {ohlcv[0]}")
+        print(f"Last candle: {ohlcv[-1]}")

@@ -1,0 +1,144 @@
+/**
+ * Demo Block Pool
+ *
+ * Implements object pooling best practices:
+ * - Pre-create blocks with EMPTY shapes (no premature hit area setup)
+ * - Activate BEFORE reset() (Phaser requirement)
+ * - Fresh setInteractive() on spawn
+ * - Clean deactivation on despawn
+ */
+
+import * as Phaser from 'phaser';
+import { DemoBlock, BlockData } from '../entities/DemoBlock';
+
+export class DemoBlockPool {
+  private scene: Phaser.Scene;
+  private pool: DemoBlock[] = [];
+  private activeBlocks: Set<DemoBlock> = new Set();
+
+  constructor(scene: Phaser.Scene, initialSize: number = 10) {
+    this.scene = scene;
+
+    // Pre-create blocks with EMPTY shapes
+    // This prevents premature hit area setup
+    for (let i = 0; i < initialSize; i++) {
+      const block = new DemoBlock(
+        scene,
+        0,
+        0,
+        {
+          id: `pool-${i}`,
+          shape: [], // IMPORTANT: Empty shape!
+          color: '#000000',
+        }
+      );
+
+      // Set inactive and invisible
+      block.setActive(false);
+      block.setVisible(false);
+
+      this.pool.push(block);
+    }
+
+    console.log(`✅ Block pool initialized with ${initialSize} blocks`);
+  }
+
+  /**
+   * Spawn a block from the pool
+   *
+   * CRITICAL ORDER:
+   * 1. Get block from pool
+   * 2. Activate (setActive/setVisible)
+   * 3. Reset with real data (this calls setupInteraction)
+   */
+  public spawn(data: BlockData, x: number, y: number): DemoBlock {
+    // Get block from pool or create new one
+    let block = this.pool.pop();
+
+    if (!block) {
+      console.warn('⚠️ Pool exhausted, creating new block');
+      block = new DemoBlock(this.scene, x, y, data);
+    } else {
+      // CRITICAL: Activate BEFORE calling reset()
+      // Phaser requires objects to be active when setInteractive() is called
+      block.setActive(true);
+      block.setVisible(true);
+
+      // Reset with real data (this calls setupInteraction())
+      block.reset(data, x, y);
+    }
+
+    this.activeBlocks.add(block);
+
+    console.log(`📦 Block spawned: ${data.id} (Active: ${this.activeBlocks.size}, Pool: ${this.pool.length})`);
+
+    return block;
+  }
+
+  /**
+   * Despawn a block back to the pool
+   */
+  public despawn(block: DemoBlock): void {
+    if (!this.activeBlocks.has(block)) {
+      console.warn('⚠️ Attempting to despawn non-active block');
+      return;
+    }
+
+    // Cleanup
+    block.cleanup();
+
+    // Deactivate
+    block.setActive(false);
+    block.setVisible(false);
+
+    // Remove from active set
+    this.activeBlocks.delete(block);
+
+    // Return to pool
+    this.pool.push(block);
+
+    console.log(`📥 Block despawned (Active: ${this.activeBlocks.size}, Pool: ${this.pool.length})`);
+  }
+
+  /**
+   * Get all active blocks
+   */
+  public getActiveBlocks(): DemoBlock[] {
+    return Array.from(this.activeBlocks);
+  }
+
+  /**
+   * Get active block count
+   */
+  public getActiveCount(): number {
+    return this.activeBlocks.size;
+  }
+
+  /**
+   * Get pool size
+   */
+  public getPoolSize(): number {
+    return this.pool.length;
+  }
+
+  /**
+   * Despawn all active blocks
+   */
+  public despawnAll(): void {
+    const blocks = Array.from(this.activeBlocks);
+    blocks.forEach((block) => this.despawn(block));
+  }
+
+  /**
+   * Destroy all blocks (cleanup)
+   */
+  public destroy(): void {
+    this.despawnAll();
+
+    this.pool.forEach((block) => block.destroy());
+    this.pool = [];
+    this.activeBlocks.clear();
+
+    console.log('🗑️ Block pool destroyed');
+  }
+}

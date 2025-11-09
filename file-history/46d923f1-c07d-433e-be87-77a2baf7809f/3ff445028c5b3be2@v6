@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elliott Wave Bot v2.0 - Claude Max</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid #667eea;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-badge {
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .header p {
+            margin: 8px 0 0 0;
+            color: #718096;
+            font-size: 12px;
+        }
+
+        /* Controls */
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .info-badge {
+            font-size: 13px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #4a5568;
+        }
+
+        /* Stats Grid */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        /* Two Column Layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        /* Panel */
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            min-height: 500px;
+        }
+
+        .panel h2 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #2d3748;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 100px 20px;
+            color: #a0aec0;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .empty-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+
+        .empty-text {
+            font-size: 12px;
+        }
+
+        /* Signal Cards */
+        .signals-container {
+            position: relative;
+        }
+
+        .signals-banner {
+            background: #f0f4ff;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 12px;
+            font-size: 11px;
+            color: #667eea;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .signal-card {
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            background: white;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .signal-card:hover {
+            border-color: #cbd5e0;
+        }
+
+        .signal-card.selected {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+
+        .signal-card.has-claude {
+            border-left: 4px solid #a78bfa;
+        }
+
+        /* Rank Badges */
+        .rank-badge {
+            position: absolute;
+            top: -8px;
+            right: 10px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        .rank-gold {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #744210;
+            box-shadow: 0 2px 8px rgba(255,215,0,0.3);
+        }
+
+        .rank-silver {
+            background: #cbd5e0;
+            color: #2d3748;
+        }
+
+        .rank-bronze {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        /* Signal Header */
+        .signal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .signal-info {
+            flex: 1;
+        }
+
+        .signal-title-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .signal-symbol {
+            font-weight: 700;
+            font-size: 15px;
+            color: #2d3748;
+        }
+
+        .direction-badge {
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 600;
+        }
+
+        .direction-long {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .direction-short {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .category-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8px;
+            font-weight: 600;
+            background: #e2e8f0;
+            color: #4a5568;
+            text-transform: uppercase;
+        }
+
+        .signal-details {
+            font-size: 11px;
+            color: #718096;
+        }
+
+        .signal-score {
+            font-size: 20px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+
+        .score-high {
+            color: #48bb78;
+            background: #c6f6d5;
+        }
+
+        .score-normal {
+            color: #667eea;
+            background: #f0f4ff;
+        }
+
+        /* Claude Badge */
+        .claude-badge {
+            position: absolute;
+            top: -10px;
+            left: 16px;
+            background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* Prompt Indicator */
+        .prompt-indicator {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(167, 139, 250, 0.3);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            cursor: help;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .prompt-indicator:hover {
+            background: rgba(167, 139, 250, 0.5);
+        }
+
+        /* Claude Analysis */
+        .claude-analysis {
+            background: #f7fafc;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            border-left: 3px solid #a78bfa;
+        }
+
+        .claude-analysis-title {
+            font-size: 11px;
+            color: #a78bfa;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .claude-analysis-text {
+            font-size: 12px;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+
+        /* Analysis Panel */
+        .breakdown-section {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .breakdown-title {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            color: #2d3748;
+            font-weight: 700;
+        }
+
+        .breakdown-item {
+            margin-bottom: 8px;
+        }
+
+        .breakdown-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .breakdown-name {
+            color: #4a5568;
+            text-transform: capitalize;
+            font-weight: 500;
+        }
+
+        .breakdown-value {
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .breakdown-bar {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .breakdown-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .breakdown-high { background: #48bb78; }
+        .breakdown-medium { background: #667eea; }
+        .breakdown-low { background: #ed8936; }
+
+        /* Trade Parameters */
+        .params-section {
+            background: #f0f4ff;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .params-title {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .params-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .param-item {
+            font-size: 11px;
+        }
+
+        .param-label {
+            color: #718096;
+            font-size: 9px;
+            margin-bottom: 3px;
+        }
+
+        .param-value {
+            font-weight: 700;
+            font-size: 13px;
+            color: #2d3748;
+        }
+
+        .param-value.negative {
+            color: #f56565;
+        }
+
+        .param-value.positive {
+            color: #48bb78;
+        }
+
+        /* Risk Assessment */
+        .risk-section {
+            background: #fff5f5;
+            border-left: 3px solid #f56565;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 11px;
+        }
+
+        .risk-title {
+            color: #c53030;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .risk-text {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        /* Log Console */
+        .log-console {
+            background: #1a202c;
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #a0aec0;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .log-line {
+            margin-bottom: 3px;
+        }
+
+        .log-success { color: #48bb78; }
+        .log-trophy { color: #ffd700; }
+        .log-info { color: #a0aec0; }
+
+        /* Prompt Modal */
+        .prompt-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+
+        .prompt-overlay.show {
+            display: block;
+        }
+
+        .prompt-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #0f172a;
+            border: 2px solid #a78bfa;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .prompt-modal.show {
+            display: block;
+        }
+
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #334155;
+        }
+
+        .prompt-close {
+            background: #ef4444;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .prompt-section {
+            margin-bottom: 20px;
+        }
+
+        .prompt-section-title {
+            color: #a78bfa;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .prompt-content {
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            color: #cbd5e1;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 968px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                🤖 Elliott Wave Bot v2.0
+                <span class="header-badge">Claude Max</span>
+            </h1>
+            <p>Interactive Elliott Wave screening • Real-time Claude CLI integration • 4 elite assets</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-row">
+                <button id="scanBtn" onclick="startScan()">🔍 Run Screening</button>
+
+                <label>
+                    <input type="checkbox" id="useClaude" checked>
+                    <span>Use Claude CLI</span>
+                </label>
+
+                <label>
+                    <input type="checkbox" id="useCache" checked>
+                    <span>Use Cache</span>
+                </label>
+
+                <span class="info-badge">📊 4 Elite Assets</span>
+                <span class="info-text">💰 100€ • 🎯 ≥75 • ⚡ Live Data</span>
+            </div>
+
+            <div id="statusText" style="margin-top: 8px; font-size: 12px; color: #718096;"></div>
+        </div>
+
+        <!-- Stats (hidden by default) -->
+        <div class="stats" id="stats" style="display: none;"></div>
+
+        <!-- Two Column Layout -->
+        <div class="two-column">
+            <!-- Left: Top Setups -->
+            <div class="panel">
+                <h2>🎯 Top Setups</h2>
+                <div id="signalsContent">
+                    <div class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <div class="empty-title">Ready to Scan</div>
+                        <div class="empty-text">Click "Run Screening" to analyze markets</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Trade Analysis -->
+            <div class="panel">
+                <h2>🤖 Trade Analysis</h2>
+                <div id="analysisContent">
+                    <div class="empty-state">
+                        <div class="empty-icon">👈</div>
+                        <div class="empty-title">Select a Setup</div>
+                        <div class="empty-text">Click on a signal to see detailed analysis</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Console -->
+        <div id="logConsole" class="log-console" style="display: none;"></div>
+    </div>
+
+    <!-- Prompt Modal -->
+    <div class="prompt-overlay" id="promptOverlay" onclick="hidePrompt()"></div>
+    <div class="prompt-modal" id="promptModal"></div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let currentSignals = [];
+        let selectedSymbol = null;
+        let promptsData = {};
+
+        // Log management
+        function addLog(message, type = 'info') {
+            const console = document.getElementById('logConsole');
+            console.style.display = 'block';
+
+            const line = document.createElement('div');
+            line.className = `log-line log-${type}`;
+            line.textContent = message;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        // Start scan
+        async function startScan() {
+            const btn = document.getElementById('scanBtn');
+            const signalsContent = document.getElementById('signalsContent');
+            const analysisContent = document.getElementById('analysisContent');
+            const stats = document.getElementById('stats');
+            const statusText = document.getElementById('statusText');
+            const useClaude = document.getElementById('useClaude').checked;
+            const useCache = document.getElementById('useCache').checked;
+            const logConsole = document.getElementById('logConsole');
+
+            // Clear logs
+            logConsole.innerHTML = '';
+            logConsole.style.display = 'block';
+
+            // UI updates
+            btn.disabled = true;
+            btn.textContent = '⏳ Analyzing...';
+            stats.style.display = 'none';
+            selectedSymbol = null;
+
+            signalsContent.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon" style="color: #667eea;">⏳</div>
+                    <div class="empty-title" style="color: #667eea;">Analyzing Markets...</div>
+                    <div class="empty-text">Screening 4 elite assets with ${useClaude ? 'Claude CLI' : 'screener only'}</div>
+                </div>
+            `;
+
+            analysisContent.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">👈</div>
+                    <div class="empty-title">Select a Setup</div>
+                    <div class="empty-text">Results will appear shortly...</div>
+                </div>
+            `;
+
+            addLog('🚀 Starting Elliott Wave screening...', 'info');
+            addLog('📊 Scanning 4 elite assets (EUR/USD, GBP/USD, XAU/USD, USOIL)...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/scan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        min_score: 75,
+                        use_claude: useClaude,
+                        use_cache: useCache
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentSignals = data.signals;
+                    promptsData = {};
+
+                    // Store prompts
+                    currentSignals.forEach(signal => {
+                        if (signal.claude_analysis && signal.claude_analysis._prompts) {
+                            promptsData[signal.symbol] = signal.claude_analysis._prompts;
+                        }
+                    });
+
+                    addLog('', 'info');
+                    addLog('✅ Screening complete!', 'success');
+                    addLog(`📊 Scanned: ${data.scan_info.total_scanned} assets`, 'info');
+                    addLog(`🎯 Found: ${data.scan_info.qualified_signals} qualified signals`, 'success');
+                    addLog('', 'info');
+
+                    if (currentSignals.length > 0) {
+                        addLog('🏆 TOP SIGNALS:', 'trophy');
+                        currentSignals.slice(0, 3).forEach((s, i) => {
+                            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+                            addLog(`${medal} ${s.symbol} - Score ${s.enhanced_score || s.score} ${s.direction.toUpperCase()}`, 'trophy');
+                        });
+                    }
+
+                    displaySignals(currentSignals);
+                    displayStats(data.scan_info);
+
+                    const duration = data.scan_info.duration_seconds.toFixed(1);
+                    statusText.textContent = `Last scan: ${new Date().toLocaleTimeString()} (${duration}s)`;
+                } else {
+                    addLog(`❌ Error: ${data.error}`, 'info');
+                    signalsContent.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon" style="color: #f56565;">❌</div>
+                            <div class="empty-title" style="color: #f56565;">Scan Failed</div>
+                            <div class="empty-text">${data.error || 'Unknown error'}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                addLog(`❌ Connection error: ${error.message}`, 'info');
+                signalsContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon" style="color: #f56565;">❌</div>
+                        <div class="empty-title" style="color: #f56565;">Connection Error</div>
+                        <div class="empty-text">${error.message}</div>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔍 Run Screening';
+            }
+        }
+
+        // Display stats
+        function displayStats(scanInfo) {
+            const stats = document.getElementById('stats');
+            stats.style.display = 'grid';
+
+            stats.innerHTML = `
+                <div class="stat-card" style="border-left: 4px solid #48bb78;">
+                    <div class="stat-label">Qualified Signals</div>
+                    <div class="stat-value">${scanInfo.qualified_signals}</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #667eea;">
+                    <div class="stat-label">Total Scanned</div>
+                    <div class="stat-value">${scanInfo.total_scanned}</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #fbbf24;">
+                    <div class="stat-label">Duration</div>
+                    <div class="stat-value">${scanInfo.duration_seconds.toFixed(1)}s</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #a78bfa;">
+                    <div class="stat-label">Analysis Mode</div>
+                    <div class="stat-value" style="font-size: 16px;">${scanInfo.used_claude ? '🧠 Claude AI' : '📊 Screener'}</div>
+                </div>
+            `;
+        }
+
+        // Display signals
+        function displaySignals(signals) {
+            const content = document.getElementById('signalsContent');
+
+            if (signals.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div class="empty-title">No Qualified Setups</div>
+                        <div class="empty-text">All assets scored below 75</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const top3 = signals.slice(0, 3);
+            const rankClasses = ['rank-gold', 'rank-silver', 'rank-bronze'];
+            const rankTexts = ['🏆 TOP SETUP', '🥈 #2', '🥉 #3'];
+
+            let html = `
+                <div class="signals-container">
+                    <div class="signals-banner">
+                        🏆 Showing Top 3 of ${signals.length} Qualified Signal${signals.length !== 1 ? 's' : ''}
+                    </div>
+            `;
+
+            top3.forEach((signal, i) => {
+                const displayScore = signal.enhanced_score || signal.score;
+                const hasClaude = !!signal.claude_analysis;
+                const hasPrompts = hasClaude && promptsData[signal.symbol];
+                const direction = signal.direction === 'long' ? 'bullish' : 'bearish';
+                const isSelected = selectedSymbol === signal.symbol;
+
+                html += `
+                    <div class="signal-card ${hasClaude ? 'has-claude' : ''} ${isSelected ? 'selected' : ''}"
+                         onclick="selectSignal('${signal.symbol}')"
+                         style="margin-top: ${hasClaude ? '12px' : '0'};">
+
+                        ${hasClaude ? '<div class="claude-badge">🧠 Claude Analyzed</div>' : ''}
+                        ${hasPrompts ? `<div class="prompt-indicator" onclick="event.stopPropagation(); showPromptForSymbol('${signal.symbol}')">📝 View Prompt</div>` : ''}
+                        <div class="rank-badge ${rankClasses[i]}">${rankTexts[i]}</div>
+
+                        <div class="signal-header">
+                            <div class="signal-info">
+                                <div class="signal-title-row">
+                                    <span class="signal-symbol">${signal.symbol}</span>
+                                    <span class="direction-badge direction-${direction}">
+                                        ${signal.direction === 'long' ? '📈 LONG' : '📉 SHORT'}
+                                    </span>
+                                    <span class="category-badge">${signal.category}</span>
+                                </div>
+                                <div class="signal-details">
+                                    Entry: $${signal.current_price.toFixed(signal.category.includes('Forex') ? 4 : 2)} • R/R 1:2.618
+                                    ${hasClaude ? ` • Confidence: ${(signal.claude_analysis.confidence * 100).toFixed(0)}%` : ''}
+                                </div>
+                            </div>
+                            <div class="signal-score ${i === 0 ? 'score-high' : 'score-normal'}">
+                                ${displayScore}
+                            </div>
+                        </div>
+
+                        ${hasClaude && signal.claude_analysis.justification ? `
+                            <div class="claude-analysis">
+                                <div class="claude-analysis-title">✨ Claude's Analysis</div>
+                                <div class="claude-analysis-text">${signal.claude_analysis.justification}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            if (signals.length > 3) {
+                html += `
+                    <div style="text-align: center; padding: 8px; background: #f7fafc; border-radius: 6px; font-size: 11px; color: #718096; margin-top: 8px;">
+                        +${signals.length - 3} more qualified setup${signals.length - 3 !== 1 ? 's' : ''} not shown
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            content.innerHTML = html;
+
+            // Auto-select first signal
+            if (!selectedSymbol && signals.length > 0) {
+                selectSignal(signals[0].symbol);
+            }
+        }
+
+        // Select signal for analysis
+        function selectSignal(symbol) {
+            selectedSymbol = symbol;
+            const signal = currentSignals.find(s => s.symbol === symbol);
+
+            if (!signal) return;
+
+            // Re-render signals to update selection
+            displaySignals(currentSignals);
+
+            // Display analysis
+            const content = document.getElementById('analysisContent');
+            const breakdown = signal.score_breakdown || {};
+
+            let html = `
+                <div class="breakdown-section">
+                    <h3 class="breakdown-title">📊 Score Breakdown</h3>
+            `;
+
+            Object.entries(breakdown).forEach(([key, value]) => {
+                // Normalize the value to be out of the max possible for that indicator
+                const maxValues = {
+                    'fibonacci': 34, 'ema': 21, 'elliott_wave_oscillator': 21,
+                    'divergence': 21, 'fibonacci_bounce': 34, 'stochastic': 13,
+                    'bollinger': 13, 'adx': 8, 'volume': 3, 'confluence': 13
+                };
+                const max = maxValues[key] || 10;
+                const percentage = (value / max) * 100;
+                const colorClass = percentage >= 80 ? 'breakdown-high' : percentage >= 50 ? 'breakdown-medium' : 'breakdown-low';
+
+                html += `
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">
+                            <span class="breakdown-name">${key.replace(/_/g, ' ')}</span>
+                            <span class="breakdown-value">${value}/${max}</span>
+                        </div>
+                        <div class="breakdown-bar">
+                            <div class="breakdown-fill ${colorClass}" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                </div>
+
+                <div class="params-section">
+                    <h3 class="params-title">💰 Trade Parameters</h3>
+                    <div class="params-grid">
+                        <div class="param-item">
+                            <div class="param-label">Entry Price</div>
+                            <div class="param-value">$${signal.current_price.toFixed(signal.category.includes('Forex') ? 4 : 2)}</div>
+                        </div>
+                        <div class="param-item">
+                            <div class="param-label">Stop-Loss (-2.36%)</div>
+                            <div class="param-value negative">$${signal.stop_loss.toFixed(signal.category.includes('Forex') ? 4 : 2)}</div>
+                        </div>
+                        <div class="param-item">
+                            <div class="param-label">Take-Profit (+6.18%)</div>
+                            <div class="param-value positive">$${signal.take_profit.toFixed(signal.category.includes('Forex') ? 4 : 2)}</div>
+                        </div>
+                        <div class="param-item">
+                            <div class="param-label">Leverage</div>
+                            <div class="param-value">${signal.leverage}x</div>
+                        </div>
+                        <div class="param-item">
+                            <div class="param-label">Position Size</div>
+                            <div class="param-value">10% (10€)</div>
+                        </div>
+                        <div class="param-item">
+                            <div class="param-label">Max Loss</div>
+                            <div class="param-value negative">0.24€</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="risk-section">
+                    <div class="risk-title">⚠️ Risk Assessment</div>
+                    <div class="risk-text">
+                        Score: <strong>${signal.enhanced_score || signal.score}/194</strong> •
+                        Risk Level: <strong style="color: ${signal.score >= 85 ? '#48bb78' : '#ed8936'}">
+                            ${signal.score >= 85 ? 'LOW' : 'MEDIUM'}
+                        </strong> •
+                        R/R: <strong>1:2.618</strong> (Golden Ratio)
+                    </div>
+                </div>
+            `;
+
+            content.innerHTML = html;
+        }
+
+        // Prompt modal functions
+        function showPromptForSymbol(symbol) {
+            const prompts = promptsData[symbol];
+            if (!prompts) {
+                console.error('No prompts found for', symbol);
+                return;
+            }
+            showPrompt(symbol, prompts);
+        }
+
+        function showPrompt(symbol, prompts) {
+            const overlay = document.getElementById('promptOverlay');
+            const modal = document.getElementById('promptModal');
+
+            const escapeHtml = (text) => {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+
+            modal.innerHTML = `
+                <div class="prompt-header">
+                    <h3 style="color: #a78bfa; margin: 0;">🧠 Claude Prompts - ${escapeHtml(symbol)}</h3>
+                    <button class="prompt-close" onclick="hidePrompt()">Close</button>
+                </div>
+                <div class="prompt-section">
+                    <div class="prompt-section-title">📋 System Prompt</div>
+                    <div class="prompt-content">${escapeHtml(prompts.system || 'Not available')}</div>
+                </div>
+                <div class="prompt-section">
+                    <div class="prompt-section-title">📊 User Prompt (Market Data)</div>
+                    <div class="prompt-content">${escapeHtml(prompts.user || 'Not available')}</div>
+                </div>
+            `;
+
+            overlay.classList.add('show');
+            modal.classList.add('show');
+        }
+
+        function hidePrompt() {
+            document.getElementById('promptOverlay').classList.remove('show');
+            document.getElementById('promptModal').classList.remove('show');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getZEREZClient, SearchFilters } from '@/lib/zerez-graphql-client';
+import { ZEREZSearchResponse, ZEREZSearchResponseSchema } from '@/lib/zerez-types';
+import { validateWithErrorHandling } from '@/lib/api-validation-helpers';
+import { validateUUIDFields } from '@/lib/api-validation-utils';
+import { isCertificateNormValue, CertificateNormValue, ZEREZ_IMPORT_LIMITS } from '@/lib/zerez-constants';
+import { createErrorResponse } from '@/lib/api-error-handler';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Certificate norms filter with runtime validation
+    let validNorms: string[] | undefined;
+    if (body.certificateNorms && Array.isArray(body.certificateNorms) && body.certificateNorms.length > 0) {
+      // Validate each norm value at runtime
+      const validatedNorms: CertificateNormValue[] = [];
+      const invalidNorms: string[] = [];
+
+      for (const norm of body.certificateNorms) {
+        if (typeof norm === 'string') {
+          if (isCertificateNormValue(norm)) {
+            validatedNorms.push(norm);
+          } else {
+            invalidNorms.push(norm);
+          }
+        } else {
+          invalidNorms.push(String(norm));
+        }
+      }
+
+      // Reject request if any invalid norms provided
+      if (invalidNorms.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'Invalid certificate norm values',
+            details: {
+              invalid: invalidNorms,
+              message: 'Certificate norms must be one of: VDE-AR-N 4105, VDE-AR-N 4110, VDE-AR-N 4120, VDE-AR-N 4130, CE, IEC'
+            }
+          },
+          { status: 400 }
+        );
+      }
+
+      // Only add if we have valid norms
+      if (validatedNorms.length > 0) {
+        validNorms = validatedNorms;
+      }
+    }
+
+    // ID filters with UUID validation
+    if (body.manufacturerId || body.authorityId) {
+      const uuidErrors = validateUUIDFields({
+        ...(body.manufacturerId && { manufacturerId: body.manufacturerId }),
+        ...(body.authorityId && { authorityId: body.authorityId })
+      });
+
+      if (uuidErrors.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'Invalid UUID parameters',
+            details: uuidErrors
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate maxResults if provided
+    let maxResults: number | undefined;
+    if (body.maxResults !== undefined) {
+      const parsedMaxResults = Number(body.maxResults);
+
+      // Validate: must be positive integer between 1 and MAX_SEARCH_RESULTS
+      // Note: ZEREZ GraphQL API has no practical limit for bulk imports
+      if (!Number.isInteger(parsedMaxResults) || parsedMaxResults < 1 || parsedMaxResults > ZEREZ_IMPORT_LIMITS.MAX_SEARCH_RESULTS) {
+        return NextResponse.json(
+          {
+            error: 'Invalid maxResults parameter',
+            message: `maxResults must be an integer between 1 and ${ZEREZ_IMPORT_LIMITS.MAX_SEARCH_RESULTS.toLocaleString()}`
+          },
+          { status: 400 }
+        );
+      }
+
+      maxResults = parsedMaxResults;
+    }
+
+    // Validate numeric filter (防止 invalid input attacks)
+    function validateNumericFilter(
+      value: unknown,
+      name: string,
+      min: number = 0,
+      max: number = 1000000
+    ): number | null {
+      if (value === undefined || value === null) return null;
+
+      const num = Number(value);
+
+      if (!Number.isFinite(num)) {
+        throw new Error(`${name} must be a finite number`);
+      }
+
+      if (num < min || num > max) {
+        throw new Error(`${name} must be between ${min} and ${max}`);
+      }
+
+      return num;
+    }
+
+    // Build filters for TypeScript GraphQL client with validation
+    let filters: SearchFilters;
+    try {
+      filters = {
+        powerMinKw: validateNumericFilter(body.powerMin, 'powerMin', 0, 10000),
+        powerMaxKw: validateNumericFilter(body.powerMax, 'powerMax', 0, 10000),
+        voltageMin: validateNumericFilter(body.voltageMin, 'voltageMin', 0, 10000),
+        voltageMax: validateNumericFilter(body.voltageMax, 'voltageMax', 0, 10000),
+        primaryEnergySource: body.primaryEnergySource || null,
+        category: body.category || null,
+        isVerified: body.isVerified,
+        certificateNorms: validNorms || null,
+        manufacturerId: body.manufacturerId ? String(body.manufacturerId).trim() : null,
+        authorityId: body.authorityId ? String(body.authorityId).trim() : null,
+        createdAfter: body.createdAfter || null,
+        createdBefore: body.createdBefore || null,
+        modifiedAfter: body.modifiedAfter || null,
+        modifiedBefore: body.modifiedBefore || null,
+      };
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid numeric input', message: error instanceof Error ? error.message : 'Unknown validation error' },
+        { status: 400 }
+      );
+    }
+
+    // Validate min < max for power ranges
+    if (filters.powerMinKw !== null && filters.powerMaxKw !== null) {
+      const powerMin = filters.powerMinKw as number;
+      const powerMax = filters.powerMaxKw as number;
+      if (powerMin > powerMax) {
+        return NextResponse.json(
+          { error: 'Invalid range', message: 'powerMin cannot be greater than powerMax' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate min < max for voltage ranges
+    if (filters.voltageMin !== null && filters.voltageMax !== null) {
+      const voltageMin = filters.voltageMin as number;
+      const voltageMax = filters.voltageMax as number;
+      if (voltageMin > voltageMax) {
+        return NextResponse.json(
+          { error: 'Invalid range', message: 'voltageMin cannot be greater than voltageMax' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Get TypeScript GraphQL client and execute search
+    const client = await getZEREZClient();
+    const { units, totalCount } = await client.searchUnits(filters, 100, maxResults);
+
+    // Convert units to response format (match Python output structure)
+    // Ensure undefined fields are converted to null for proper JSON serialization
+    const responseData = {
+      units: units.map(unit => ({
+        id: unit.id,
+        unitCode: unit.unitCode ?? null,
+        modelName: unit.modelName ?? null,
+        certificateNumber: unit.certificateNumber ?? null,
+        maxActivePower: unit.maxActivePower ?? null,
+        maxActivePowerRange: unit.maxActivePowerRange ?? null,
+        minActivePowerRange: unit.minActivePowerRange ?? null,
+        maxApparentPowerRange: unit.maxApparentPowerRange ?? null,
+        minApparentPowerRange: unit.minApparentPowerRange ?? null,
+        ratedVoltage: unit.ratedVoltage ?? null,
+        ratedCurrent: unit.ratedCurrent ?? null,
+        primaryEnergySource: unit.primaryEnergySource ?? null,
+        category: unit.category ?? null,
+        unitTypeId: unit.unitTypeId ?? null,
+        certificateId: unit.certificateId ?? null,
+        certificateIssueDate: unit.certificateIssueDate ?? null,
+        certificateAuthorityId: unit.certificateAuthorityId ?? null,
+        certificateAuthorityName: unit.certificateAuthorityName ?? null,
+        certificateHolderId: unit.certificateHolderId ?? null,
+        manufacturerId: unit.manufacturerId ?? null,
+        manufacturerName: unit.manufacturerName ?? null,
+        certificateValidityStatusName: unit.certificateValidityStatusName ?? null,
+        certificateNormIssueDateDescriptions: unit.certificateNormIssueDateDescriptions ?? null,
+        isVerified: unit.isVerified,
+        isImported: unit.isImported,
+        createdAt: unit.createdAt ?? null,
+        modifiedAt: unit.modifiedAt ?? null,
+        validityStartDate: unit.validityStartDate ?? null,
+        validityEndDate: unit.validityEndDate ?? null,
+      })),
+      totalCount,
+    };
+
+    // Validate response structure against Zod schema
+    // This catches TypeScript-schema mismatches at runtime
+    const result = validateWithErrorHandling(
+      ZEREZSearchResponseSchema,
+      responseData,
+      {
+        operation: 'ZEREZ search',
+        logContext: {
+          totalRecords: responseData.units?.length || 0,
+          totalCount: responseData.totalCount
+        },
+        sampleData: responseData.units?.[0]
+      }
+    );
+
+    if (!result.success) return result.response;
+
+    // Type-safe validated data
+    return NextResponse.json<ZEREZSearchResponse>(result.data);
+  } catch (error) {
+    return createErrorResponse('search ZEREZ database', error);
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "current_focus": "Memory bank updated with comprehensive system architecture",
+  "active_tasks": [
+    "Push gh-pages branch to enable root URL dashboard (pending user action from Windows)"
+  ],
+  "recent_changes": [
+    "2025-11-02: Updated MEMORY_BANK.md with complete system architecture documentation",
+    "2025-11-02: Documented data provider system (TradingView, Yahoo Finance, Capital.com)",
+    "2025-11-02: Documented scoring system (194 points), workflows (19 files), and configuration",
+    "2025-11-02: Added known issues, technical debt, and pending tasks sections",
+    "2025-11-02: Fixed chart data loading path issue (commit fcadb9e5)",
+    "2025-11-02: Screening results generated with TradingView alerts",
+    "2025-11-01: Dashboard moved to root URL (commit 7358aba, pending push)",
+    "2025-11-01: Yahoo Finance provider deployed to production (commit eaa264e)"
+  ],
+  "open_issues": [
+    "GitHub Pages dashboard pending push to remote (blocked by WSL network timeout)"
+  ],
+  "decisions": [
+    "Use multi-provider fallback chain: TradingView → Yahoo Finance → Capital.com",
+    "Dashboard served from root URL (/) instead of /dashboard/ subdirectory",
+    "Chart data stored as JSON (48KB) instead of HTML (68KB) for performance",
+    "194-point scoring system with Elliott Wave indicators (EWO, divergence, Fibonacci bounce)",
+    "Minimum score 75 for tradeable signals, 85 for high leverage"
+  ],
+  "last_updated": "2025-11-02T13:15:00.000000"
+}

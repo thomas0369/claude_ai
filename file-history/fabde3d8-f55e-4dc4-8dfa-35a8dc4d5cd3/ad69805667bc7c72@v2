@@ -1,0 +1,244 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Loader2, Check, X, Lock, Edit3 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import type { EnhancedProductData } from '@/lib/types-enhanced';
+import {
+  canEditProduct,
+  canEditField,
+  getEditRestrictionReason,
+  getFieldRestrictionReason,
+} from '@/lib/edit-permissions';
+
+interface EditableCellProps {
+  product: EnhancedProductData;
+  field: string;
+  value: string | number | null | undefined;
+  formatter?: (value: unknown) => string;
+  onSave?: (newValue: string | number) => Promise<void>;
+}
+
+/**
+ * EditableCell Component
+ *
+ * Provides inline editing for PDF-imported products with permission checks.
+ * ZEREZ products are blocked from editing to preserve data integrity.
+ *
+ * Features:
+ * - Double-click to edit (if allowed)
+ * - Permission-based access control
+ * - Visual feedback (icons, tooltips)
+ * - Input validation
+ * - Save on Enter/Blur, Cancel on Escape
+ */
+export default function EditableCell({
+  product,
+  field,
+  value,
+  formatter,
+  onSave,
+}: EditableCellProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const canEditProductFlag = canEditProduct(product);
+  const canEditFieldFlag = canEditField(product, field);
+  const isEditable = canEditProductFlag && canEditFieldFlag;
+
+  // Format display value
+  const displayValue = formatter ? formatter(value) : value?.toString() ?? 'N/A';
+
+  // Initialize edit value when entering edit mode
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      const initialValue = value?.toString() ?? '';
+      setEditValue(initialValue);
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing, value]);
+
+  const handleDoubleClick = () => {
+    if (!isEditable) {
+      // Show why editing is blocked
+      const productReason = getEditRestrictionReason(product);
+      const fieldReason = getFieldRestrictionReason(product, field);
+      const reason = fieldReason || productReason;
+
+      if (reason) {
+        toast.error(reason, { duration: 5000 });
+      }
+      return;
+    }
+
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (!onSave) {
+      setIsEditing(false);
+      return;
+    }
+
+    // Check if value changed
+    const originalValue = value?.toString() ?? '';
+    if (editValue === originalValue) {
+      setIsEditing(false);
+      return;
+    }
+
+    // Basic validation
+    if (editValue.trim() === '') {
+      toast.error('Value cannot be empty');
+      return;
+    }
+
+    // Validate numeric fields
+    if (field.includes('percent') || field.includes('_kw') || field.includes('_kg') || field.includes('_mm') || field.includes('_v') || field.includes('_a')) {
+      const numValue = parseFloat(editValue);
+      if (isNaN(numValue)) {
+        toast.error('Please enter a valid number');
+        return;
+      }
+
+      // Validate efficiency percentage (0-100)
+      if (field.includes('percent') && field.includes('efficiency')) {
+        if (numValue < 0 || numValue > 100) {
+          toast.error('Efficiency must be between 0 and 100%');
+          return;
+        }
+      }
+
+      // Validate positive values for physical measurements
+      if (field.includes('_kg') || field.includes('_mm') || field.includes('_kw')) {
+        if (numValue <= 0) {
+          toast.error('Value must be positive');
+          return;
+        }
+      }
+    }
+
+    try {
+      setIsSaving(true);
+
+      // Convert to appropriate type
+      let finalValue: string | number = editValue;
+      if (field.includes('percent') || field.includes('_kw') || field.includes('_kg') || field.includes('_mm') || field.includes('_v') || field.includes('_a')) {
+        finalValue = parseFloat(editValue);
+      }
+
+      await onSave(finalValue);
+
+      toast.success('Updated successfully');
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Save failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save changes');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditValue(value?.toString() ?? '');
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancel();
+    }
+  };
+
+  const handleBlur = () => {
+    // Don't save on blur if clicking cancel button
+    handleSave();
+  };
+
+  // Get tooltip text
+  const getTooltip = (): string => {
+    if (!canEditProductFlag) {
+      return getEditRestrictionReason(product) || 'This product cannot be edited';
+    }
+    if (!canEditFieldFlag) {
+      return getFieldRestrictionReason(product, field) || 'This field cannot be edited';
+    }
+    return 'Double-click to edit';
+  };
+
+  // Render edit mode
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-2 w-full">
+        <input
+          ref={inputRef}
+          type={field.includes('percent') || field.includes('_kw') || field.includes('_kg') || field.includes('_mm') ? 'number' : 'text'}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          disabled={isSaving}
+          className="flex-1 px-2 py-1 border-2 border-blue-500 rounded focus:outline-none focus:border-blue-600 disabled:opacity-50"
+          step={field.includes('percent') ? '0.1' : field.includes('_mm') ? '1' : 'any'}
+        />
+        {isSaving ? (
+          <Loader2 size={16} className="text-blue-600 animate-spin" />
+        ) : (
+          <div className="flex gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSave();
+              }}
+              className="p-1 text-green-600 hover:bg-green-50 rounded"
+              title="Save (Enter)"
+            >
+              <Check size={16} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCancel();
+              }}
+              className="p-1 text-red-600 hover:bg-red-50 rounded"
+              title="Cancel (Esc)"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Render display mode
+  return (
+    <div
+      onDoubleClick={handleDoubleClick}
+      className={`flex items-center gap-2 px-2 py-1 rounded transition-colors ${
+        isEditable
+          ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20'
+          : 'cursor-not-allowed opacity-75'
+      }`}
+      title={getTooltip()}
+    >
+      <span className="flex-1">{displayValue}</span>
+      {!canEditProductFlag && (
+        <Lock size={14} className="text-red-600 flex-shrink-0" title="Locked - ZEREZ data" />
+      )}
+      {canEditProductFlag && !canEditFieldFlag && (
+        <span className="text-gray-400 text-xs flex-shrink-0" title="Auto-calculated">⚙️</span>
+      )}
+      {isEditable && (
+        <Edit3 size={14} className="text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" title="Double-click to edit" />
+      )}
+    </div>
+  );
+}

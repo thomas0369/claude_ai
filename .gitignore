@@ -1,0 +1,54 @@
+# Credentials and secrets
+.credentials.json
+*.key
+*.pem
+.env
+.env.*
+
+# Node modules
+node_modules/
+hooks/node_modules/
+*/node_modules/
+
+# Package lock files (can be regenerated)
+package-lock.json
+hooks/package-lock.json
+
+# Shell snapshots (temporary)
+shell-snapshots/
+
+# Todos (session-specific, can be regenerated)
+todos/
+
+# Local settings
+settings.local.json
+
+# PM2 logs and runtime files
+pm2-logs/
+*.pid
+
+# Build artifacts
+dist/
+build/
+*.tsbuildinfo
+
+# Cache directories
+.cache/
+.tsc-cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Temporary files
+*.tmp
+*.temp
+*.log

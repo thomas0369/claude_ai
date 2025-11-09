@@ -1,0 +1,471 @@
+# PDF Import Strategy - Design Document
+
+## Overview
+
+Two-phase verified data pipeline for enriching product database with PDF datasheets.
+
+## Strategy 1: Manual PDF Import
+
+### Workflow
+```
+Product Selection → PDF Search/Upload → DeepSeek Extract → JSON Staging → UI Edit → Verify → Main Database
+```
+
+### Steps
+
+1. **Product Selection**
+   - User selects existing product from database
+   - System shows: manufacturer, model, existing data
+
+2. **PDF Acquisition**
+   - Option A: Manual upload
+   - Option B: Automated search using:
+     - Google Search API: `"{manufacturer} {model} datasheet PDF"`
+     - Manufacturer website crawling
+     - Industry databases (ZEREZ, ENF Solar, etc.)
+
+3. **File Organization**
+   - Create folder structure:
+     ```
+     public/data/pdfs/
+       ├── {manufacturer-slug}/
+       │   ├── {product-model-slug}/
+       │   │   ├── datasheet.pdf          # Original PDF
+       │   │   ├── extracted.json         # DeepSeek extraction
+       │   │   ├── metadata.json          # File metadata
+       │   │   └── pages/                 # PDF page images (cache)
+       │   │       ├── page-1.png
+       │   │       ├── page-2.png
+       │   │       └── page-3.png
+     ```
+
+4. **DeepSeek Extraction**
+   - Convert PDF to images (client-side via pdf.js)
+   - Send to DeepSeek Vision API
+   - Extract structured data
+   - Calculate confidence scores
+   - Save to `extracted.json`
+
+5. **JSON Staging Database**
+   - Location: `public/data/staging/products/{id}.json`
+   - Schema:
+     ```json
+     {
+       "id": "uuid-v4",
+       "status": "pending_review" | "verified" | "rejected",
+       "source": "manual_upload" | "auto_search",
+       "zerez_product_id": "original-product-id",
+       "pdf_path": "pdfs/manufacturer/model/datasheet.pdf",
+       "extracted_data": {
+         "model_name": "...",
+         "manufacturer": "...",
+         "power": {...},
+         "efficiency": {...},
+         ...
+       },
+       "confidence_scores": {
+         "overall": 85.5,
+         "fields": {
+           "model_name": 95,
+           "power.rated_power_kw": 90,
+           ...
+         }
+       },
+       "extraction_metadata": {
+         "extraction_date": "2025-11-08T12:00:00Z",
+         "cost_usd": 0.0012,
+         "pages_processed": 3,
+         "extraction_method": "deepseek-vl2"
+       },
+       "editor_notes": "",
+       "verified_by": null,
+       "verified_at": null
+     }
+     ```
+
+6. **UI Editor**
+   - Side-by-side view:
+     - Left: PDF viewer (pdf.js)
+     - Right: Editable form fields
+   - Features:
+     - Highlight low-confidence fields (< 70%)
+     - Manual override for any field
+     - Add editor notes
+     - View original ZEREZ data for comparison
+     - Confidence score visualization
+
+7. **Verification Flow**
+   - Editor reviews extracted data
+   - Makes corrections as needed
+   - Adds verification notes
+   - Clicks "Verify & Import"
+   - System:
+     - Validates all required fields
+     - Merges with existing ZEREZ data
+     - Moves from staging to main database
+     - Updates `data/products.yaml`
+     - Marks PDF as "verified" source
+
+## Strategy 2: Auto-import After ZEREZ Import (Optional)
+
+### Workflow
+```
+ZEREZ Import Complete → [Auto-import Toggle ON?] → PDF Search → Strategy 1 Flow
+```
+
+### Implementation
+
+1. **ZEREZ Wizard Integration**
+   - Step 3 (after import): Add checkbox
+     - ☐ "Automatically search for PDF datasheets"
+     - Info tooltip: "Searches internet for PDFs and extracts data for review"
+
+2. **Auto-search Service**
+   - Runs after ZEREZ import completes
+   - For each imported product:
+     - Search for PDF using manufacturer + model
+     - Download top 3 results
+     - Run DeepSeek extraction on all
+     - Choose best match (highest confidence)
+     - Save to staging database
+     - Continue to next product
+
+3. **Background Processing**
+   - Use API route with Server-Sent Events (SSE)
+   - Show progress: "Processing 5/199 products..."
+   - Pause/resume capability
+   - Error handling: Skip failed products, log issues
+
+4. **Review Dashboard**
+   - After auto-import: Show summary
+     - ✓ 45 PDFs found and extracted
+     - ⚠ 12 PDFs found but low confidence (< 60%)
+     - ✗ 5 PDFs not found
+   - Bulk actions:
+     - Review all pending extractions
+     - Verify high-confidence (> 90%) automatically
+     - Reject low-confidence (< 50%)
+
+## File Structure
+
+```
+benchmark-app/
+├── public/
+│   └── data/
+│       ├── pdfs/                    # Organized PDF storage
+│       │   └── {manufacturer}/
+│       │       └── {model}/
+│       │           ├── datasheet.pdf
+│       │           ├── extracted.json
+│       │           └── metadata.json
+│       └── staging/                 # Unverified data
+│           └── products/
+│               ├── {id}.json
+│               └── index.json       # All staging IDs
+├── lib/
+│   ├── pdf/
+│   │   ├── search.ts               # PDF search service
+│   │   ├── storage.ts              # File organization
+│   │   └── staging.ts              # Staging database manager
+│   └── verification/
+│       ├── merge.ts                # Merge extracted + ZEREZ data
+│       └── import.ts               # Move staging → main DB
+├── components/
+│   ├── pdf-search.tsx              # Search UI
+│   ├── pdf-editor.tsx              # Verification editor
+│   ├── pdf-staging-list.tsx        # List of pending reviews
+│   └── confidence-badge.tsx        # Confidence score UI
+└── app/
+    ├── import/
+    │   └── verify/
+    │       ├── page.tsx            # Staging list page
+    │       └── [id]/
+    │           └── page.tsx        # Individual editor
+    └── api/
+        ├── pdf/
+        │   ├── search/route.ts     # Search for PDFs
+        │   ├── download/route.ts   # Download PDF
+        │   └── auto-import/route.ts # Background auto-import
+        └── staging/
+            ├── list/route.ts       # Get all staging items
+            ├── save/route.ts       # Save edits
+            └── verify/route.ts     # Verify & import to main DB
+
+## Technology Stack
+
+### PDF Search
+- **Google Custom Search API**: Find PDFs by manufacturer + model
+- **Puppeteer/Playwright**: Crawl manufacturer websites (server-side only)
+- **Fallback**: Manual upload
+
+### Storage
+- **File System**: `/public/data/pdfs/` for static files
+- **JSON Storage**: Staging database (simple, editable, git-friendly)
+- **Asset Organization**: Manufacturer → Model hierarchy
+
+### Extraction
+- **DeepSeek Vision API**: Primary extraction method
+- **PDF.js**: Client-side PDF rendering
+- **Confidence Scoring**: Multi-factor algorithm (already implemented)
+
+### Verification UI
+- **React PDF Viewer**: Display PDFs in browser
+- **Form Validation**: Zod schemas
+- **State Management**: Zustand for editor state
+- **Diff View**: Show ZEREZ vs Extracted data
+
+## API Routes
+
+### POST /api/pdf/search
+Search for PDFs on the internet
+
+**Request**:
+```json
+{
+  "manufacturer": "BYD",
+  "model": "Cube Pro C230",
+  "maxResults": 5
+}
+```
+
+**Response**:
+```json
+{
+  "results": [
+    {
+      "url": "https://...",
+      "title": "BYD Cube Pro C230 Datasheet",
+      "confidence": 95,
+      "source": "manufacturer_website"
+    }
+  ]
+}
+```
+
+### POST /api/pdf/download
+Download PDF and organize into folder structure
+
+**Request**:
+```json
+{
+  "url": "https://...",
+  "manufacturer": "BYD",
+  "model": "Cube Pro C230",
+  "productId": "zerez-id-123"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "pdfPath": "pdfs/byd/cube-pro-c230/datasheet.pdf",
+  "metadata": {
+    "fileSize": 2456789,
+    "pages": 4,
+    "downloadDate": "2025-11-08T12:00:00Z"
+  }
+}
+```
+
+### POST /api/pdf/auto-import (SSE)
+Background processing of multiple products
+
+**Request**:
+```json
+{
+  "productIds": ["id1", "id2", "id3", ...],
+  "options": {
+    "maxPagesPerPdf": 3,
+    "confidenceThreshold": 60,
+    "autoVerifyThreshold": 95
+  }
+}
+```
+
+**Response** (Server-Sent Events):
+```
+event: progress
+data: {"current": 1, "total": 199, "productId": "id1", "status": "searching"}
+
+event: progress
+data: {"current": 1, "total": 199, "productId": "id1", "status": "extracting"}
+
+event: result
+data: {"productId": "id1", "success": true, "confidence": 87.5, "stagingId": "uuid"}
+
+event: complete
+data: {"total": 199, "succeeded": 45, "failed": 5, "lowConfidence": 12}
+```
+
+### GET /api/staging/list
+Get all pending verifications
+
+**Response**:
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "manufacturer": "BYD",
+      "model": "Cube Pro C230",
+      "confidence": 87.5,
+      "status": "pending_review",
+      "extractionDate": "2025-11-08T12:00:00Z"
+    }
+  ]
+}
+```
+
+### POST /api/staging/verify
+Verify and import to main database
+
+**Request**:
+```json
+{
+  "stagingId": "uuid",
+  "editedData": {...},
+  "verifiedBy": "user@example.com",
+  "notes": "Manually verified all specifications"
+}
+```
+
+## Database Schema Changes
+
+### products.yaml Enhancement
+```yaml
+- id: product-123
+  model: Cube Pro C230
+  manufacturer: BYD
+  # ... existing fields ...
+
+  # NEW: PDF metadata
+  pdf_datasheet:
+    path: pdfs/byd/cube-pro-c230/datasheet.pdf
+    verified: true
+    verified_by: user@example.com
+    verified_at: 2025-11-08T12:00:00Z
+    extraction_confidence: 87.5
+    source: deepseek-vl2
+
+  # NEW: Data provenance
+  data_sources:
+    - type: zerez
+      confidence: 100
+      imported_at: 2025-11-01T10:00:00Z
+    - type: pdf_extraction
+      confidence: 87.5
+      verified: true
+      imported_at: 2025-11-08T12:00:00Z
+```
+
+## User Flows
+
+### Flow 1: Manual PDF Import
+
+1. User navigates to product detail page
+2. Clicks "Add PDF Datasheet"
+3. Options:
+   - Upload PDF file
+   - Search internet for PDF
+4. If search: Shows search results, user selects best match
+5. System downloads PDF, extracts data
+6. Shows extraction results with confidence scores
+7. User reviews/edits extracted data
+8. User clicks "Verify & Import"
+9. Data merged into main database
+
+### Flow 2: Auto-import (Optional)
+
+1. User completes ZEREZ import
+2. Checks "Auto-search for PDFs" checkbox
+3. Clicks "Start Auto-import"
+4. Progress bar shows: "Processing 5/199 products..."
+5. After completion: Shows summary dashboard
+6. User navigates to "Review Pending" page
+7. Reviews each extraction individually
+8. Bulk actions: Verify high-confidence items
+9. Manual review: Low-confidence items
+
+## Implementation Priority
+
+### Phase 1: Core Infrastructure (Week 1)
+- [ ] PDF storage manager (`lib/pdf/storage.ts`)
+- [ ] Staging database manager (`lib/pdf/staging.ts`)
+- [ ] File organization utilities
+- [ ] API route: `/api/pdf/download`
+
+### Phase 2: Manual Import (Week 2)
+- [ ] PDF search service (`lib/pdf/search.ts`)
+- [ ] API route: `/api/pdf/search`
+- [ ] UI: PDF upload component
+- [ ] UI: Extraction results viewer
+
+### Phase 3: Verification Editor (Week 3)
+- [ ] PDF viewer component (React PDF)
+- [ ] Editable form with confidence indicators
+- [ ] Diff view (ZEREZ vs Extracted)
+- [ ] API route: `/api/staging/verify`
+
+### Phase 4: Auto-import (Week 4)
+- [ ] Background processing service
+- [ ] SSE streaming for progress
+- [ ] ZEREZ wizard integration (toggle)
+- [ ] Review dashboard
+
+### Phase 5: Polish & Testing (Week 5)
+- [ ] E2E tests for full flow
+- [ ] Error handling & retry logic
+- [ ] Performance optimization
+- [ ] Documentation
+
+## Cost Estimation
+
+### DeepSeek API Costs
+- **Per PDF (3 pages)**: ~$0.0012
+- **100 products**: ~$0.12
+- **1000 products**: ~$1.20
+- **Safety limit**: $5.00 per batch (configurable)
+
+### Storage Requirements
+- **Per product**: ~3-5 MB (PDF + images)
+- **100 products**: ~400 MB
+- **1000 products**: ~4 GB
+
+## Security Considerations
+
+1. **PDF Validation**
+   - Scan uploaded files for malware
+   - Limit file size (max 10 MB)
+   - Verify PDF structure
+
+2. **URL Validation**
+   - Whitelist allowed domains
+   - Prevent SSRF attacks
+   - Validate content-type
+
+3. **Access Control**
+   - Only authenticated users can verify
+   - Audit log of all verifications
+   - Track who verified what
+
+4. **Rate Limiting**
+   - Max 10 PDFs per minute per user
+   - DeepSeek API limits enforced
+   - Auto-import: Max 50 products per batch
+
+## Success Metrics
+
+- **Coverage**: % of products with verified PDFs
+- **Confidence**: Average confidence score
+- **Efficiency**: Time from extraction to verification
+- **Accuracy**: % of auto-verified items that needed correction
+- **Cost**: Average cost per verified product
+
+## Next Steps
+
+1. **Immediate**: Review and approve this design
+2. **Week 1**: Start Phase 1 implementation
+3. **Week 2**: Build manual import flow
+4. **Week 3**: Create verification editor
+5. **Week 4**: Add auto-import capability

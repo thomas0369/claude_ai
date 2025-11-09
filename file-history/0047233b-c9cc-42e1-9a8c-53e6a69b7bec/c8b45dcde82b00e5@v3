@@ -1,0 +1,416 @@
+"""
+Claude CLI Integration - Handles communication with Claude for trading decisions.
+
+This module provides two methods for integrating with Claude:
+1. Claude CLI (subprocess) - Uses the 'claude' command-line tool
+2. Anthropic API (SDK) - Direct API calls using anthropic Python package
+
+The response is parsed, validated, and returned as a structured trading decision.
+"""
+
+import json
+import subprocess
+import os
+from typing import Dict, Any, Optional, Tuple
+from datetime import datetime
+import logging
+
+# Optional: Try importing Anthropic SDK
+try:
+    import anthropic
+    HAS_ANTHROPIC_SDK = True
+except ImportError:
+    HAS_ANTHROPIC_SDK = False
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class ClaudeIntegrationError(Exception):
+    """Base exception for Claude integration errors."""
+    pass
+
+
+class ClaudeResponseError(ClaudeIntegrationError):
+    """Raised when Claude's response is invalid or malformed."""
+    pass
+
+
+class ClaudeTrader:
+    """Integrates with Claude CLI or API to get trading decisions."""
+
+    def __init__(
+        self,
+        method: str = "cli",
+        api_key: Optional[str] = None,
+        model: str = "claude-sonnet-4-5-20250929",
+        max_tokens: int = 2000
+    ):
+        """
+        Initialize Claude integration.
+
+        Args:
+            method: Integration method - "cli" or "api"
+            api_key: Anthropic API key (required for "api" method)
+            model: Claude model to use
+            max_tokens: Maximum tokens for response
+        """
+        self.method = method
+        self.model = model
+        self.max_tokens = max_tokens
+
+        if method == "api":
+            if not HAS_ANTHROPIC_SDK:
+                raise ClaudeIntegrationError(
+                    "Anthropic SDK not installed. Install with: pip install anthropic"
+                )
+            if not api_key:
+                api_key = os.getenv("ANTHROPIC_API_KEY")
+            if not api_key:
+                raise ClaudeIntegrationError(
+                    "API key required for 'api' method. Set ANTHROPIC_API_KEY env var or pass api_key parameter."
+                )
+            self.client = anthropic.Anthropic(api_key=api_key)
+        else:
+            # CLI method - verify claude command is available
+            try:
+                subprocess.run(
+                    ["claude", "--version"],
+                    capture_output=True,
+                    check=True,
+                    timeout=5
+                )
+            except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+                logger.warning(
+                    "Claude CLI not found. Install from: https://docs.anthropic.com/en/docs/claude-code"
+                )
+
+    def analyze_trade(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        timeout: int = 30
+    ) -> Dict[str, Any]:
+        """
+        Send prompt to Claude and get trading decision.
+
+        Args:
+            system_prompt: System prompt defining Claude's role
+            user_prompt: User prompt with market data
+            timeout: Timeout in seconds for API/CLI call
+
+        Returns:
+            Parsed trading decision dictionary
+
+        Raises:
+            ClaudeIntegrationError: If Claude call fails
+            ClaudeResponseError: If response is invalid
+        """
+        logger.info(f"Sending trading analysis request to Claude via {self.method}...")
+
+        # Get raw response from Claude
+        if self.method == "cli":
+            raw_response = self._call_claude_cli(system_prompt, user_prompt, timeout)
+        else:
+            raw_response = self._call_claude_api(system_prompt, user_prompt, timeout)
+
+        # Parse and validate response
+        decision = self._parse_response(raw_response)
+        self._validate_decision(decision)
+
+        logger.info(f"Received valid decision: {decision['signal']} with {decision['confidence']:.2f} confidence")
+        return decision
+
+    def _call_claude_cli(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        timeout: int
+    ) -> str:
+        """
+        Call Claude via CLI subprocess.
+
+        Args:
+            system_prompt: System prompt
+            user_prompt: User prompt
+            timeout: Timeout in seconds
+
+        Returns:
+            Raw response text from Claude
+        """
+        try:
+            # Create combined prompt for CLI
+            # Claude CLI doesn't support separate system prompts,
+            # so we prepend it to the user prompt
+            combined_prompt = f"{system_prompt}\n\n---\n\n{user_prompt}"
+
+            # Call Claude CLI locally
+            # This is equivalent to: echo "prompt" | claude
+            # The CLI uses stdin for input and stdout for output
+            result = subprocess.run(
+                ["claude"],  # Just call 'claude' - it will use your local config
+                input=combined_prompt,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False  # Don't raise on non-zero exit
+            )
+
+            if result.returncode != 0:
+                error_msg = result.stderr or "Unknown error"
+                raise ClaudeIntegrationError(f"Claude CLI failed: {error_msg}")
+
+            return result.stdout.strip()
+
+        except subprocess.TimeoutExpired:
+            raise ClaudeIntegrationError(f"Claude CLI timed out after {timeout}s")
+        except FileNotFoundError:
+            raise ClaudeIntegrationError(
+                "Claude CLI not found. Make sure 'claude' command is available in your PATH.\n"
+                "If using Claude Code, it should be accessible as 'claude' in your terminal."
+            )
+        except Exception as e:
+            raise ClaudeIntegrationError(f"Claude CLI error: {str(e)}")
+
+    def _call_claude_api(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        timeout: int
+    ) -> str:
+        """
+        Call Claude via Anthropic API.
+
+        Args:
+            system_prompt: System prompt
+            user_prompt: User prompt
+            timeout: Timeout in seconds
+
+        Returns:
+            Raw response text from Claude
+        """
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=self.max_tokens,
+                system=system_prompt,
+                messages=[
+                    {"role": "user", "content": user_prompt}
+                ],
+                timeout=timeout
+            )
+
+            # Extract text from response
+            if response.content and len(response.content) > 0:
+                return response.content[0].text
+            else:
+                raise ClaudeResponseError("Empty response from Claude API")
+
+        except anthropic.APITimeoutError:
+            raise ClaudeIntegrationError(f"Claude API timed out after {timeout}s")
+        except anthropic.APIError as e:
+            raise ClaudeIntegrationError(f"Claude API error: {str(e)}")
+        except Exception as e:
+            raise ClaudeIntegrationError(f"Unexpected error calling Claude API: {str(e)}")
+
+    def _parse_response(self, raw_response: str) -> Dict[str, Any]:
+        """
+        Parse Claude's response into structured decision.
+
+        Args:
+            raw_response: Raw text response from Claude
+
+        Returns:
+            Parsed decision dictionary
+
+        Raises:
+            ClaudeResponseError: If response cannot be parsed
+        """
+        # Claude should return pure JSON, but might include markdown code blocks
+        response_text = raw_response.strip()
+
+        # Remove markdown code blocks if present
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]  # Remove ```json
+        elif response_text.startswith("```"):
+            response_text = response_text[3:]  # Remove ```
+
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]  # Remove trailing ```
+
+        response_text = response_text.strip()
+
+        # Try to find JSON object in response
+        # Sometimes Claude adds explanatory text before/after JSON
+        json_start = response_text.find('{')
+        json_end = response_text.rfind('}') + 1
+
+        if json_start == -1 or json_end == 0:
+            raise ClaudeResponseError(f"No JSON object found in response: {response_text[:200]}")
+
+        json_text = response_text[json_start:json_end]
+
+        try:
+            decision = json.loads(json_text)
+            return decision
+        except json.JSONDecodeError as e:
+            raise ClaudeResponseError(f"Invalid JSON in response: {str(e)}\nResponse: {json_text[:200]}")
+
+    def _validate_decision(self, decision: Dict[str, Any]) -> None:
+        """
+        Validate that the decision has all required fields.
+
+        Args:
+            decision: Parsed decision dictionary
+
+        Raises:
+            ClaudeResponseError: If decision is invalid
+        """
+        required_fields = [
+            "signal",
+            "confidence",
+            "justification",
+            "exit_plan",
+            "wave_count"
+        ]
+
+        missing = [field for field in required_fields if field not in decision]
+        if missing:
+            raise ClaudeResponseError(f"Missing required fields: {', '.join(missing)}")
+
+        # Validate signal value
+        valid_signals = ["buy", "sell", "hold", "close"]
+        if decision["signal"] not in valid_signals:
+            raise ClaudeResponseError(
+                f"Invalid signal '{decision['signal']}'. Must be one of: {valid_signals}"
+            )
+
+        # Validate confidence range
+        confidence = decision["confidence"]
+        if not isinstance(confidence, (int, float)) or not (0 <= confidence <= 1):
+            raise ClaudeResponseError(
+                f"Invalid confidence {confidence}. Must be a number between 0 and 1"
+            )
+
+        # Validate exit_plan structure (if signal is buy/sell)
+        if decision["signal"] in ["buy", "sell"]:
+            exit_plan = decision.get("exit_plan", {})
+            exit_required = ["stop_loss", "take_profit", "invalidation_level", "invalidation_reason"]
+            exit_missing = [field for field in exit_required if field not in exit_plan]
+            if exit_missing:
+                raise ClaudeResponseError(
+                    f"Missing required exit_plan fields: {', '.join(exit_missing)}"
+                )
+
+            # Check for position_size and leverage
+            if "position_size_eur" not in decision:
+                logger.warning("position_size_eur not specified, will use default")
+            if "leverage" not in decision:
+                logger.warning("leverage not specified, will use default")
+
+        logger.info("Decision validation passed")
+
+
+class ClaudeBacktestSimulator:
+    """
+    Simulates Claude responses for backtesting without making actual API calls.
+
+    Uses the screener's scoring to make deterministic decisions for testing.
+    """
+
+    def __init__(self, use_screener_signals: bool = True):
+        """
+        Initialize the backtest simulator.
+
+        Args:
+            use_screener_signals: If True, use screener's direction, otherwise random
+        """
+        self.use_screener_signals = use_screener_signals
+
+    def analyze_trade(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        screening_result: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Simulate a Claude response based on screening results.
+
+        Args:
+            system_prompt: Not used in simulation
+            user_prompt: Not used in simulation
+            screening_result: Screener output to base decision on
+
+        Returns:
+            Simulated trading decision
+        """
+        if not screening_result:
+            # Extract from user_prompt if possible
+            # For now, return a hold decision
+            return {
+                "signal": "hold",
+                "confidence": 0.5,
+                "justification": "Insufficient data for backtesting simulation",
+                "wave_count": "Unknown",
+                "exit_plan": {},
+                "concerns": "No screening result provided"
+            }
+
+        score = screening_result.get('score', 0)
+        direction = screening_result.get('direction', 'neutral')
+
+        # Determine signal based on score and direction
+        if score < 75:
+            signal = "hold"
+            confidence = score / 194  # Normalize to 0-1
+            justification = f"Setup score ({score}/194) below tradeable threshold (75)"
+        else:
+            signal = "buy" if direction == "long" else "sell" if direction == "short" else "hold"
+            confidence = min(0.95, score / 194 + 0.2)  # Higher scores = higher confidence
+            justification = f"Elliott Wave setup with score {score}/194. {direction.capitalize()} bias confirmed."
+
+        decision = {
+            "signal": signal,
+            "confidence": round(confidence, 2),
+            "position_size_eur": 10.0 if signal in ["buy", "sell"] else 0,
+            "leverage": screening_result.get('leverage', 5),
+            "justification": justification,
+            "exit_plan": {
+                "stop_loss": screening_result.get('stop_loss', 0),
+                "take_profit": screening_result.get('take_profit', 0),
+                "invalidation_level": screening_result.get('stop_loss', 0),
+                "invalidation_reason": "Wave structure invalidated if stop loss hit"
+            },
+            "wave_count": "Simulated wave count for backtesting",
+            "risk_reward_ratio": 2.618,
+            "concerns": "This is a simulated response for backtesting"
+        }
+
+        return decision
+
+
+def create_claude_trader(
+    method: str = "cli",
+    api_key: Optional[str] = None,
+    simulate: bool = False,
+    **kwargs
+) -> ClaudeTrader:
+    """
+    Factory function to create appropriate Claude trader instance.
+
+    Args:
+        method: "cli" or "api"
+        api_key: Anthropic API key for API method
+        simulate: If True, return simulator for backtesting
+        **kwargs: Additional arguments for ClaudeTrader
+
+    Returns:
+        ClaudeTrader or ClaudeBacktestSimulator instance
+    """
+    if simulate:
+        logger.info("Creating Claude backtest simulator (no actual API calls)")
+        return ClaudeBacktestSimulator(**kwargs)
+    else:
+        logger.info(f"Creating Claude trader with method: {method}")
+        return ClaudeTrader(method=method, api_key=api_key, **kwargs)

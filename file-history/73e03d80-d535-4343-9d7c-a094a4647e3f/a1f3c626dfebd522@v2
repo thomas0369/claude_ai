@@ -1,0 +1,57 @@
+/**
+ * Konva Demo Test
+ *
+ * Verify the Konva demo page loads and initializes correctly
+ */
+
+import { test, expect } from '@playwright/test';
+
+test('Konva demo page loads successfully', async ({ page }) => {
+  const consoleLogs: string[] = [];
+  const errors: string[] = [];
+
+  // Capture console logs
+  page.on('console', msg => {
+    const text = msg.text();
+    console.log(`BROWSER: ${text}`);
+    consoleLogs.push(text);
+  });
+
+  // Capture errors
+  page.on('pageerror', exception => {
+    console.log(`❌ PAGE ERROR: ${exception.toString()}`);
+    errors.push(exception.toString());
+  });
+
+  console.log('\n=== Loading Konva Demo ===');
+  await page.goto('http://localhost:3001/konva-demo');
+  await page.waitForLoadState('networkidle');
+
+  // Wait for Konva canvas to render
+  await page.waitForTimeout(3000);
+
+  console.log('\n=== Taking Screenshot ===');
+  await page.screenshot({ path: 'konva-demo-loaded.png', fullPage: true });
+
+  console.log('\n=== Summary ===');
+  console.log(`Console Logs: ${consoleLogs.length}`);
+  console.log(`Errors: ${errors.length}`);
+
+  if (errors.length > 0) {
+    console.log('\n❌ Errors found:');
+    errors.forEach(err => console.log(`  - ${err}`));
+  }
+
+  const spawnLogs = consoleLogs.filter(log => log.includes('spawned'));
+  if (spawnLogs.length > 0) {
+    console.log('\n✅ Blocks spawned:');
+    spawnLogs.forEach(log => console.log(`  ${log}`));
+  }
+
+  // Verify no critical errors
+  expect(errors.length).toBe(0);
+
+  console.log('\n✅ Konva demo loaded successfully!');
+  console.log('📸 Screenshot saved to konva-demo-loaded.png');
+  console.log('\n🎮 MANUALLY TEST: Open http://localhost:3001/konva-demo and try dragging blocks!');
+});

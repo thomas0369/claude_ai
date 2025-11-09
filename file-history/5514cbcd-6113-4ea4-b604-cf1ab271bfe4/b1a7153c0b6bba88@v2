@@ -1,0 +1,354 @@
+# Platform Requirements & Architecture Constraints
+
+**Last Updated:** 2025-11-08
+**Status:** ACTIVE REQUIREMENTS
+
+---
+
+## Deployment Platform
+
+**Primary Platform:** Vercel (Serverless)
+**Framework:** Next.js 15.0.0 with App Router
+**Runtime:** Node.js (TypeScript/JavaScript)
+
+---
+
+## Critical Constraints
+
+### ⚠️ NO PYTHON IN PRODUCTION
+
+**Rule:** Avoid Python for any production features that run on Vercel
+
+**Rationale:**
+1. **Vercel Limitations:**
+   - Serverless functions have limited Python support
+   - Python runtimes have cold start penalties
+   - Limited control over Python environment
+   - Dependency management complexity (pip, venv)
+
+2. **Deployment Complexity:**
+   - Requires separate build process for Python
+   - Cannot use standard pip packages easily
+   - Version management issues
+   - Debugging difficulties in serverless environment
+
+3. **Architecture Mismatch:**
+   - Main application is TypeScript/Next.js
+   - Mixing languages increases maintenance burden
+   - Team expertise primarily in TypeScript/JavaScript
+   - Better ecosystem integration with Node.js
+
+### ✅ Allowed Python Usage
+
+Python is acceptable ONLY for:
+- **Local development tools** (not deployed to Vercel)
+- **Data preparation scripts** (run manually, not in production)
+- **Analysis and reporting** (offline processing)
+- **Testing utilities** (local only)
+
+Examples of acceptable Python usage:
+```
+scripts/
+├── data_quality/           ← Analysis scripts (local only)
+├── memory_bank/            ← Development tools (local only)
+├── benchmarking/           ← Data preparation (local only)
+└── zerez_graphql_client.py ← Used by API routes (EXCEPTION - see below)
+```
+
+### ⚠️ Current Python Exception: ZEREZ GraphQL Client
+
+**Status:** Temporary exception, should be migrated
+
+The `scripts/zerez_graphql_client.py` is currently used by Next.js API routes via `python-executor.ts`, but this is **technical debt** that should be addressed.
+
+**Why it exists:**
+- Built before platform requirements were clearly defined
+- Provided quick GraphQL integration
+- Has complex tenant resolution logic
+
+**Why it should be migrated:**
+- Adds deployment complexity
+- Requires Python runtime on Vercel
+- Slower cold starts
+- Hard to debug in production
+
+**Migration Priority:** MEDIUM (after critical features)
+
+---
+
+## Preferred Architecture
+
+### TypeScript/Next.js API Routes
+
+**Primary Pattern:** All backend logic in Next.js API routes
+
+```typescript
+// app/api/feature/route.ts
+export async function POST(request: Request) {
+  const data = await request.json();
+
+  // Process using TypeScript/Node.js
+  const result = await processData(data);
+
+  return Response.json(result);
+}
+```
+
+**Benefits:**
+- Native Vercel deployment
+- Fast cold starts
+- Easy debugging
+- Type safety end-to-end
+- Better error handling
+- Integrated with Next.js ecosystem
+
+### External APIs
+
+**Pattern:** Call external APIs directly from TypeScript
+
+```typescript
+// lib/deepseek-client.ts
+export class DeepSeekClient {
+  async extractFromImage(imageBase64: string) {
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'deepseek-vl2',
+        messages: [/* ... */]
+      })
+    });
+
+    return response.json();
+  }
+}
+```
+
+**Benefits:**
+- Direct API integration
+- No Python dependency
+- Better error handling
+- Easier to test and debug
+
+---
+
+## Technology Stack (Approved)
+
+### Frontend
+- ✅ React 18+ (Next.js App Router)
+- ✅ TypeScript 5.x
+- ✅ Tailwind CSS
+- ✅ shadcn/ui components
+- ✅ Zustand (state management)
+- ✅ React Query (data fetching)
+
+### Backend (Serverless)
+- ✅ Next.js API Routes (TypeScript)
+- ✅ Node.js runtime
+- ✅ Edge Runtime (when appropriate)
+
+### Data Processing
+- ✅ DuckDB-WASM (in-browser SQL)
+- ✅ JavaScript libraries (d3, mathjs, etc.)
+- ❌ Python libraries (pandas, numpy, etc.) - NOT ON VERCEL
+
+### External Services
+- ✅ DeepSeek API (vision/LLM)
+- ✅ ZEREZ GraphQL API
+- ✅ GitHub API (for data storage)
+- ✅ Any HTTP-based APIs
+
+### Data Storage
+- ✅ YAML files (data/companies.yaml, data/products.yaml)
+- ✅ JSON files (processed data)
+- ✅ Git repository (version control)
+- ✅ Browser storage (localStorage, IndexedDB)
+- ❌ Traditional databases (PostgreSQL, MySQL) - Not needed currently
+
+---
+
+## File Processing Requirements
+
+### PDF Processing
+
+**Current Issue:** Python scripts for PDF extraction won't work on Vercel
+
+**Required Approach:**
+1. **Client-side processing** (browser-based)
+   - Use libraries like `pdf.js` or `pdfjs-dist`
+   - Extract text in browser
+   - Send text to AI APIs for analysis
+
+2. **External services**
+   - Use PDF processing APIs (e.g., Adobe PDF Services, Anthropic Claude)
+   - Send PDFs to AI vision models directly
+   - No local PDF processing needed
+
+3. **Pre-processing (development only)**
+   - Python scripts can extract data locally
+   - Save results to JSON/YAML
+   - Commit to repository
+   - Deploy static data files
+
+**Recommended:** Option 2 (External AI services)
+- DeepSeek Vision API can process PDF images directly
+- Claude/GPT-4 Vision can extract from PDFs
+- No server-side PDF library dependencies
+
+### Image Processing
+
+**Approved Libraries:**
+- ✅ `sharp` (Node.js image processing)
+- ✅ Browser `Canvas API` (client-side)
+- ✅ `html2canvas` (screenshots)
+- ❌ `Pillow` (Python) - NOT ON VERCEL
+
+---
+
+## Migration Strategy for Existing Python Code
+
+### Priority 1: Critical Production Features
+
+Any Python code used by production API routes must be migrated first.
+
+**Current Python in Production:**
+1. `scripts/zerez_graphql_client.py` (called by API routes)
+   - **Priority:** HIGH
+   - **Complexity:** MEDIUM
+   - **Effort:** 2-3 days
+   - **Action:** Rewrite GraphQL client in TypeScript
+
+### Priority 2: PDF Extraction Pipeline
+
+**Current Python PDF Scripts:**
+1. `scripts/deepseek_vision_client.py` (386 lines)
+2. `scripts/pdf_to_images.py` (162 lines)
+3. `scripts/step2_pdf_to_json_enhanced.py` (346 lines)
+4. `scripts/zerez_pdf_matcher_enhanced.py` (375 lines)
+
+**Status:** CANNOT BE USED ON VERCEL (recently built)
+
+**Migration Needed:**
+- Rewrite DeepSeek client in TypeScript
+- Use browser-based PDF processing
+- Create Next.js API routes for extraction
+- Migrate matching logic to TypeScript
+
+**Estimated Effort:** 3-5 days
+
+### Priority 3: Development Tools
+
+**Keep as Python (no migration needed):**
+- Data quality analysis scripts
+- Memory bank tools
+- Git utilities
+- Local benchmarking tools
+
+---
+
+## Code Review Checklist (New Features)
+
+Before implementing any new feature, verify:
+
+- [ ] Can this run on Vercel serverless?
+- [ ] Does this require Python? (If yes, reconsider approach)
+- [ ] Can this use TypeScript/Node.js instead?
+- [ ] If it needs external APIs, are they HTTP-based?
+- [ ] Is cold start time acceptable?
+- [ ] Can this work with Next.js API routes?
+- [ ] Does this fit our approved tech stack?
+
+---
+
+## Decision Log
+
+### 2025-11-08: DeepSeek PDF Extraction
+
+**Problem:** Built Python scripts for DeepSeek integration (1,206 lines)
+
+**Issue:** Won't work on Vercel deployment
+
+**Decision:**
+1. Mark Python implementation as "local development only"
+2. Plan TypeScript migration for production use
+3. Update platform requirements to prevent future mistakes
+
+**Action Items:**
+1. ✅ Document platform requirements (this file)
+2. ⏭️ Analyze migration effort for DeepSeek → TypeScript
+3. ⏭️ Create TypeScript implementation plan
+4. ⏭️ Migrate DeepSeek client to Next.js API routes
+
+---
+
+## Future Architecture
+
+### Ideal State (Target)
+
+```
+Frontend (Browser)
+    │
+    ▼
+Next.js API Routes (TypeScript)
+    │
+    ├──► External APIs (HTTP)
+    │    ├── DeepSeek Vision
+    │    ├── ZEREZ GraphQL
+    │    ├── Claude/GPT-4
+    │    └── Other services
+    │
+    ├──► Static Data Files (YAML/JSON)
+    │    ├── data/companies.yaml
+    │    ├── data/products.yaml
+    │    └── Committed to repo
+    │
+    └──► Browser Processing
+         ├── DuckDB-WASM (SQL)
+         ├── pdf.js (PDF parsing)
+         └── Client-side analytics
+```
+
+**Zero Python in production deployment**
+
+---
+
+## Exceptions & Trade-offs
+
+### When Python MIGHT Be Acceptable
+
+**Scenario:** Performance-critical data processing that cannot be done in Node.js
+
+**Requirements:**
+1. Must be truly performance-critical (proven benchmarks)
+2. Must have no TypeScript alternative
+3. Must be approved by team lead
+4. Must document why TypeScript won't work
+5. Must have migration plan to TypeScript
+
+**Current Exceptions:** NONE
+
+---
+
+## Summary
+
+**Golden Rule:** If it runs on Vercel, write it in TypeScript.
+
+**Why:**
+- Faster deployment
+- Better debugging
+- Lower maintenance
+- Consistent stack
+- Vercel-native support
+- Better developer experience
+
+**Team Agreement:** All new features use TypeScript/Next.js unless explicitly approved otherwise.
+
+---
+
+**Document Owner:** Development Team
+**Review Cycle:** Every major feature
+**Last Reviewed:** 2025-11-08
+**Next Review:** When considering new technology

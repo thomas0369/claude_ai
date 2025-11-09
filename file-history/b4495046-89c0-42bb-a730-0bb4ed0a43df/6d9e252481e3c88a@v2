@@ -1,0 +1,737 @@
+# ZEREZ Importer - Comprehensive Test Plan
+
+**Date**: 2025-11-02
+**Version**: 1.0
+**Owner**: Development Team
+
+---
+
+## Test Objectives
+
+1. Verify all 3 import wizard steps function correctly
+2. Ensure data integrity from ZEREZ API → Local storage
+3. Validate error handling and edge cases
+4. Confirm UI responsiveness and user feedback
+5. Test performance with realistic datasets
+
+---
+
+## Test Environment Setup
+
+### Prerequisites
+```bash
+# 1. Ensure venv is activated
+source venv/bin/activate  # Unix
+# OR
+venv\Scripts\activate     # Windows
+
+# 2. Install Python dependencies
+pip install playwright beautifulsoup4 requests
+
+# 3. Verify Next.js dev server is running
+npm run dev
+# Should see: "Ready in X seconds" at http://localhost:3000
+
+# 4. Check environment variables
+cat .env.local
+# Should contain: ZEREZ_GRAPHQL_ENDPOINT, REPO_ROOT (optional)
+```
+
+### Test Data Preparation
+```bash
+# Known manufacturer IDs for testing
+TESLA_ENERGY_ID="a1b2c3d4-e5f6-7890-abcd-ef1234567890"  # Example
+BYD_ID="12345678-1234-1234-1234-123456789012"          # Example
+
+# Known product UUIDs (from previous searches)
+TEST_PRODUCT_1="6314260b-364a-4d53-368d-08dd4b5a9353"   # Actual ZEREZ ID
+TEST_PRODUCT_2="99919e9b-6287-439a-4bc8-08dcf28d53c7"   # Another real ID
+```
+
+---
+
+## Test Suite 1: Step 1 - Filter & Preview
+
+### TC1.1: Basic Filter - Power Range Only
+**Objective**: Verify minimal filter search works
+
+**Steps**:
+1. Navigate to http://localhost:3000/import/zerez
+2. Wait for page to fully load (manufacturers dropdown populated)
+3. Set Power Min: `0`
+4. Set Power Max: `1000`
+5. Uncheck "Only Verified Products"
+6. Uncheck "Only 4105 Compliant"
+7. Ensure Manufacturer = "All Manufacturers"
+8. Click "Preview Products"
+
+**Expected Results**:
+- ✅ Loading spinner appears immediately
+- ✅ API call completes within 5 seconds
+- ✅ Table renders with >0 products
+- ✅ "Found X products" header displays total count
+- ✅ All checkboxes are selected by default
+- ✅ Table shows 12 columns with data
+- ✅ "Proceed to Import Details" button is enabled
+
+**Acceptance Criteria**:
+- No console errors
+- Table is visible without scrolling (or scroll is smooth)
+- Product data looks valid (no "N/A" for all fields)
+
+---
+
+### TC1.2: Manufacturer Filter
+**Objective**: Test manufacturer dropdown filtering
+
+**Steps**:
+1. Click manufacturer dropdown
+2. Type "Tesla" in search box
+3. Select first matching manufacturer
+4. Click "Preview Products"
+
+**Expected Results**:
+- ✅ Search filters manufacturers in real-time
+- ✅ Dropdown shows max 50 results
+- ✅ Selected manufacturer name appears in trigger
+- ✅ Results table only shows products from that manufacturer
+
+**Edge Cases**:
+- Search for non-existent manufacturer → Should show "No results"
+- Clear search → Should show all 300+ manufacturers again
+
+---
+
+### TC1.3: Voltage Range Filter
+**Objective**: Verify numeric input validation
+
+**Steps**:
+1. Enter Min Voltage: `400`
+2. Enter Max Voltage: `230` (invalid - min > max)
+3. Click "Preview Products"
+
+**Expected Results**:
+- ✅ Error message appears: "Minimum voltage cannot be greater than maximum voltage"
+- ✅ Error is shown in red Alert component
+- ✅ API call is NOT made
+- ✅ Table does NOT render
+
+**Valid Test**:
+1. Enter Min Voltage: `230`
+2. Enter Max Voltage: `400`
+3. Click "Preview Products"
+
+**Expected**:
+- ✅ Search executes successfully
+- ✅ Only products with rated voltage 230-400V appear
+
+---
+
+### TC1.4: Category Filter Combinations
+**Objective**: Test enum dropdown filtering
+
+**Test Matrix**:
+| Primary Energy Source | Category | Expected Count Range |
+|-----------------------|----------|---------------------|
+| All Sources           | All Categories | 400-500 products |
+| BATTERY | BATTERY_STORAGE | 200-300 products |
+| PHOTOVOLTAICS | PHOTOVOLTAIC_MODULES | 50-100 products |
+
+**Steps** (repeat for each row):
+1. Set power range: 0-10000 kW (wide range)
+2. Select Primary Energy Source from table
+3. Select Category from table
+4. Click "Preview Products"
+5. Record actual count
+
+**Expected**:
+- ✅ Each combination returns products
+- ✅ Counts are within expected ranges
+- ✅ Products match selected filters
+
+---
+
+### TC1.5: Date Range Filters
+**Objective**: Test date input filtering
+
+**Steps**:
+1. Set "Created After": `2024-01-01`
+2. Set "Created Before": `2024-12-31`
+3. Click "Preview Products"
+
+**Expected Results**:
+- ✅ Only products created in 2024 appear
+- ✅ Date format is accepted (YYYY-MM-DD)
+- ✅ Results can be verified by checking product metadata
+
+**Edge Cases**:
+- Created After > Created Before → Should show validation error
+- Future dates → Should return 0 products (with helpful message)
+
+---
+
+### TC1.6: Certificate Norms Checkboxes
+**Objective**: Test multi-select checkbox filtering
+
+**Steps**:
+1. Check "VDE" only
+2. Click "Preview Products"
+3. Verify all results have VDE certification
+4. Check "CE" additionally
+5. Click "Preview Products" again
+
+**Expected Results**:
+- ✅ First search: Only VDE certified products
+- ✅ Second search: Products with VDE OR CE (union, not intersection)
+- ✅ Checkbox state persists between searches
+
+---
+
+### TC1.7: Authority ID (UUID) Filter
+**Objective**: Test UUID validation
+
+**Invalid UUID Tests**:
+| Input | Expected Error |
+|-------|---------------|
+| `not-a-uuid` | "Must be a valid UUID format" |
+| `12345` | "Must be a valid UUID format" |
+| (empty) | No error (optional field) |
+
+**Valid UUID Test**:
+1. Enter a valid UUID: `550e8400-e29b-41d4-a716-446655440000`
+2. Click "Preview Products"
+
+**Expected**:
+- ✅ No validation error
+- ✅ Search executes (may return 0 results if UUID doesn't exist)
+
+---
+
+### TC1.8: Reset Filters
+**Objective**: Verify reset button functionality
+
+**Steps**:
+1. Apply multiple filters:
+   - Power: 50-200 kW
+   - Manufacturer: Select specific manufacturer
+   - Check "Only Verified"
+   - Enter Authority ID
+2. Click "Preview Products"
+3. Click "Reset Filters"
+
+**Expected Results**:
+- ✅ All filters return to default values
+- ✅ Power range resets to 0-1000
+- ✅ Manufacturer resets to "All Manufacturers"
+- ✅ Checkboxes reset to default state
+- ✅ Products table clears (disappears)
+- ✅ Total count resets to 0
+
+---
+
+### TC1.9: Product Selection
+**Objective**: Test checkbox selection in results table
+
+**Steps**:
+1. Run a search that returns 20 products
+2. Click "Select None"
+3. Manually check 5 products
+4. Verify selected count updates
+
+**Expected Results**:
+- ✅ "Select All" checks all checkboxes
+- ✅ "Select None" unchecks all checkboxes
+- ✅ Manual selection updates count: "5 of 20 products selected"
+- ✅ "Proceed to Import Details" is disabled when 0 selected
+- ✅ "Proceed to Import Details" is enabled when >0 selected
+
+---
+
+## Test Suite 2: Step 2 - Import Details
+
+### TC2.1: Single Product Import
+**Objective**: Verify SSE streaming import works
+
+**Steps**:
+1. Filter to get 1 product
+2. Ensure it's selected
+3. Click "Proceed to Import Details"
+4. Observe Step 2 screen
+
+**Expected Results**:
+- ✅ Wizard advances to Step 2 (Import Details)
+- ✅ Progress bar shows "1 / 1"
+- ✅ "Currently Processing" box appears with product name
+- ✅ Downloaded count updates to 1
+- ✅ Saved files count updates to 1
+- ✅ Failed count remains 0
+- ✅ No errors shown
+- ✅ After completion, automatically advances to Step 3 (Match PDFs)
+
+**Verification**:
+```bash
+# Check that HTML file was saved
+ls data/zerez/imports/*.html
+# Should see 1 file with UUID in filename
+```
+
+---
+
+### TC2.2: Multiple Products Import (5 products)
+**Objective**: Test concurrent download handling
+
+**Steps**:
+1. Filter to get 5 products (e.g., power 50-100 kW, specific manufacturer)
+2. Select all 5
+3. Click "Proceed to Import Details"
+
+**Expected Results**:
+- ✅ Progress bar updates smoothly (0/5 → 1/5 → ... → 5/5)
+- ✅ "Currently Processing" shows each product in sequence
+- ✅ All 5 products downloaded successfully
+- ✅ Saved files count = 5
+- ✅ Import completes within 30 seconds
+
+**Verification**:
+```bash
+# Count HTML files
+ls data/zerez/imports/*.html | wc -l
+# Should output: 5
+```
+
+---
+
+### TC2.3: Import Error Handling (Network Failure)
+**Objective**: Test graceful degradation on network errors
+
+**Setup**: Temporarily disconnect network or stop ZEREZ server
+
+**Steps**:
+1. Select 3 products
+2. Click "Proceed to Import Details"
+3. Disconnect network midway through import
+
+**Expected Results**:
+- ✅ Failed count increments for unreachable products
+- ✅ Error list shows specific error messages
+- ✅ Import continues for remaining products (if any)
+- ✅ Final state shows partial success
+- ✅ User sees warning: "X files may not have been saved properly"
+
+---
+
+### TC2.4: Import Verification Failure
+**Objective**: Test file save verification logic
+
+**Scenario**: Simulate disk full or permission errors
+
+**Expected Results**:
+- ✅ If >10% of downloads fail to save: Show CRITICAL error
+- ✅ If <10% fail: Show WARNING
+- ✅ Import does NOT advance to Step 3 if critical failure
+- ✅ Error message suggests checking disk space and permissions
+
+---
+
+### TC2.5: Large Batch Import (20 products)
+**Objective**: Test performance with realistic batch size
+
+**Steps**:
+1. Filter to get 20 products
+2. Select all
+3. Click "Proceed to Import Details"
+4. Monitor performance
+
+**Expected Results**:
+- ✅ UI remains responsive during import
+- ✅ Progress updates in real-time
+- ✅ No browser lag or freezing
+- ✅ Completes within 2 minutes (6 seconds per product)
+- ✅ All 20 files saved successfully
+
+**Performance Metrics**:
+- Average time per product: < 10 seconds
+- Peak memory usage: < 500MB
+- CPU usage: < 80%
+
+---
+
+### TC2.6: Maximum Batch Size (100 products)
+**Objective**: Test import limit enforcement
+
+**Steps**:
+1. Try to select 101 products
+
+**Expected Results**:
+- ✅ API returns 400 error: "Maximum 100 products allowed per import"
+- ✅ Error message shown to user
+- ✅ Import does not start
+
+**Valid Test** (100 products):
+- ✅ Import starts successfully
+- ✅ May take up to 10 minutes (acceptable)
+- ✅ Progress bar updates throughout
+
+---
+
+## Test Suite 3: Step 3 - Match with PDFs
+
+### TC3.1: PDF Matching (1 product with match)
+**Objective**: Verify PDF knowledge base integration
+
+**Steps**:
+1. Complete import of 1 product that has a PDF datasheet
+2. Wait for Step 3 to complete
+
+**Expected Results**:
+- ✅ "Matching products with PDF database..." loading screen appears
+- ✅ Matching completes within 10 seconds
+- ✅ Summary cards show:
+   - PDF Enriched: 1
+   - ZEREZ Only: 0
+   - Total Products: 1
+- ✅ Match table shows:
+   - ZEREZ Product: [Product name]
+   - PDF Match: [PDF filename]
+   - Confidence: >70%
+   - Status: Green checkmark
+
+---
+
+### TC3.2: PDF Matching (No matches)
+**Objective**: Test handling of unmatched products
+
+**Steps**:
+1. Import a product that definitely has no PDF match
+2. Wait for Step 3
+
+**Expected Results**:
+- ✅ Summary shows:
+   - PDF Enriched: 0
+   - ZEREZ Only: 1
+- ✅ Match table shows:
+   - PDF Match: "-"
+   - Confidence: (empty)
+   - Status: Yellow warning icon
+
+---
+
+### TC3.3: Mixed Results (Some matches, some don't)
+**Objective**: Test partial matching scenario
+
+**Steps**:
+1. Import 5 products (mix of popular and obscure models)
+2. Wait for Step 3
+
+**Expected Results**:
+- ✅ Summary shows split:
+   - PDF Enriched: 2-3
+   - ZEREZ Only: 2-3
+- ✅ Percentage calculation is accurate
+- ✅ Match table shows mix of matched and unmatched
+
+---
+
+### TC3.4: Step 3 Actions
+**Objective**: Test post-import action buttons
+
+**Available Actions**:
+1. "Download Results (JSON)" button
+2. "View Detailed Report" button
+3. "Import Again" button
+
+**Expected Results**:
+- ✅ Download JSON: Triggers file download with match results
+- ✅ View Report: Opens detailed view (or shows "Not implemented yet")
+- ✅ Import Again: Returns to Step 1, clears state
+
+---
+
+## Test Suite 4: Integration & End-to-End
+
+### TC4.1: Complete Happy Path
+**Objective**: Full workflow without errors
+
+**Steps**:
+1. Start at Step 1
+2. Apply filter: Manufacturer = "BYD", Power 50-200 kW
+3. Select 3 products
+4. Import details
+5. Match with PDFs
+6. Download results
+
+**Expected Results**:
+- ✅ All 3 steps complete successfully
+- ✅ Final JSON contains ZEREZ data + PDF match info
+- ✅ All 3 HTML files saved to disk
+- ✅ No errors or warnings shown
+
+**Time Budget**: < 2 minutes total
+
+---
+
+### TC4.2: Filter Persistence Across Steps
+**Objective**: Verify state management
+
+**Steps**:
+1. Apply complex filters in Step 1
+2. Select products
+3. Go to Step 2
+4. Click browser back button (or use wizard nav)
+5. Return to Step 1
+
+**Expected Results**:
+- ⚠️ **Current Behavior**: Filters may reset
+- ✅ **Desired Behavior**: Filters should persist
+- ✅ Selected products should still be selected
+
+---
+
+### TC4.3: Browser Refresh Handling
+**Objective**: Test state recovery
+
+**Scenario 1: Refresh on Step 1**
+- ✅ Filters reset (acceptable)
+- ✅ No errors
+
+**Scenario 2: Refresh during Step 2 import**
+- ⚠️ Import progress lost (expected)
+- ✅ User returns to Step 1
+- ✅ Can restart import
+
+**Scenario 3: Refresh on Step 3**
+- ⚠️ Match results lost (expected)
+- ✅ User returns to Step 1
+
+---
+
+### TC4.4: Concurrent User Sessions
+**Objective**: Test multi-user scenarios
+
+**Setup**: Open 2 browser windows
+
+**Steps**:
+1. Window 1: Start import of 10 products
+2. Window 2: Start import of 5 different products
+3. Monitor both
+
+**Expected Results**:
+- ✅ Both imports run independently
+- ✅ Files saved with unique UUIDs (no collisions)
+- ✅ No cross-window state interference
+
+---
+
+## Test Suite 5: Error Handling & Edge Cases
+
+### TC5.1: ZEREZ API Timeout
+**Objective**: Test timeout handling
+
+**Setup**: Mock slow API response (>120 seconds)
+
+**Expected Results**:
+- ✅ Request times out after 2 minutes
+- ✅ User sees error: "Python script timed out after 120000ms"
+- ✅ Partial results not saved
+
+---
+
+### TC5.2: Invalid Product ID in Import
+**Objective**: Test validation errors
+
+**Steps**:
+1. Manually call import API with invalid UUID:
+```bash
+curl -X POST http://localhost:3000/api/zerez/import-details \
+  -H "Content-Type: application/json" \
+  -d '{"productIds":["not-a-uuid"]}'
+```
+
+**Expected Results**:
+- ✅ HTTP 400 Bad Request
+- ✅ Error message: "Invalid product IDs - 1 invalid UUID(s) found"
+
+---
+
+### TC5.3: Missing Python Dependencies
+**Objective**: Test environment error handling
+
+**Setup**: Deactivate venv and remove beautifulsoup4
+
+**Steps**:
+1. Try to run import
+
+**Expected Results**:
+- ✅ Clear error message shown to user
+- ✅ Error includes troubleshooting steps
+- ✅ Suggests: "pip install beautifulsoup4"
+
+---
+
+### TC5.4: Disk Space Full
+**Objective**: Test file system errors
+
+**Setup**: Fill disk to capacity
+
+**Expected Results**:
+- ✅ Import fails gracefully
+- ✅ Error message: "Failed to save file: ENOSPC"
+- ✅ User sees verification failure warning
+
+---
+
+## Test Suite 6: Performance & Load Testing
+
+### TC6.1: Filter Response Time
+**Benchmark**: All filter combinations should respond in < 5 seconds
+
+| Filter Type | Expected Time |
+|-------------|--------------|
+| Power range only | < 1.5s |
+| + Manufacturer | < 2.5s |
+| + Category | < 3.5s |
+| + All filters | < 5s |
+
+---
+
+### TC6.2: Table Rendering Performance
+**Objective**: Test UI performance with large datasets
+
+**Steps**:
+1. Load preview with 100 products (max)
+2. Measure:
+   - Time to first render
+   - Scroll smoothness
+   - Checkbox interaction lag
+
+**Expected Results**:
+- ✅ Table renders in < 2 seconds
+- ✅ 60 FPS scroll (no jank)
+- ✅ Checkbox clicks respond in < 100ms
+
+---
+
+### TC6.3: Memory Leak Detection
+**Objective**: Test for memory leaks during repeated imports
+
+**Steps**:
+1. Run 10 consecutive imports
+2. Monitor browser memory usage
+
+**Expected Results**:
+- ✅ Memory usage stabilizes after 3rd import
+- ✅ No continuous growth
+- ✅ Max memory < 300MB
+
+---
+
+## Test Suite 7: Accessibility (A11y)
+
+### TC7.1: Keyboard Navigation
+**Objective**: Test full keyboard accessibility
+
+**Steps**:
+1. Tab through all filter inputs
+2. Use arrow keys in dropdowns
+3. Space to check boxes
+4. Enter to submit
+
+**Expected Results**:
+- ✅ All interactive elements reachable via Tab
+- ✅ Focus indicators visible
+- ✅ Dropdowns navigable with arrows
+- ✅ Form submits with Enter key
+
+---
+
+### TC7.2: Screen Reader Testing
+**Objective**: Test with NVDA/JAWS/VoiceOver
+
+**Expected Results**:
+- ✅ All labels properly associated with inputs
+- ✅ Error messages announced
+- ✅ Table has proper heading structure
+- ✅ Progress updates announced (ARIA live regions)
+
+---
+
+### TC7.3: Color Contrast
+**Tool**: WCAG Contrast Checker
+
+**Expected Results**:
+- ✅ All text meets WCAG AA (4.5:1 for normal text)
+- ✅ Focus indicators have 3:1 contrast
+- ✅ Error text is readable
+
+---
+
+## Bug Tracking Template
+
+For each failed test, create bug report:
+
+```markdown
+## Bug #XXX: [Short Description]
+
+**Test Case**: TCXX.X
+**Severity**: Critical / High / Medium / Low
+**Priority**: P0 / P1 / P2 / P3
+
+**Steps to Reproduce**:
+1. ...
+2. ...
+
+**Expected**: ...
+**Actual**: ...
+
+**Screenshots**: [Attach]
+
+**Console Errors**:
+```
+[Paste console output]
+```
+
+**Environment**:
+- Browser: Chrome 120.0
+- OS: Windows 11
+- Node: v20.10.0
+- Python: 3.11.5
+
+**Suggested Fix**: ...
+```
+
+---
+
+## Automated Testing (Future)
+
+### Recommended Tools
+1. **Playwright** for E2E testing
+2. **Vitest** for component testing
+3. **MSW** for API mocking
+
+### Priority Tests to Automate
+1. TC1.1 - Basic filter search
+2. TC2.1 - Single product import
+3. TC4.1 - Complete happy path
+4. TC5.2 - Invalid input validation
+
+---
+
+## Sign-Off Checklist
+
+Before marking importer as "Production Ready":
+
+- [ ] All TC1.x tests pass (Filter & Preview)
+- [ ] All TC2.x tests pass (Import)
+- [ ] All TC3.x tests pass (PDF Matching)
+- [ ] TC4.1 (Happy path) passes consistently
+- [ ] No P0/P1 bugs open
+- [ ] Performance benchmarks met
+- [ ] Accessibility audit passed
+- [ ] Security review completed
+- [ ] Documentation updated
+- [ ] User acceptance testing completed
+
+---
+
+**Last Updated**: 2025-11-02
+**Next Review**: After UX improvements implemented

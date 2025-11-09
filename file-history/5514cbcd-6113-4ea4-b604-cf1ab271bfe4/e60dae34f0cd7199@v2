@@ -1,0 +1,247 @@
+/**
+ * Test Script for Intelligent Multi-Product PDF Extraction
+ * ==========================================================
+ *
+ * Tests the complete extraction pipeline with real manufacturer PDFs
+ */
+
+import { config } from 'dotenv';
+import { IntelligentExtractor } from '@/lib/extraction/intelligent-extractor';
+import { PDFProcessorNode } from '@/lib/pdf/processor-node';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+// Load .env.local file
+config({ path: path.join(process.cwd(), '.env.local') });
+
+interface TestCase {
+  name: string;
+  pdfPath: string;
+  manufacturer: string;
+  expectedModels?: string[];
+  language?: 'en' | 'de';
+}
+
+const TEST_CASES: TestCase[] = [
+  {
+    name: 'GoodWe ETC Combined Datasheet',
+    pdfPath: '../../datasheets/goodwe/gw_etc_50-100k_combined_datasheet.pdf',
+    manufacturer: 'GoodWe',
+    expectedModels: ['GW50K-ETC', 'GW75K-ETC', 'GW100K-ETC'],
+    language: 'en',
+  },
+  {
+    name: 'Kaco Blueplanet Multi-Model',
+    pdfPath: '../../datasheets/kaco/kaco_blueplanet_gs_92_110_137_tl3_s_datasheet.pdf',
+    manufacturer: 'Kaco',
+    expectedModels: ['blueplanet 92.0 TL3-S', 'blueplanet 110 TL3-S', 'blueplanet 137 TL3-S'],
+    language: 'en',
+  },
+  {
+    name: 'FoxESS R Series',
+    pdfPath: '../../datasheets/foxess/foxess_r_series_75-136kw_datasheet.pdf',
+    manufacturer: 'FoxESS',
+    language: 'en',
+  },
+];
+
+async function runTest(testCase: TestCase): Promise<void> {
+  console.log('\n' + '='.repeat(80));
+  console.log(`TEST: ${testCase.name}`);
+  console.log('='.repeat(80));
+
+  try {
+    // Load PDF
+    const pdfPath = path.resolve(__dirname, testCase.pdfPath);
+    console.log(`📄 Loading PDF: ${pdfPath}`);
+
+    const pdfBuffer = await fs.readFile(pdfPath);
+    console.log(`   File size: ${(pdfBuffer.length / 1024).toFixed(1)} KB`);
+
+    // Convert to images using Node.js-compatible processor
+    console.log('🖼️  Converting PDF to images...');
+    const processor = new PDFProcessorNode({
+      scale: 2.0,
+      maxPages: 5, // Limit to first 5 pages for testing
+    });
+
+    const images = await processor.convertToImages(pdfBuffer);
+    console.log(`   ✅ Converted ${images.length} page(s) to images`);
+
+    // Run intelligent extraction
+    console.log('\n🤖 Running intelligent extraction...');
+    const extractor = new IntelligentExtractor(process.env.DEEPSEEK_API_KEY!);
+
+    const report = await extractor.extractWithValidation(images, {
+      manufacturer: testCase.manufacturer,
+      expectedModels: testCase.expectedModels,
+      language: testCase.language,
+      strictValidation: false, // Allow warnings for testing
+    });
+
+    // Display results
+    console.log('\n' + '─'.repeat(80));
+    console.log('📊 EXTRACTION REPORT');
+    console.log('─'.repeat(80));
+
+    console.log(`\n✅ Products found: ${report.products.length}`);
+    console.log(`📈 Overall confidence: ${report.metadata.overallConfidence.toFixed(1)}%`);
+    console.log(`⚠️  Issues: ${report.allIssues.length}`);
+    console.log(`💰 Cost: $${report.metadata.cost.toFixed(4)}`);
+    console.log(`⏱️  Duration: ${(report.metadata.extractionDuration / 1000).toFixed(1)}s`);
+    console.log(`📋 Table detected: ${report.metadata.tableDetected ? 'Yes' : 'No'}`);
+    console.log(`🔢 Multi-product: ${report.metadata.multiProduct ? 'Yes' : 'No'}`);
+
+    console.log(`\n📝 Summary: ${report.summary}`);
+
+    // Display each product
+    console.log('\n' + '─'.repeat(80));
+    console.log('PRODUCTS EXTRACTED');
+    console.log('─'.repeat(80));
+
+    report.products.forEach((product, i) => {
+      const validation = report.validations[i];
+
+      console.log(`\n${i + 1}. ${product.model_name}`);
+      console.log(`   Validation: ${validation.valid ? '✅ VALID' : '❌ INVALID'} (confidence: ${validation.confidence}%)`);
+
+      // Power specs
+      if (product.power) {
+        console.log(`   Power:`);
+        if (product.power.rated_power_kw !== null) {
+          console.log(`     - Rated: ${product.power.rated_power_kw} kW`);
+        }
+        if (product.power.max_power_kw !== null) {
+          console.log(`     - Max: ${product.power.max_power_kw} kW`);
+        }
+      }
+
+      // Efficiency
+      if (product.efficiency?.peak_percent !== null) {
+        console.log(`   Efficiency: ${product.efficiency.peak_percent}%`);
+      }
+
+      // Physical
+      if (product.physical?.weight_kg !== null) {
+        console.log(`   Weight: ${product.physical.weight_kg} kg`);
+      }
+
+      // Validation issues for this product
+      const productIssues = validation.issues;
+      if (productIssues.length > 0) {
+        console.log(`   ⚠️  Issues (${productIssues.length}):`);
+        productIssues.forEach((issue) => {
+          const icon = issue.severity === 'error' ? '❌' : issue.severity === 'warning' ? '⚠️' : 'ℹ️';
+          console.log(`      ${icon} [${issue.severity.toUpperCase()}] ${issue.field}`);
+          console.log(`         ${issue.message}`);
+          if (issue.suggestedValue !== undefined) {
+            console.log(`         ${issue.extractedValue} → ${issue.suggestedValue}`);
+          }
+        });
+      }
+    });
+
+    // Display all issues summary
+    if (report.allIssues.length > 0) {
+      console.log('\n' + '─'.repeat(80));
+      console.log('ALL ISSUES SUMMARY');
+      console.log('─'.repeat(80));
+
+      const errors = report.allIssues.filter((i) => i.severity === 'error');
+      const warnings = report.allIssues.filter((i) => i.severity === 'warning');
+      const infos = report.allIssues.filter((i) => i.severity === 'info');
+
+      console.log(`❌ Errors: ${errors.length}`);
+      console.log(`⚠️  Warnings: ${warnings.length}`);
+      console.log(`ℹ️  Info: ${infos.length}`);
+
+      if (errors.length > 0) {
+        console.log('\nCritical Errors:');
+        errors.forEach((err) => {
+          console.log(`  - ${err.field}: ${err.message}`);
+        });
+      }
+    }
+
+    // Statistics
+    const stats = extractor.getStats();
+    console.log('\n' + '─'.repeat(80));
+    console.log('EXTRACTION STATISTICS');
+    console.log('─'.repeat(80));
+    console.log(`API Requests: ${stats.requestCount}`);
+    console.log(`Total Cost: $${stats.totalCost.toFixed(4)}`);
+    console.log(`Average Duration: ${stats.averageDuration.toFixed(0)}ms`);
+    console.log(`Success Rate: ${stats.successRate.toFixed(1)}%`);
+
+    // Save results to file for review
+    const resultsDir = path.join(process.cwd(), 'test-results');
+    await fs.mkdir(resultsDir, { recursive: true });
+
+    const resultsPath = path.join(
+      resultsDir,
+      `extraction-${testCase.manufacturer.toLowerCase()}-${Date.now()}.json`
+    );
+
+    await fs.writeFile(
+      resultsPath,
+      JSON.stringify(
+        {
+          testCase: testCase.name,
+          manufacturer: testCase.manufacturer,
+          report,
+        },
+        null,
+        2
+      )
+    );
+
+    console.log(`\n💾 Results saved to: ${resultsPath}`);
+
+  } catch (error) {
+    console.error('\n❌ TEST FAILED:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Stack trace:', error.stack);
+    }
+  }
+}
+
+async function main() {
+  console.log('🚀 INTELLIGENT MULTI-PRODUCT PDF EXTRACTION TEST SUITE');
+  console.log('='.repeat(80));
+  console.log(`Testing ${TEST_CASES.length} PDF(s)\n`);
+
+  // Check API key (accept from env or command line)
+  const apiKey = process.env.DEEPSEEK_API_KEY || process.argv[2];
+
+  if (!apiKey) {
+    console.error('❌ ERROR: DEEPSEEK_API_KEY not provided');
+    console.error('');
+    console.error('Usage:');
+    console.error('  1. Set DEEPSEEK_API_KEY in .env.local file, OR');
+    console.error('  2. Pass as argument: npx tsx scripts/test-intelligent-extraction.ts <api-key>');
+    console.error('');
+    console.error('Example:');
+    console.error('  npx tsx scripts/test-intelligent-extraction.ts sk-xxxxxxxxxxxx');
+    process.exit(1);
+  }
+
+  console.log('✅ DeepSeek API key found');
+
+  // Store API key in process.env for the extractor
+  process.env.DEEPSEEK_API_KEY = apiKey;
+
+  // Run tests
+  for (const testCase of TEST_CASES) {
+    await runTest(testCase);
+  }
+
+  console.log('\n' + '='.repeat(80));
+  console.log('✅ ALL TESTS COMPLETED');
+  console.log('='.repeat(80));
+}
+
+main().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});

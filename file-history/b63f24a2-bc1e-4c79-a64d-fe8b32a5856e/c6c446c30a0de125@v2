@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+/**
+ * Verification test for VirtualizedProductTable width calculations
+ *
+ * This script validates that the table component has correct width
+ * calculations for horizontal scrolling to work properly.
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+console.log('🔍 Verifying VirtualizedProductTable implementation...\n');
+
+// Read the component file
+const componentPath = path.join(__dirname, 'components', 'VirtualizedProductTable.tsx');
+const content = fs.readFileSync(componentPath, 'utf-8');
+
+// Test 1: Check if width calculations exist
+console.log('✓ Test 1: Width calculation constants');
+const hasCheckboxWidth = content.includes('const CHECKBOX_WIDTH = 64');
+const hasTotalColumnsWidth = content.includes('TOTAL_COLUMNS_WIDTH = COLUMN_DEFINITIONS.reduce');
+const hasTotalTableWidth = content.includes('const TOTAL_TABLE_WIDTH = CHECKBOX_WIDTH + TOTAL_COLUMNS_WIDTH');
+
+console.log(`  ${hasCheckboxWidth ? '✓' : '✗'} CHECKBOX_WIDTH constant defined`);
+console.log(`  ${hasTotalColumnsWidth ? '✓' : '✗'} TOTAL_COLUMNS_WIDTH calculated`);
+console.log(`  ${hasTotalTableWidth ? '✓' : '✗'} TOTAL_TABLE_WIDTH calculated\n`);
+
+// Test 2: Check if width is applied to rows
+console.log('✓ Test 2: Width applied to row elements');
+const rowHasMinWidth = content.includes('style={{ ...style, minWidth: `${TOTAL_TABLE_WIDTH}px` }}');
+console.log(`  ${rowHasMinWidth ? '✓' : '✗'} Row has minWidth style\n`);
+
+// Test 3: Check if width is applied to header
+console.log('✓ Test 3: Width applied to header');
+const headerHasMinWidth = content.match(/style={{ minWidth: `\${TOTAL_TABLE_WIDTH}px` }}/);
+console.log(`  ${headerHasMinWidth ? '✓' : '✗'} Header has minWidth style\n`);
+
+// Test 4: Check if List component uses calculated width
+console.log('✓ Test 4: List component width configuration');
+const listUsesWidth = content.includes('width={TOTAL_TABLE_WIDTH}');
+console.log(`  ${listUsesWidth ? '✓' : '✗'} List uses TOTAL_TABLE_WIDTH instead of "100%"\n`);
+
+// Test 5: Count columns
+console.log('✓ Test 5: Column count verification');
+const columnMatches = content.match(/{ key: '[^']+',/g);
+const columnCount = columnMatches ? columnMatches.length : 0;
+console.log(`  Found ${columnCount} column definitions\n`);
+
+// Calculate expected width
+const columnWidths = [
+  200, 180, 140, 120, 120, 120, 120, 150, 150, // First 9
+  140, 140, 150, 150, 140, 250, 140, 120, 120, // Next 9
+  120, 120, 100, 80, 100, // Next 6
+  280, 280, 280, 280, 280, 280 // Last 6 (IDs)
+];
+const expectedColumnsWidth = columnWidths.reduce((sum, w) => sum + w, 0);
+const expectedTotalWidth = 64 + expectedColumnsWidth;
+
+console.log('✓ Test 6: Expected width calculation');
+console.log(`  Expected columns width: ${expectedColumnsWidth}px`);
+console.log(`  Expected total width: ${expectedTotalWidth}px (includes 64px checkbox)\n`);
+
+// Summary
+const allPassed = hasCheckboxWidth && hasTotalColumnsWidth && hasTotalTableWidth &&
+                  rowHasMinWidth && headerHasMinWidth && listUsesWidth && columnCount === 29;
+
+console.log('═══════════════════════════════════════════════════════════');
+if (allPassed) {
+  console.log('✅ All static checks PASSED');
+  console.log('\n⚠️  MANUAL BROWSER TESTING STILL REQUIRED:');
+  console.log('   1. Open http://localhost:3000/import/zerez');
+  console.log('   2. Search for products');
+  console.log('   3. Click "Preview Products"');
+  console.log('   4. Verify horizontal scroll appears');
+  console.log('   5. Verify all 29 columns are visible when scrolling');
+  console.log('   6. Verify checkbox and model name stay fixed (sticky)');
+} else {
+  console.log('❌ Some checks FAILED - implementation incomplete');
+}
+console.log('═══════════════════════════════════════════════════════════');

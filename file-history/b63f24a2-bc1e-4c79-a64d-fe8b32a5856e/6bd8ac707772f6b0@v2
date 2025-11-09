@@ -1,0 +1,129 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { PythonExecutor } from '@/lib/python-executor';
+import { isValidUUID } from '@/lib/api-validation-utils';
+
+// Disable response caching
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { unitIds } = body;
+
+    // Validate: unitIds must exist and be non-empty array
+    if (!unitIds || !Array.isArray(unitIds) || unitIds.length === 0) {
+      return NextResponse.json(
+        { error: 'No unit IDs provided', message: 'unitIds must be a non-empty array' },
+        { status: 400 }
+      );
+    }
+
+    // Validate: array length limit (max 100 units per request)
+    if (unitIds.length > 100) {
+      return NextResponse.json(
+        {
+          error: 'Too many units',
+          message: `Maximum 100 units allowed per request, received ${unitIds.length}`
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate: each unit ID must be a valid UUID
+    const invalidIds: Array<{index: number, id: string, reason: string}> = [];
+
+    for (let i = 0; i < unitIds.length; i++) {
+      const id = unitIds[i];
+
+      // Type check
+      if (typeof id !== 'string') {
+        invalidIds.push({index: i, id: String(id), reason: 'Not a string'});
+        continue;
+      }
+
+      // UUID validation
+      if (!isValidUUID(id)) {
+        invalidIds.push({index: i, id, reason: 'Invalid UUID format'});
+        continue;
+      }
+    }
+
+    if (invalidIds.length > 0) {
+      return NextResponse.json(
+        {
+          error: 'Invalid unit IDs',
+          message: `${invalidIds.length} invalid ID(s) found`,
+          details: invalidIds.slice(0, 5), // Show first 5 with reasons
+          totalInvalid: invalidIds.length
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate: check for duplicate IDs
+    const uniqueIds = new Set(unitIds);
+    if (uniqueIds.size !== unitIds.length) {
+      return NextResponse.json(
+        {
+          error: 'Duplicate unit IDs',
+          message: `Found ${unitIds.length - uniqueIds.size} duplicate ID(s)`
+        },
+        { status: 400 }
+      );
+    }
+
+    // Calculate dynamic timeout based on GraphQL performance
+    // Observed: ~1-2s per unit (GraphQL API calls)
+    // Using: 3s per unit (safety margin for network delays)
+    const SECONDS_PER_UNIT = 3;
+
+    const BASE_TIMEOUT_MS = 10000; // 10s startup buffer
+    const TIMEOUT_PER_UNIT_MS = SECONDS_PER_UNIT * 1000;
+    const MIN_TIMEOUT_MS = 15000; // 15s minimum
+    const MAX_TIMEOUT_MS = 300000; // 5 minute hard limit
+
+    // Calculate with bounds checking
+    const calculatedTimeout = BASE_TIMEOUT_MS + (unitIds.length * TIMEOUT_PER_UNIT_MS);
+    const timeout = Math.max(MIN_TIMEOUT_MS, Math.min(calculatedTimeout, MAX_TIMEOUT_MS));
+
+    // Log timeout calculation in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[fetch-detailed] Timeout: ${timeout}ms for ${unitIds.length} units (${(timeout/1000).toFixed(1)}s)`);
+    }
+
+    // Execute Python script to fetch detailed units
+    const result = await PythonExecutor.execute({
+      scriptName: 'zerez_fetch_detailed_units.py',
+      args: [
+        '--unit-ids', JSON.stringify(unitIds)
+      ],
+      timeout
+    });
+
+    // Parse result
+    const data = JSON.parse(result.stdout);
+
+    // Check if any units failed to fetch
+    if (data.failed > 0) {
+      console.warn(`[fetch-detailed] ${data.failed} of ${data.total} units failed to fetch`);
+    }
+
+    return NextResponse.json({
+      units: data.units,
+      total: data.total,
+      fetched: data.fetched,
+      failed: data.failed
+    });
+
+  } catch (error) {
+    console.error('[fetch-detailed] Error:', error);
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}

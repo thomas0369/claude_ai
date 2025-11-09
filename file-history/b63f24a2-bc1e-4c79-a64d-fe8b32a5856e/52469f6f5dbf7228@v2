@@ -1,0 +1,99 @@
+# ZEREZ GraphQL API - Known Limitations
+
+## ❌ Restrictions Field Not Available
+
+### Field: `Einschränkungen` (restrictions)
+
+**Status**: NOT available via GraphQL API
+
+**Investigation Date**: 2025-11-05
+
+**Testing Results**:
+- ✅ Tested `unitOverview` query → Field doesn't exist (HTTP 400 error)
+- ✅ Tested `unit(id)` detailed query → Field doesn't exist (HTTP 400 error)
+
+**Where it EXISTS**:
+- ✅ HTML product detail pages only (e.g., `https://www.zerez.net/units/{uuid}`)
+
+**Example Data** (from HY8K3EU1 - Schneider Electric):
+```
+Value of Initial short-circuit alternating current (1.28) and Peak Short-circuit
+current (1.27) for model <HY14K3EU1> as representative, are used for
+<Other models on the same certificate> for verification, based on the same
+software and hardware configuration between them.
+```
+
+### Why This Matters
+
+The restrictions field contains important certificate-specific limitations and notes that explain:
+- Representative model testing relationships
+- Shared configuration details between models
+- Testing methodology clarifications
+- Certificate validity constraints
+
+### Workaround Options
+
+**Option A: HTML Scraping** (Not Recommended)
+- Use Playwright to fetch product pages
+- Parse HTML table to extract restrictions text
+- ❌ Slow: ~2-3 seconds per product
+- ❌ Fragile: Breaks if HTML structure changes
+- ❌ Complex: Requires browser automation
+
+**Option B: Contact ZEREZ** (Recommended for Future)
+- Request ZEREZ to add `restrictions` field to GraphQL API
+- Would align with their other 75+ exposed fields
+- ✅ Clean, fast, maintainable solution
+- ✅ Benefits all API consumers
+
+**Option C: Manual Entry** (Current Approach)
+- Accept limitation for GraphQL-based imports
+- Document missing data in import logs
+- Manually add restrictions if critically needed
+
+## ✅ What IS Available
+
+The GraphQL API provides 75+ technical fields including:
+
+### Power Specifications (12 fields)
+- maxActivePower, ratedActivePower
+- maxApparentPower, ratedApparentPower
+- Power ranges (min/max for active and apparent)
+
+### Electrical Parameters (19 fields)
+- ratedVoltage, ratedCurrent
+- **shortCircuitPeakCurrent** ✅
+- **initialShortCircuitAlternatingCurrent** ✅
+- Fast voltage change parameters (7 variations)
+- Operation voltage variation factors (12 variations)
+
+### Flicker Coefficients (5 fields)
+- systemFlickerCoefficientCY (30°, 50°, 70°, 85°)
+- operationAllWorstCase
+
+### Operation Parameters (21 fields)
+- Operation 1/2/3 flicker step factors (12 fields)
+- Operation 1/2/3 max number/switch parameters (6 fields)
+- hasSwitchingOperation flags (3 fields)
+
+### Metadata & Certification
+- Certificate numbers, dates, validity
+- Manufacturer and authority information
+- Revision tracking, ledger information
+
+## Summary
+
+**Total Available Fields**: 75+ technical specifications via GraphQL
+
+**Missing Field**: 1 (restrictions/Einschränkungen)
+
+**Impact**: Low - All critical technical data is available. Restrictions are supplementary notes that provide context but don't affect technical calculations or compliance verification.
+
+## Recommendation
+
+Continue using GraphQL API for efficient bulk imports (5,991+ verified units).
+
+For products where restrictions are critically important, consider:
+1. Viewing them directly on ZEREZ.net website
+2. Requesting ZEREZ to add field to GraphQL API
+3. Manually documenting them in a separate notes field

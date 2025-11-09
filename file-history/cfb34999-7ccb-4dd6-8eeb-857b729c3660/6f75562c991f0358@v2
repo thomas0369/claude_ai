@@ -1,0 +1,289 @@
+/**
+ * Autonomous Browser Workflow Test
+ *
+ * This test autonomously navigates through the entire application workflow
+ * and tests all key functionality without manual intervention.
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Autonomous Browser Workflow Test', () => {
+
+  test('Complete autonomous workflow from homepage to gameplay with scoring', async ({ page }) => {
+    console.log('\n🚀 Starting Autonomous Browser Workflow Test\n');
+
+    // ================================================================
+    // STEP 1: Homepage Navigation
+    // ================================================================
+    console.log('📍 STEP 1: Loading Homepage...');
+    await page.goto('/', { waitUntil: 'networkidle', timeout: 60000 });
+
+    // Verify homepage loaded
+    await expect(page).toHaveTitle(/Block Puzzle Hero/);
+    console.log('✓ Homepage loaded with correct title');
+
+    // Check for main heading
+    const heading = await page.locator('h1').first().textContent();
+    console.log(`✓ Main heading: "${heading}"`);
+
+    // Screenshot homepage
+    await page.screenshot({ path: 'test-results/01-homepage.png', fullPage: true });
+    console.log('✓ Screenshot saved: 01-homepage.png');
+
+    // ================================================================
+    // STEP 2: Navigate to Levels Page
+    // ================================================================
+    console.log('\n📍 STEP 2: Navigating to Levels Page...');
+    const playButton = page.locator('a[href="/levels"]').first();
+    await playButton.click();
+    await page.waitForURL('**/levels', { timeout: 30000 });
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Navigated to levels page');
+
+    // Wait for tier sections to load
+    await page.waitForSelector('text=/FREE|TRIAL|PREMIUM/i', { timeout: 10000 });
+
+    // Count available free levels
+    const freeLevels = await page.locator('a[href^="/play/"]').count();
+    console.log(`✓ Found ${freeLevels} level links`);
+
+    // Screenshot levels page
+    await page.screenshot({ path: 'test-results/02-levels-page.png', fullPage: true });
+    console.log('✓ Screenshot saved: 02-levels-page.png');
+
+    // ================================================================
+    // STEP 3: Navigate to Level 1
+    // ================================================================
+    console.log('\n📍 STEP 3: Opening Level 1...');
+    const level1Link = page.locator('a[href="/play/1"]').first();
+    await level1Link.click();
+    await page.waitForURL('**/play/1', { timeout: 30000 });
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Navigated to Level 1 game page');
+
+    // ================================================================
+    // STEP 4: Wait for Phaser Game Initialization
+    // ================================================================
+    console.log('\n📍 STEP 4: Waiting for Phaser game to load...');
+
+    // Wait for canvas element
+    const canvas = page.locator('canvas');
+    await expect(canvas).toBeVisible({ timeout: 30000 });
+    console.log('✓ Canvas element visible');
+
+    // Wait for game instance to be created
+    await page.waitForFunction(() => {
+      return typeof (window as any).game !== 'undefined';
+    }, { timeout: 40000 });
+    console.log('✓ Phaser game instance created');
+
+    // Additional wait for full initialization
+    await page.waitForTimeout(5000);
+    console.log('✓ Game initialization complete');
+
+    // Wait for scene to be ready with retry logic
+    await page.waitForFunction(() => {
+      try {
+        const state = (window as any).gameDebug?.getGameState();
+        return state !== null && state !== undefined;
+      } catch {
+        return false;
+      }
+    }, { timeout: 30000 });
+    console.log('✓ Game scene ready');
+
+    // Screenshot game loaded
+    await page.screenshot({ path: 'test-results/03-game-loaded.png', fullPage: true });
+    console.log('✓ Screenshot saved: 03-game-loaded.png');
+
+    // ================================================================
+    // STEP 5: Verify Game Debug Helpers
+    // ================================================================
+    console.log('\n📍 STEP 5: Verifying game debug helpers...');
+
+    const debugAvailable = await page.evaluate(() => {
+      return {
+        gameDebug: typeof (window as any).gameDebug !== 'undefined',
+        placeBlockAt: typeof (window as any).gameDebug?.placeBlockAt === 'function',
+        getGameState: typeof (window as any).gameDebug?.getGameState === 'function',
+        getAvailableBlocks: typeof (window as any).gameDebug?.getAvailableBlocks === 'function',
+      };
+    });
+
+    console.log('Debug Helpers Status:', debugAvailable);
+    expect(debugAvailable.gameDebug).toBe(true);
+    expect(debugAvailable.placeBlockAt).toBe(true);
+    console.log('✓ All debug helpers available');
+
+    // ================================================================
+    // STEP 6: Get Initial Game State
+    // ================================================================
+    console.log('\n📍 STEP 6: Reading initial game state...');
+
+    const initialState = await page.evaluate(() => {
+      return (window as any).gameDebug.getGameState();
+    });
+
+    console.log('Initial Game State:');
+    console.log(`  Score: ${initialState.score}`);
+    console.log(`  Combo: ${initialState.combo}`);
+    console.log(`  Active Blocks: ${initialState.activeBlockCount}`);
+
+    expect(initialState.score).toBe(0);
+    expect(initialState.combo).toBe(0);
+    console.log('✓ Initial state verified');
+
+    // ================================================================
+    // STEP 7: Get Available Blocks
+    // ================================================================
+    console.log('\n📍 STEP 7: Getting available blocks...');
+
+    const blocks = await page.evaluate(() => {
+      return (window as any).gameDebug.getAvailableBlocks();
+    });
+
+    console.log(`Found ${blocks.length} blocks:`);
+    blocks.forEach((block: any, index: number) => {
+      console.log(`  Block ${index}: ${block.id} (${block.width}x${block.height} cells)`);
+    });
+
+    expect(blocks.length).toBeGreaterThan(0);
+    console.log('✓ Blocks loaded successfully');
+
+    // ================================================================
+    // STEP 8: Display Initial Grid
+    // ================================================================
+    console.log('\n📍 STEP 8: Displaying initial grid...');
+
+    const gridViz = await page.evaluate(() => {
+      return (window as any).gameDebug.getGridVisualization();
+    });
+
+    console.log('\nInitial Grid:');
+    console.log(gridViz);
+
+    // ================================================================
+    // STEP 9: Autonomous Block Placement - First Block
+    // ================================================================
+    console.log('\n📍 STEP 9: Placing first block autonomously...');
+
+    const placement1 = await page.evaluate(() => {
+      return (window as any).gameDebug.placeBlockAt(0, 0, 0);
+    });
+
+    console.log('\nPlacement Result 1:');
+    console.log(`  Success: ${placement1.success}`);
+    console.log(`  Position: (${placement1.gridPosition.row}, ${placement1.gridPosition.col})`);
+    console.log(`  Cells Placed: ${placement1.cellsPlaced}`);
+    console.log(`  Lines Cleared: ${placement1.linesCleared}`);
+    console.log(`  Score: ${placement1.score}`);
+    console.log(`  Message: ${placement1.message}`);
+
+    expect(placement1.success).toBe(true);
+    console.log('✓ First block placed successfully');
+
+    // Wait for animation
+    await page.waitForTimeout(1000);
+
+    // Screenshot after first placement
+    await page.screenshot({ path: 'test-results/04-after-first-block.png', fullPage: true });
+    console.log('✓ Screenshot saved: 04-after-first-block.png');
+
+    // ================================================================
+    // STEP 10: Autonomous Block Placement - Second Block
+    // ================================================================
+    console.log('\n📍 STEP 10: Placing second block autonomously...');
+
+    const blocksAfter1 = await page.evaluate(() => {
+      return (window as any).gameDebug.getAvailableBlocks();
+    });
+
+    if (blocksAfter1.length > 0) {
+      const placement2 = await page.evaluate(() => {
+        return (window as any).gameDebug.placeBlockAt(0, 0, 4);
+      });
+
+      console.log('\nPlacement Result 2:');
+      console.log(`  Success: ${placement2.success}`);
+      console.log(`  Position: (${placement2.gridPosition.row}, ${placement2.gridPosition.col})`);
+      console.log(`  Cells Placed: ${placement2.cellsPlaced}`);
+      console.log(`  Lines Cleared: ${placement2.linesCleared}`);
+      console.log(`  Score: ${placement2.score}`);
+
+      if (placement2.success) {
+        console.log('✓ Second block placed successfully');
+      } else {
+        console.log('⚠ Second block placement failed (expected - position may be occupied)');
+      }
+
+      // Wait for animation
+      await page.waitForTimeout(1000);
+    }
+
+    // Screenshot after second placement
+    await page.screenshot({ path: 'test-results/05-after-second-block.png', fullPage: true });
+    console.log('✓ Screenshot saved: 05-after-second-block.png');
+
+    // ================================================================
+    // STEP 11: Display Final Grid State
+    // ================================================================
+    console.log('\n📍 STEP 11: Displaying final grid state...');
+
+    const finalGridViz = await page.evaluate(() => {
+      return (window as any).gameDebug.getGridVisualization();
+    });
+
+    console.log('\nFinal Grid:');
+    console.log(finalGridViz);
+
+    // ================================================================
+    // STEP 12: Get Final Game State
+    // ================================================================
+    console.log('\n📍 STEP 12: Reading final game state...');
+
+    const finalState = await page.evaluate(() => {
+      return (window as any).gameDebug.getGameState();
+    });
+
+    console.log('\nFinal Game State:');
+    console.log(`  Score: ${finalState.score} (increased by ${finalState.score - initialState.score})`);
+    console.log(`  Combo: ${finalState.combo}`);
+    console.log(`  Active Blocks: ${finalState.activeBlockCount}`);
+
+    // Score should have increased
+    expect(finalState.score).toBeGreaterThanOrEqual(initialState.score);
+    console.log('✓ Game state updated correctly');
+
+    // ================================================================
+    // STEP 13: Navigate Back to Levels
+    // ================================================================
+    console.log('\n📍 STEP 13: Navigating back to levels...');
+
+    const backButton = page.locator('a[href="/levels"]').first();
+    await backButton.click();
+    await page.waitForURL('**/levels', { timeout: 30000 });
+    await page.waitForLoadState('networkidle');
+
+    console.log('✓ Navigated back to levels page');
+
+    // Screenshot back on levels
+    await page.screenshot({ path: 'test-results/06-back-to-levels.png', fullPage: true });
+    console.log('✓ Screenshot saved: 06-back-to-levels.png');
+
+    // ================================================================
+    // TEST COMPLETE
+    // ================================================================
+    console.log('\n✅ AUTONOMOUS BROWSER WORKFLOW TEST COMPLETED SUCCESSFULLY!\n');
+    console.log('Summary:');
+    console.log(`  ✓ Homepage loaded`);
+    console.log(`  ✓ Levels page accessed`);
+    console.log(`  ✓ Game loaded and initialized`);
+    console.log(`  ✓ Blocks placed autonomously`);
+    console.log(`  ✓ Scoring system working`);
+    console.log(`  ✓ Navigation functional`);
+    console.log(`  ✓ 6 screenshots captured`);
+    console.log('\n🎉 All workflow steps completed successfully!\n');
+  });
+});

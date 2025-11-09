@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "autoApprove": true,
+  "skipConfirmations": true,
+  "interactive": false,
+  "installation": {
+    "mode": "global",
+    "platform": "wsl"
+  },
+  "hooks": {
+    "enabled": true,
+    "pre-task": {
+      "enabled": true,
+      "scripts": [
+        "~/.claude/hooks/00-per-prompt-worktree.js"
+      ]
+    },
+    "post-task": {
+      "enabled": true,
+      "scripts": [
+        "~/.claude/hooks/99-per-prompt-commit.js"
+      ]
+    }
+  },
+  "testing": {
+    "enabled": true,
+    "port": 5173
+  },
+  "memoryBank": {
+    "enabled": true,
+    "autoSync": true
+  },
+  "git": {
+    "worktreeFirst": true,
+    "enforceWorktrees": true,
+    "autoMerge": true,
+    "autoCleanup": true,
+    "protectedBranches": [
+      "main",
+      "master",
+      "develop"
+    ],
+    "perPromptWorktree": true,
+    "worktreePrefix": "prompt/"
+  },
+  "assumeYes": true
+}

@@ -1,0 +1,198 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { z } from 'zod';
+import { createErrorResponse } from '@/lib/api-error-handler';
+import { type ZEREZUnit } from '@/lib/zerez-types';
+import { DataEnricher } from '@/lib/data-enrichment';
+import type { RawProductData, EnhancedProductData } from '@/lib/types-enhanced';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+// Zod schemas for input validation (防止 injection attacks)
+// Accept full ZEREZUnit objects - use passthrough to allow all fields
+const ProductToImportSchema = z.object({
+  id: z.string(), // UUID from ZEREZ GraphQL
+  // All other fields are optional and will be passed through
+}).passthrough(); // Allow additional fields from ZEREZUnit
+
+const ImportRequestSchema = z.object({
+  products: z.array(ProductToImportSchema).min(1).max(1000),
+  mode: z.enum(['replace', 'merge', 'add']),
+}).strict();
+
+type ProductToImport = z.infer<typeof ProductToImportSchema>;
+
+type ExistingProduct = {
+  identification: {
+    zerez_id?: string;
+    model?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Validate input with Zod (防止 invalid/malicious data)
+    const validationResult = ImportRequestSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Invalid request data',
+          details: validationResult.error.issues.map(err => ({
+            path: err.path.join('.'),
+            message: err.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    const { products, mode } = validationResult.data;
+
+    // Path to the main products database
+    const dbPath = path.join(process.cwd(), 'public', 'data', 'zerez', 'products.json');
+
+    // Validate dbPath stays within allowed directory (防止 path traversal)
+    const resolvedDbPath = path.resolve(dbPath);
+    const allowedDir = path.resolve(process.cwd(), 'public');
+    if (!resolvedDbPath.startsWith(allowedDir)) {
+      return NextResponse.json(
+        { error: 'Invalid database path' },
+        { status: 403 }
+      );
+    }
+
+    // Read existing database
+    let existingProducts: ExistingProduct[] = [];
+    try {
+      const dbContent = await fs.readFile(dbPath, 'utf-8');
+      existingProducts = JSON.parse(dbContent);
+    } catch (error) {
+      console.warn('Could not read existing database, starting fresh:', error);
+      existingProducts = [];
+    }
+
+    let added = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    if (mode === 'replace') {
+      // Replace mode: Clear entire database and import fresh (DESTRUCTIVE)
+      existingProducts = [];
+      for (const newProduct of products) {
+        const convertedProduct = convertGraphQLToDatabase(newProduct);
+        existingProducts.push(convertedProduct);
+        added++;
+      }
+    } else if (mode === 'merge') {
+      // Merge mode: Update existing + add new (RECOMMENDED)
+      const productMap = new Map(
+        existingProducts.map(p => [p.identification?.zerez_id || p.identification?.model, p])
+      );
+
+      for (const newProduct of products) {
+        const matchKey: string | undefined = newProduct.id || (newProduct as any).modelName;
+        const convertedProduct = convertGraphQLToDatabase(newProduct);
+
+        if (matchKey && productMap.has(matchKey)) {
+          // Update existing product
+          productMap.set(matchKey, convertedProduct);
+          updated++;
+        } else {
+          // Add new product
+          productMap.set(matchKey || `unknown-${Date.now()}-${Math.random()}`, convertedProduct);
+          added++;
+        }
+      }
+
+      existingProducts = Array.from(productMap.values());
+    } else {
+      // Add mode: Add only new products (skip duplicates, preserve existing)
+      const existingIds = new Set(
+        existingProducts.map(p => p.identification?.zerez_id || p.identification?.model)
+      );
+
+      for (const newProduct of products) {
+        const matchKey: string | undefined = newProduct.id || (newProduct as any).modelName;
+
+        if (matchKey && !existingIds.has(matchKey)) {
+          // Add new product - convert GraphQL format to database format
+          const convertedProduct = convertGraphQLToDatabase(newProduct);
+          existingProducts.push(convertedProduct);
+          added++;
+        } else {
+          skipped++;
+        }
+      }
+    }
+
+    // Enrich products before writing to database
+    // This ensures all products have complete efficiency, physical, and competitive data
+    console.log(`[ZEREZ Import] Enriching ${existingProducts.length} products with industry-standard estimates...`);
+    const enrichedProducts = DataEnricher.enrichProducts(existingProducts as RawProductData[]);
+    console.log(`[ZEREZ Import] Enrichment complete. Writing ${enrichedProducts.length} products to database...`);
+
+    // Write enriched database back to file
+    await fs.writeFile(dbPath, JSON.stringify(enrichedProducts, null, 2), 'utf-8');
+
+    return NextResponse.json({
+      success: true,
+      mode,
+      added,
+      updated,
+      skipped,
+      total: enrichedProducts.length,
+      enriched: true, // Indicate that products were automatically enriched
+    });
+
+  } catch (error) {
+    return createErrorResponse('import to database', error);
+  }
+}
+
+/**
+ * Convert ZEREZ GraphQL Unit to database JSON format
+ * Maps ZEREZUnit fields to our database schema
+ */
+function convertGraphQLToDatabase(product: ProductToImport): ExistingProduct {
+  // Cast to ZEREZUnit for type-safe access to all fields
+  const unit = product as unknown as ZEREZUnit;
+
+  return {
+    identification: {
+      model: unit.modelName || unit.modelNumber || 'Unknown',
+      zerez_id: unit.id,
+      manufacturer: unit.manufacturerName || 'Unknown',
+      zerez_variant_count: 1
+    },
+    power: {
+      rated_power_kw: unit.ratedActivePower || unit.maxActivePower || 0,
+      max_power_kw: unit.maxActivePower || unit.ratedActivePower || 0
+    },
+    electrical: {
+      max_dc_voltage_v: unit.ratedVoltage || 0,
+      rated_ac_current_a: unit.ratedCurrent || 0
+    },
+    efficiency: {},
+    physical: {},
+    certifications: {
+      zerez_certificate_id: unit.certificateId || unit.certificateNumber || '',
+      zerez_norm: unit.certificateNormIssueDateDescriptions || null,
+      zerez_cert_date: unit.certificateIssueDate || null
+    },
+    data_source: {
+      source: 'zerez_graphql_api',
+      pdf_filename: null,
+      extraction_method: 'graphql_import',
+      confidence_level: 10,
+      parsed_at: new Date().toISOString(),
+      source_file: null
+    }
+  };
+}

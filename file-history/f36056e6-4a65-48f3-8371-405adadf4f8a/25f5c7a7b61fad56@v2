@@ -1,0 +1,525 @@
+"""
+Timeframe Re-calculation Engine for Elliott Wave Trading Bot.
+
+Provides dynamic timeframe generation from 5-minute base data:
+- Resample 5m → ANY timeframe (e.g., 45m, 2h, 3h)
+- Validate candle count (need 200+ for indicators)
+- Calculate available timeframes
+- Cache resampled data
+- Quality validation
+
+Supported Operations:
+- 5m → 15m (ratio 3:1)
+- 5m → 30m (ratio 6:1)
+- 5m → 45m (ratio 9:1)
+- 5m → 1h (ratio 12:1)
+- 5m → 2h (ratio 24:1)
+- 5m → 4h (ratio 48:1)
+- 5m → Daily (ratio 288:1)
+"""
+
+import pandas as pd
+import numpy as np
+from datetime import datetime, timezone, timedelta
+from typing import Dict, List, Optional, Tuple
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class TimeframeEngine:
+    """
+    Dynamic timeframe calculator with quality validation.
+
+    Features:
+    - Calculate ANY timeframe from 5m base
+    - Validate candle count (need 200+ for indicators)
+    - Detect gaps in resampled data
+    - Cache resampled timeframes
+    - Quality assessment integration
+    """
+
+    # Standard timeframe mappings
+    STANDARD_TIMEFRAMES = {
+        "5m": 5,
+        "15m": 15,
+        "30m": 30,
+        "45m": 45,
+        "1h": 60,
+        "2h": 120,
+        "3h": 180,
+        "4h": 240,
+        "6h": 360,
+        "8h": 480,
+        "12h": 720,
+        "1d": 1440
+    }
+
+    # Resampling configuration
+    MIN_CANDLES_FOR_INDICATORS = 200  # Minimum candles needed for EMA_200
+    BASE_TIMEFRAME_MINUTES = 5  # Base data is 5-minute candles
+    MAX_RATIO = 288  # 5m → Daily (24h * 60 / 5)
+
+    def __init__(self, data_cache=None):
+        """
+        Initialize timeframe engine.
+
+        Args:
+            data_cache: Optional DataCache instance for caching resampled data
+        """
+        self.data_cache = data_cache
+
+    def resample_to_timeframe(
+        self,
+        df: pd.DataFrame,
+        target_minutes: int,
+        validate: bool = True
+    ) -> Optional[pd.DataFrame]:
+        """
+        Resample DataFrame to target timeframe.
+
+        Args:
+            df: Source DataFrame with OHLCV data (datetime index)
+            target_minutes: Target timeframe in minutes (e.g., 45)
+            validate: Ensure 200+ candles after resampling
+
+        Returns:
+            Resampled DataFrame or None if failed/invalid
+        """
+        if df is None or len(df) == 0:
+            logger.error("Cannot resample empty DataFrame")
+            return None
+
+        try:
+            # Validate ratio
+            if target_minutes % self.BASE_TIMEFRAME_MINUTES != 0:
+                logger.warning(
+                    f"Target timeframe {target_minutes}m is not a multiple of base {self.BASE_TIMEFRAME_MINUTES}m. "
+                    f"Resampling may produce incomplete candles."
+                )
+
+            ratio = target_minutes / self.BASE_TIMEFRAME_MINUTES
+
+            if ratio > self.MAX_RATIO:
+                logger.error(f"Ratio {ratio} exceeds maximum {self.MAX_RATIO}")
+                return None
+
+            # Ensure DataFrame has datetime index
+            if not isinstance(df.index, pd.DatetimeIndex):
+                logger.error("DataFrame must have DatetimeIndex")
+                return None
+
+            # Resample OHLCV data
+            logger.debug(f"Resampling from 5m to {target_minutes}m (ratio {ratio}:1)")
+
+            freq_string = f"{target_minutes}min"
+            resampled = df.resample(freq_string).agg({
+                'open': 'first',    # First open in period
+                'high': 'max',      # Highest high in period
+                'low': 'min',       # Lowest low in period
+                'close': 'last',    # Last close in period
+                'volume': 'sum'     # Sum volume in period
+            }).dropna()
+
+            # Validate result
+            if len(resampled) == 0:
+                logger.error("Resampling produced empty DataFrame")
+                return None
+
+            # Check minimum candles
+            if validate and len(resampled) < self.MIN_CANDLES_FOR_INDICATORS:
+                logger.warning(
+                    f"Resampled data has only {len(resampled)} candles "
+                    f"(need {self.MIN_CANDLES_FOR_INDICATORS}+)"
+                )
+                if len(resampled) < 50:  # Hard minimum
+                    return None
+
+            logger.info(
+                f"✓ Resampled to {target_minutes}m: {len(df)} → {len(resampled)} candles "
+                f"(ratio {ratio}:1)"
+            )
+
+            return resampled
+
+        except Exception as e:
+            logger.error(f"Error resampling to {target_minutes}m: {e}", exc_info=True)
+            return None
+
+    def get_available_timeframes(
+        self,
+        df: pd.DataFrame,
+        min_candles: int = None
+    ) -> List[Dict]:
+        """
+        Calculate all valid timeframes from source data.
+
+        Args:
+            df: Source DataFrame
+            min_candles: Minimum candles required (default: MIN_CANDLES_FOR_INDICATORS)
+
+        Returns:
+            List of timeframe dicts with metadata
+        """
+        if min_candles is None:
+            min_candles = self.MIN_CANDLES_FOR_INDICATORS
+
+        available = []
+
+        # Calculate source candles
+        source_candles = len(df)
+        if source_candles == 0:
+            return []
+
+        # Test each standard timeframe
+        for tf_name, tf_minutes in sorted(self.STANDARD_TIMEFRAMES.items(), key=lambda x: x[1]):
+            ratio = tf_minutes / self.BASE_TIMEFRAME_MINUTES
+            estimated_candles = int(source_candles / ratio)
+
+            # Determine status
+            if estimated_candles >= min_candles:
+                status = "✅ READY"
+                quality = "EXCELLENT" if estimated_candles >= min_candles * 1.5 else "GOOD"
+            elif estimated_candles >= 100:
+                status = "🟡 LOW"
+                quality = "FAIR"
+            else:
+                status = "❌ TOO LOW"
+                quality = "POOR"
+
+            available.append({
+                "timeframe": tf_name,
+                "minutes": tf_minutes,
+                "ratio": ratio,
+                "estimated_candles": estimated_candles,
+                "status": status,
+                "quality": quality,
+                "usable": estimated_candles >= min_candles
+            })
+
+        return available
+
+    def calculate_custom_timeframe(
+        self,
+        minutes: int,
+        source_candles: int
+    ) -> Dict:
+        """
+        Calculate metadata for a custom timeframe without resampling.
+
+        Args:
+            minutes: Target timeframe in minutes
+            source_candles: Number of 5m candles available
+
+        Returns:
+            Timeframe calculation dict
+        """
+        if minutes <= 0:
+            return {"error": "Invalid timeframe (must be > 0)"}
+
+        if minutes < self.BASE_TIMEFRAME_MINUTES:
+            return {
+                "error": f"Timeframe too small (minimum {self.BASE_TIMEFRAME_MINUTES}m)"
+            }
+
+        ratio = minutes / self.BASE_TIMEFRAME_MINUTES
+        if ratio > self.MAX_RATIO:
+            return {
+                "error": f"Timeframe too large (max ratio {self.MAX_RATIO}:1 = {self.MAX_RATIO * self.BASE_TIMEFRAME_MINUTES}m)"
+            }
+
+        estimated_candles = int(source_candles / ratio)
+
+        # Determine quality
+        if estimated_candles >= self.MIN_CANDLES_FOR_INDICATORS * 1.5:
+            status = "✅ EXCELLENT"
+            quality = "EXCELLENT"
+        elif estimated_candles >= self.MIN_CANDLES_FOR_INDICATORS:
+            status = "✅ READY"
+            quality = "GOOD"
+        elif estimated_candles >= 100:
+            status = "🟡 LOW"
+            quality = "FAIR"
+        else:
+            status = "❌ TOO LOW"
+            quality = "POOR"
+
+        # Format timeframe string
+        if minutes < 60:
+            tf_string = f"{minutes}m"
+        elif minutes < 1440:
+            hours = minutes / 60
+            tf_string = f"{hours:.1f}h" if hours % 1 != 0 else f"{int(hours)}h"
+        else:
+            days = minutes / 1440
+            tf_string = f"{days:.1f}d" if days % 1 != 0 else f"{int(days)}d"
+
+        return {
+            "timeframe": tf_string,
+            "minutes": minutes,
+            "ratio": ratio,
+            "source_candles": source_candles,
+            "estimated_candles": estimated_candles,
+            "min_required": self.MIN_CANDLES_FOR_INDICATORS,
+            "status": status,
+            "quality": quality,
+            "usable": estimated_candles >= self.MIN_CANDLES_FOR_INDICATORS,
+            "warning": "Not a multiple of 5m - may have incomplete candles" if minutes % 5 != 0 else None
+        }
+
+    def resample_and_cache(
+        self,
+        symbol: str,
+        df_5m: pd.DataFrame,
+        target_timeframe: str,
+        target_minutes: int
+    ) -> Optional[pd.DataFrame]:
+        """
+        Resample and cache the result.
+
+        Args:
+            symbol: Asset symbol
+            df_5m: Source 5m DataFrame
+            target_timeframe: Target timeframe string (e.g., "45m")
+            target_minutes: Target minutes
+
+        Returns:
+            Resampled DataFrame
+        """
+        # Resample
+        resampled = self.resample_to_timeframe(df_5m, target_minutes)
+
+        if resampled is None:
+            return None
+
+        # Cache if available
+        if self.data_cache:
+            try:
+                self.data_cache.save_data(symbol, target_timeframe, resampled)
+                logger.info(f"Cached resampled data: {symbol} {target_timeframe}")
+            except Exception as e:
+                logger.warning(f"Failed to cache {symbol} {target_timeframe}: {e}")
+
+        return resampled
+
+    def batch_resample(
+        self,
+        symbol: str,
+        df_5m: pd.DataFrame,
+        target_timeframes: List[str]
+    ) -> Dict[str, pd.DataFrame]:
+        """
+        Resample to multiple timeframes at once.
+
+        Args:
+            symbol: Asset symbol
+            df_5m: Source 5m DataFrame
+            target_timeframes: List of target timeframes (e.g., ["15m", "1h", "4h"])
+
+        Returns:
+            Dict of timeframe → DataFrame
+        """
+        results = {}
+
+        for tf in target_timeframes:
+            if tf not in self.STANDARD_TIMEFRAMES:
+                logger.warning(f"Unknown timeframe {tf}, skipping")
+                continue
+
+            minutes = self.STANDARD_TIMEFRAMES[tf]
+            resampled = self.resample_to_timeframe(df_5m, minutes)
+
+            if resampled is not None:
+                results[tf] = resampled
+
+                # Cache
+                if self.data_cache:
+                    try:
+                        self.data_cache.save_data(symbol, tf, resampled)
+                    except Exception as e:
+                        logger.warning(f"Failed to cache {symbol} {tf}: {e}")
+
+        logger.info(f"Batch resampled {symbol}: {len(results)}/{len(target_timeframes)} succeeded")
+        return results
+
+    def validate_resampled_quality(
+        self,
+        df_original: pd.DataFrame,
+        df_resampled: pd.DataFrame,
+        ratio: float
+    ) -> Dict:
+        """
+        Validate resampled data quality.
+
+        Checks:
+        - Expected candle count
+        - OHLC integrity
+        - Volume aggregation
+        - No gaps introduced
+
+        Args:
+            df_original: Original 5m data
+            df_resampled: Resampled data
+            ratio: Resampling ratio
+
+        Returns:
+            Validation results dict
+        """
+        issues = []
+
+        # Check expected candle count
+        expected_candles = int(len(df_original) / ratio)
+        actual_candles = len(df_resampled)
+        candle_diff = abs(expected_candles - actual_candles)
+
+        if candle_diff > 5:  # Allow 5 candle tolerance
+            issues.append(f"Unexpected candle count: expected ~{expected_candles}, got {actual_candles}")
+
+        # Validate OHLC integrity
+        invalid_high_low = (df_resampled["high"] < df_resampled["low"]).sum()
+        if invalid_high_low > 0:
+            issues.append(f"{invalid_high_low} candles with High < Low")
+
+        # Check volume
+        if "volume" in df_original.columns and "volume" in df_resampled.columns:
+            total_volume_orig = df_original["volume"].sum()
+            total_volume_resampled = df_resampled["volume"].sum()
+            volume_diff_pct = abs(total_volume_orig - total_volume_resampled) / total_volume_orig * 100
+
+            if volume_diff_pct > 1:  # Allow 1% tolerance
+                issues.append(f"Volume mismatch: {volume_diff_pct:.2f}% difference")
+
+        # Overall validation
+        is_valid = len(issues) == 0
+
+        return {
+            "valid": is_valid,
+            "expected_candles": expected_candles,
+            "actual_candles": actual_candles,
+            "candle_diff": candle_diff,
+            "issues": issues,
+            "quality": "GOOD" if is_valid else "POOR"
+        }
+
+    def get_timeframe_info(self, timeframe: str) -> Optional[Dict]:
+        """
+        Get information about a timeframe.
+
+        Args:
+            timeframe: Timeframe string (e.g., "45m", "2h")
+
+        Returns:
+            Timeframe info dict or None if unknown
+        """
+        if timeframe in self.STANDARD_TIMEFRAMES:
+            minutes = self.STANDARD_TIMEFRAMES[timeframe]
+            ratio = minutes / self.BASE_TIMEFRAME_MINUTES
+
+            return {
+                "timeframe": timeframe,
+                "minutes": minutes,
+                "ratio": ratio,
+                "standard": True
+            }
+
+        return None
+
+
+class TimeframeOptimizer:
+    """
+    Recommend optimal timeframes based on available data.
+
+    Helps users choose the best timeframes for their strategy.
+    """
+
+    def __init__(self, engine: TimeframeEngine):
+        """
+        Initialize optimizer.
+
+        Args:
+            engine: TimeframeEngine instance
+        """
+        self.engine = engine
+
+    def recommend_timeframes(
+        self,
+        df_5m: pd.DataFrame,
+        strategy: str = "balanced"
+    ) -> List[str]:
+        """
+        Recommend optimal timeframes for a strategy.
+
+        Args:
+            df_5m: Source 5m data
+            strategy: Strategy type ("aggressive", "balanced", "conservative")
+
+        Returns:
+            List of recommended timeframes
+        """
+        available = self.engine.get_available_timeframes(df_5m)
+        usable = [tf for tf in available if tf["usable"]]
+
+        if len(usable) == 0:
+            return []
+
+        recommendations = []
+
+        if strategy == "aggressive":
+            # Use more timeframes for frequent signals
+            # Short-term focus: 15m, 30m, 1h, 2h
+            for tf in ["15m", "30m", "1h", "2h"]:
+                if any(t["timeframe"] == tf for t in usable):
+                    recommendations.append(tf)
+
+        elif strategy == "balanced":
+            # Standard multi-timeframe analysis
+            # Medium-term focus: 15m, 1h, 4h, daily
+            for tf in ["15m", "1h", "4h", "1d"]:
+                if any(t["timeframe"] == tf for t in usable):
+                    recommendations.append(tf)
+
+        elif strategy == "conservative":
+            # Longer timeframes for confirmed trends
+            # Long-term focus: 1h, 4h, daily
+            for tf in ["1h", "4h", "1d"]:
+                if any(t["timeframe"] == tf for t in usable):
+                    recommendations.append(tf)
+
+        return recommendations
+
+    def calculate_data_requirements(
+        self,
+        target_timeframes: List[str],
+        min_candles: int = 200
+    ) -> Dict:
+        """
+        Calculate required 5m candles for target timeframes.
+
+        Args:
+            target_timeframes: Desired timeframes
+            min_candles: Minimum candles per timeframe
+
+        Returns:
+            Requirements dict
+        """
+        max_ratio = 1.0
+
+        for tf in target_timeframes:
+            info = self.engine.get_timeframe_info(tf)
+            if info and info["ratio"] > max_ratio:
+                max_ratio = info["ratio"]
+
+        required_5m_candles = int(max_ratio * min_candles)
+
+        # Estimate time span
+        required_minutes = required_5m_candles * 5
+        required_days = required_minutes / (60 * 24)
+
+        return {
+            "target_timeframes": target_timeframes,
+            "min_candles_per_tf": min_candles,
+            "required_5m_candles": required_5m_candles,
+            "required_minutes": required_minutes,
+            "required_days": round(required_days, 1),
+            "max_ratio": max_ratio
+        }

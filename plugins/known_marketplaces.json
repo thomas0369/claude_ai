@@ -1,0 +1,10 @@
+{
+  "playwright-skill": {
+    "source": {
+      "source": "github",
+      "repo": "lackeyjb/playwright-skill"
+    },
+    "installLocation": "/home/thoma/.claude/plugins/marketplaces/playwright-skill",
+    "lastUpdated": "2025-11-02T17:41:58.149Z"
+  }
+}

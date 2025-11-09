@@ -1,0 +1,89 @@
+#!/bin/bash
+###############################################################################
+# Git LFS Setup Script für PDF Storage
+###############################################################################
+#
+# Dieses Script richtet Git LFS für Ihre PDFs ein
+#
+# Usage:
+#   chmod +x SETUP_GIT_LFS.sh
+#   ./SETUP_GIT_LFS.sh
+#
+
+set -e  # Exit on error
+
+echo "🚀 Setting up Git LFS for PDF storage..."
+echo ""
+
+# Check if Git LFS is installed
+if ! command -v git-lfs &> /dev/null; then
+    echo "❌ Git LFS ist nicht installiert"
+    echo ""
+    echo "Bitte installieren Sie Git LFS:"
+    echo ""
+    echo "macOS:"
+    echo "  brew install git-lfs"
+    echo ""
+    echo "Windows:"
+    echo "  Download von: https://git-lfs.github.com/"
+    echo ""
+    echo "Linux (Ubuntu/Debian):"
+    echo "  sudo apt-get install git-lfs"
+    echo ""
+    exit 1
+fi
+
+echo "✅ Git LFS ist installiert"
+echo ""
+
+# Initialize Git LFS
+echo "📦 Initialisiere Git LFS..."
+git lfs install
+echo "✅ Git LFS initialisiert"
+echo ""
+
+# Check if .gitattributes already has PDF tracking
+if [ -f ".gitattributes" ] && grep -q "*.pdf filter=lfs" .gitattributes; then
+    echo "ℹ️  PDFs sind bereits in .gitattributes konfiguriert"
+else
+    echo "📝 Füge PDF-Tracking zu .gitattributes hinzu..."
+    echo "*.pdf filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+    git add .gitattributes
+    git commit -m "chore: Configure Git LFS for PDF files
+
+🤖 Generated with Claude Code"
+    echo "✅ .gitattributes aktualisiert und committed"
+fi
+echo ""
+
+# Check for existing PDFs
+PDF_COUNT=$(find public/data/pdfs -name "*.pdf" 2>/dev/null | wc -l || echo "0")
+
+if [ "$PDF_COUNT" -gt 0 ]; then
+    echo "📄 Gefunden: $PDF_COUNT PDF-Dateien"
+    echo ""
+    echo "Möchten Sie bestehende PDFs zu Git LFS migrieren? (y/N)"
+    read -r response
+    if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        echo "🔄 Migriere bestehende PDFs zu Git LFS..."
+        git lfs migrate import --include="*.pdf" --everything
+        echo "✅ Migration abgeschlossen"
+    fi
+else
+    echo "ℹ️  Keine bestehenden PDFs gefunden"
+fi
+echo ""
+
+# Show status
+echo "📊 Git LFS Status:"
+git lfs status
+echo ""
+
+echo "✨ Setup abgeschlossen!"
+echo ""
+echo "Nächste Schritte:"
+echo "1. PDFs werden jetzt automatisch mit Git LFS getrackt"
+echo "2. Committen Sie neue PDFs wie gewohnt: git add public/data/pdfs/"
+echo "3. Push zu GitHub: git push origin main"
+echo ""
+echo "📚 Weitere Informationen: GIT_PDF_STORAGE_GUIDE.md"

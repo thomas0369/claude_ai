@@ -1,0 +1,160 @@
+/**
+ * API Validation Utilities
+ *
+ * Shared validation helpers for Next.js API routes.
+ * Provides consistent validation patterns, error responses, and type guards.
+ */
+
+/**
+ * UUID v4 validation regex (RFC 4122 compliant)
+ *
+ * Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+ * - Version nibble must be 4
+ * - Variant nibble must be 8, 9, a, or b
+ *
+ * @example
+ * ```typescript
+ * UUID_V4_REGEX.test('550e8400-e29b-41d4-a716-446655440000') // true
+ * UUID_V4_REGEX.test('not-a-uuid') // false
+ * ```
+ */
+export const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Validate a string is a valid UUID v4 format
+ *
+ * @param value - String to validate
+ * @returns true if valid UUID v4, false otherwise
+ *
+ * @example
+ * ```typescript
+ * if (!isValidUUIDv4(productId)) {
+ *   return NextResponse.json({ error: 'Invalid UUID' }, { status: 400 });
+ * }
+ * ```
+ */
+export function isValidUUIDv4(value: unknown): value is string {
+  return typeof value === 'string' && UUID_V4_REGEX.test(value);
+}
+
+/**
+ * Validation result type for API responses
+ */
+export type ValidationError = {
+  field: string;
+  message: string;
+  value?: unknown;
+};
+
+/**
+ * Validate UUID field with standardized error response
+ *
+ * @param fieldName - Name of the field being validated (for error messages)
+ * @param value - Value to validate
+ * @returns ValidationError if invalid, null if valid
+ *
+ * @example
+ * ```typescript
+ * const error = validateUUIDField('manufacturerId', body.manufacturerId);
+ * if (error) {
+ *   return NextResponse.json({
+ *     error: `Invalid ${error.field}`,
+ *     message: error.message
+ *   }, { status: 400 });
+ * }
+ * ```
+ */
+export function validateUUIDField(
+  fieldName: string,
+  value: unknown
+): ValidationError | null {
+  if (!value) return null; // Optional field
+
+  if (typeof value !== 'string') {
+    return {
+      field: fieldName,
+      message: `${fieldName} must be a string`,
+      value: typeof value
+    };
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!isValidUUIDv4(trimmedValue)) {
+    return {
+      field: fieldName,
+      message: `${fieldName} must be a valid UUID v4 format (e.g., 550e8400-e29b-41d4-a716-446655440000)`,
+      value: trimmedValue
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Validate multiple UUID fields at once
+ *
+ * @param fields - Object mapping field names to values
+ * @returns Array of ValidationErrors (empty if all valid)
+ *
+ * @example
+ * ```typescript
+ * const errors = validateUUIDFields({
+ *   manufacturerId: body.manufacturerId,
+ *   authorityId: body.authorityId
+ * });
+ *
+ * if (errors.length > 0) {
+ *   return NextResponse.json({
+ *     error: 'Validation failed',
+ *     details: errors
+ *   }, { status: 400 });
+ * }
+ * ```
+ */
+export function validateUUIDFields(
+  fields: Record<string, unknown>
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  for (const [fieldName, value] of Object.entries(fields)) {
+    const error = validateUUIDField(fieldName, value);
+    if (error) errors.push(error);
+  }
+
+  return errors;
+}
+
+/**
+ * Add optional string filters to filters object (with trim and empty check)
+ *
+ * Safely adds string filter values to a filters object, only if they exist
+ * and are non-empty after trimming. Handles the common pattern of:
+ * "if (value && value.trim() !== '') filters.key = value"
+ *
+ * @param body - Request body object
+ * @param filters - Target filters object to populate
+ * @param fieldNames - Array of field names to process
+ *
+ * @example
+ * ```typescript
+ * const filters = {};
+ * addOptionalStringFilters(body, filters, [
+ *   'createdAfter', 'createdBefore',
+ *   'modifiedAfter', 'modifiedBefore'
+ * ]);
+ * // filters now contains only non-empty values
+ * ```
+ */
+export function addOptionalStringFilters(
+  body: Record<string, unknown>,
+  filters: Record<string, unknown>,
+  fieldNames: string[]
+): void {
+  for (const fieldName of fieldNames) {
+    const value = body[fieldName];
+    if (typeof value === 'string' && value.trim() !== '') {
+      filters[fieldName] = value;
+    }
+  }
+}

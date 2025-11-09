@@ -1,0 +1,499 @@
+#!/usr/bin/env python3
+"""
+Daily Shoot Trade Screener - Top 10 OSOK Setups with Backtests
+
+Automated daily workflow for GitHub Actions:
+1. Screen all assets using Elliott-ICT-OSOK strategy (165-point system)
+2. Generate top 10 highest-scoring "Shoot Trades"
+3. Quick backtest each setup (30-day validation)
+4. Export to dashboard with backtest metrics
+
+Data Provider Priority:
+- Primary: TradingView (reliable, free web data)
+- Fallback  # 1: Yahoo Finance (free, universal coverage)
+- Fallback  # 2: Capital.com API (optional, for commodities)
+
+Output:
+- JSON manifest for dashboard (data/shoot_trades_manifest.json)
+- Individual chart data files (data/shoot_trade_*.json)
+"""
+
+import os
+import sys
+import json
+import logging
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+from pathlib import Path
+
+# Add src to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+import config
+from elliott_ict_osok_strategy import ElliottICT_OSOK_Strategy
+from data_provider_manager import DataProviderManager, TradingViewProviderAdapter, YahooFinanceProviderAdapter, ForexProviderAdapter
+from tradingview_data_provider import get_tradingview_provider
+from yfinance_data_provider import get_yfinance_provider
+from forex_data_provider import get_forex_provider
+from indicators import calculate_indicators
+import pandas as pd
+import numpy as np
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+
+class DailyShootScreener:
+    """
+    Daily screener for top 10 OSOK "Shoot Trade" setups with backtests
+    """
+
+    def __init__(self, top_n: int = 10, backtest_days: int = 30):
+        """
+        Initialize daily screener
+
+        Args:
+            top_n: Number of top setups to return (default: 10)
+            backtest_days: Days to backtest for validation (default: 30)
+        """
+        self.top_n = top_n
+        self.backtest_days = backtest_days
+
+        # Initialize OSOK strategy (165-point system)
+        self.strategy = ElliottICT_OSOK_Strategy(
+            min_score=90,  # Raised threshold for OSOK selectivity
+            weekly_pip_target=50.0,
+            max_trades_per_week=2
+        )
+
+        # Initialize data provider with multi-provider fallback chain
+        self.data_manager = DataProviderManager()
+
+        # Register TradingView as PRIMARY (Priority 1)
+        tv_provider = get_tradingview_provider()
+        self.data_manager.register(TradingViewProviderAdapter(tv_provider))
+        logger.info("✅ TradingView registered as PRIMARY provider")
+
+        # Register Yahoo Finance as FALLBACK #1 (Priority 2)
+        yf_provider = get_yfinance_provider()
+        self.data_manager.register(YahooFinanceProviderAdapter(yf_provider))
+        logger.info("✅ Yahoo Finance registered as FALLBACK  # 1 (free, universal)")
+
+        # Register Capital.com as FALLBACK #2 (Priority 3) - if configured
+        try:
+            from capital_api import CapitalAPI
+            capital_api = CapitalAPI()
+            if capital_api.is_authenticated():
+                # Wrap Capital API as ForexProvider-compatible
+                self.data_manager.register(ForexProviderAdapter(get_forex_provider()))
+                logger.info("✅ Capital.com API registered as FALLBACK  # 2")
+        except Exception as e:
+            logger.info(f"ℹ️ Capital.com API not configured (optional): {e}")
+
+        logger.info(f"✅ Daily Shoot Screener initialized (top {top_n} setups, {backtest_days}-day backtest)")
+
+    def screen_all_assets(self) -> List[Dict]:
+        """
+        Screen all configured assets and return top N setups
+
+        Returns:
+            List of top N setup dictionaries with scores and signals
+        """
+        logger.info(f"\n{'='*80}")
+        logger.info(f"DAILY SHOOT TRADE SCREENING - {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}")
+        logger.info(f"{'='*80}\n")
+
+        # Default asset list (major forex pairs only)
+        # TradingView FX exchange supports standard forex pairs only
+        # Commodities (gold, silver) require Capital.com API fallback (future enhancement)
+        assets = [
+            "EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD",
+            "USD/CAD", "NZD/USD", "EUR/GBP"
+        ]
+
+        logger.info(f"Assets to screen: {', '.join(assets)}")
+        logger.info(f"Note: Gold/commodities not included - TradingView FX limitation\n")
+
+        all_setups = []
+
+        for symbol in assets:
+            logger.info(f"\n📊 Screening {symbol}...")
+
+            try:
+                # Fetch multi-timeframe data
+                mtf_data = self._fetch_multi_timeframe_data(symbol)
+
+                if not mtf_data:
+                    logger.warning(f"⚠️ No data for {symbol}, skipping")
+                    continue
+
+                # Generate OSOK signal
+                signal = self.strategy.generate_signal(
+                    mtf_data["w1"],
+                    mtf_data["h4"],
+                    mtf_data["h1"],
+                    mtf_data["m15"],
+                    datetime.now()
+                )
+
+                # Check if valid trade setup
+                if signal["signal"] != 0 and signal.get("passes_filters", False):
+                    logger.info(f"✅ {symbol}: Score {signal['score']}/165 - {signal['direction']} setup")
+
+                    # Quick backtest for validation
+                    backtest_result = self._quick_backtest(symbol, mtf_data, signal)
+
+                    # Store setup with backtest data
+                    setup = {
+                        "symbol": symbol,
+                        "score": signal["score"],
+                        "direction": "LONG" if signal["signal"] == 1 else "SHORT",
+                        "entry_price": signal["entry"],
+                        "stop_loss": signal["stop_loss"],
+                        "take_profit": signal["take_profit"],
+                        "score_breakdown": signal["score_breakdown"],
+                        "backtest": backtest_result,
+                        "timestamp": datetime.now().isoformat(),
+                        "mtf_data": mtf_data  # Store for chart generation
+                    }
+
+                    all_setups.append(setup)
+                else:
+                    logger.info(f"❌ {symbol}: Score {signal['score']}/165 - Does not pass filters")
+
+            except Exception as e:
+                logger.error(f"❌ Error screening {symbol}: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # Sort by score (highest first) and take top N
+        all_setups.sort(key=lambda x: x["score"], reverse=True)
+        top_setups = all_setups[:self.top_n]
+
+        logger.info(f"\n{'='*80}")
+        logger.info(f"✅ SCREENING COMPLETE: {len(top_setups)} top setups found")
+        logger.info(f"{'='*80}\n")
+
+        return top_setups
+
+    def _fetch_multi_timeframe_data(self, symbol: str) -> Optional[Dict]:
+        """
+        Fetch data for all required timeframes
+
+        Args:
+            symbol: Trading pair symbol
+
+        Returns:
+            Dictionary with keys: w1, h4, h1, m15 (DataFrames)
+            Returns None if any fetch fails
+        """
+        timeframes = {
+            "w1": ("1w", 52),  # 1 year of weekly data
+            "h4": ("4h", 200),  # ~33 days
+            "h1": ("1h", 200),  # ~8 days
+            "m15": ("15m", 200)  # ~2 days
+        }
+
+        mtf_data = {}
+
+        for tf_key, (tf_str, limit) in timeframes.items():
+            logger.info(f"  Fetching {tf_str} data...")
+
+            ohlcv = self.data_manager.fetch_ohlcv(
+                symbol=symbol,
+                timeframe=tf_str,
+                limit=limit
+            )
+
+            if not ohlcv:
+                logger.error(f"  Failed to fetch {tf_str} data for {symbol}")
+                return None
+
+            # Convert to DataFrame
+            df = pd.DataFrame(
+                ohlcv,
+                columns=["timestamp", "open", "high", "low", "close", "volume"]
+            )
+            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+            df.set_index("timestamp", inplace=True)
+
+            # Calculate indicators
+            df = calculate_indicators(df)
+
+            mtf_data[tf_key] = df
+            logger.info(f"  ✅ Fetched {len(df)} {tf_str} candles")
+
+        return mtf_data
+
+    def _quick_backtest(
+        self,
+        symbol: str,
+        mtf_data: Dict,
+        signal: Dict,
+        lookback_days: int = 30
+    ) -> Dict:
+        """
+        Quick backtest for setup validation (past 30 days)
+
+        Tests if similar setups on this asset were profitable recently.
+        This provides confidence metric for the current signal.
+
+        Args:
+            symbol: Trading pair
+            mtf_data: Multi-timeframe data
+            signal: Current signal dictionary
+            lookback_days: Days to backtest (default: 30)
+
+        Returns:
+            Dictionary with backtest metrics:
+            {
+                "trades": int,
+                "win_rate": float,
+                "avg_return": float,
+                "confidence": str  # "High", "Medium", "Low"
+            }
+        """
+        logger.info(f"  🔍 Running {lookback_days}-day backtest...")
+
+        # Use H1 data for backtest
+        df_h1 = mtf_data["h1"]
+
+        # Calculate lookback period (30 days = ~720 H1 candles)
+        lookback_candles = lookback_days * 24
+        if len(df_h1) < lookback_candles:
+            logger.warning(f"  Not enough data for backtest, using available {len(df_h1)} candles")
+            lookback_candles = len(df_h1)
+
+        recent_df = df_h1.tail(lookback_candles)
+
+        # Simulate trades with same direction as current signal
+        trades = []
+        current_direction = signal["signal"]
+
+        # Scan for similar setups in past data
+        for i in range(100, len(recent_df) - 24):  # Leave 24H for trade resolution
+            # Generate historical signal
+            hist_signal = self.strategy.generate_signal(
+                mtf_data["w1"],
+                mtf_data["h4"],
+                recent_df.iloc[:i+1],
+                mtf_data["m15"],
+                recent_df.index[i]
+            )
+
+            # Check if similar setup (same direction, passes filters)
+            if hist_signal["signal"] == current_direction and hist_signal.get("passes_filters", False):
+                # Simulate trade outcome
+                entry_price = hist_signal["entry"]
+                stop_loss = hist_signal["stop_loss"]
+                take_profit = hist_signal["take_profit"]
+
+                # Check future bars for SL/TP hit
+                future_bars = recent_df.iloc[i+1:i+25]  # Next 24 hours
+
+                hit_tp = False
+                hit_sl = False
+
+                for _, bar in future_bars.iterrows():
+                    if current_direction == 1:  # LONG
+                        if bar["high"] >= take_profit:
+                            hit_tp = True
+                            break
+                        if bar["low"] <= stop_loss:
+                            hit_sl = True
+                            break
+                    else:  # SHORT
+                        if bar["low"] <= take_profit:
+                            hit_tp = True
+                            break
+                        if bar["high"] >= stop_loss:
+                            hit_sl = True
+                            break
+
+                if hit_tp or hit_sl:
+                    trades.append({
+                        "win": hit_tp,
+                        "return": (take_profit - entry_price) / entry_price if hit_tp else (stop_loss - entry_price) / entry_price
+                    })
+
+        # Calculate metrics
+        if len(trades) == 0:
+            logger.info(f"  ℹ️ No similar setups found in backtest period")
+            return {
+                "trades": 0,
+                "win_rate": 0.0,
+                "avg_return": 0.0,
+                "confidence": "Low"
+            }
+
+        wins = sum(1 for t in trades if t["win"])
+        win_rate = wins / len(trades) * 100
+        avg_return = np.mean([t["return"] for t in trades]) * 100
+
+        # Determine confidence based on win rate and sample size
+        if len(trades) >= 5 and win_rate >= 60:
+            confidence = "High"
+        elif len(trades) >= 3 and win_rate >= 50:
+            confidence = "Medium"
+        else:
+            confidence = "Low"
+
+        logger.info(f"  ✅ Backtest: {len(trades)} trades, {win_rate:.1f}% win rate, {avg_return:+.2f}% avg return ({confidence} confidence)")
+
+        return {
+            "trades": len(trades),
+            "win_rate": round(win_rate, 1),
+            "avg_return": round(avg_return, 2),
+            "confidence": confidence
+        }
+
+    def export_to_dashboard(self, setups: List[Dict]) -> None:
+        """
+        Export top setups to dashboard format
+
+        Creates:
+        - data/shoot_trades_manifest.json (manifest for dashboard)
+        - data/shoot_trade_<symbol>_<timestamp>.json (individual chart data)
+
+        Args:
+            setups: List of setup dictionaries from screen_all_assets()
+        """
+        logger.info(f"\n{'='*80}")
+        logger.info("EXPORTING TO DASHBOARD")
+        logger.info(f"{'='*80}\n")
+
+        # Ensure data directory exists
+        data_dir = Path(config.DATA_DIR)
+        data_dir.mkdir(exist_ok=True)
+
+        manifest_entries = []
+
+        for idx, setup in enumerate(setups, 1):
+            symbol = setup["symbol"]
+            clean_symbol = symbol.replace("/", "")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            # Generate filename
+            filename = f"shoot_trade_{clean_symbol}_{timestamp}.json"
+            filepath = data_dir / filename
+
+            logger.info(f"{idx}. Exporting {symbol} (Score: {setup['score']}/165)...")
+
+            # Prepare chart data
+            chart_data = self._prepare_chart_data(setup)
+
+            # Save chart data
+            with open(filepath, "w") as f:
+                json.dump(chart_data, f, indent=2)
+
+            logger.info(f"   ✅ Saved: {filename}")
+
+            # Add to manifest
+            manifest_entries.append({
+                "symbol": symbol,
+                "score": setup["score"],
+                "direction": setup["direction"],
+                "entry_price": setup["entry_price"],
+                "stop_loss": setup["stop_loss"],
+                "take_profit": setup["take_profit"],
+                "backtest_trades": setup["backtest"]["trades"],
+                "backtest_win_rate": setup["backtest"]["win_rate"],
+                "backtest_confidence": setup["backtest"]["confidence"],
+                "data_file": filename,
+                "timestamp": setup["timestamp"]
+            })
+
+        # Save manifest
+        manifest = {
+            "generated_at": datetime.now().isoformat(),
+            "total_setups": len(setups),
+            "charts": manifest_entries
+        }
+
+        manifest_path = data_dir / "shoot_trades_manifest.json"
+        with open(manifest_path, "w") as f:
+            json.dump(manifest, f, indent=2)
+
+        logger.info(f"\n✅ Manifest saved: shoot_trades_manifest.json")
+        logger.info(f"{'='*80}\n")
+
+    def _prepare_chart_data(self, setup: Dict) -> Dict:
+        """
+        Prepare chart data in dashboard format
+
+        Args:
+            setup: Setup dictionary with mtf_data
+
+        Returns:
+            Chart data dictionary for dashboard rendering
+        """
+        # Use H1 data for chart
+        df = setup["mtf_data"]["h1"].tail(200)  # Last 200 H1 candles
+
+        return {
+            "metadata": {
+                "symbol": setup["symbol"],
+                "timeframe": "1h",
+                "score": setup["score"],
+                "max_score": 165,
+                "direction": setup["direction"].lower(),
+                "timestamp": setup["timestamp"]
+            },
+            "ohlcv": {
+                "timestamps": df.index.strftime("%Y-%m-%d %H:%M").tolist(),
+                "open": df["open"].tolist(),
+                "high": df["high"].tolist(),
+                "low": df["low"].tolist(),
+                "close": df["close"].tolist(),
+                "volume": df["volume"].tolist()
+            },
+            "indicators": {
+                "rsi": df["rsi"].fillna(50).tolist(),
+                "rsi_upper": df.get("rsi_bb_upper", df["rsi"] + 10).fillna(60).tolist(),
+                "rsi_lower": df.get("rsi_bb_lower", df["rsi"] - 10).fillna(40).tolist(),
+                "rsi_ma": df.get("rsi_ma", df["rsi"]).fillna(50).tolist()
+            },
+            "signal": {
+                "entry_price": setup["entry_price"],
+                "stop_loss": setup["stop_loss"],
+                "take_profit": setup["take_profit"]
+            },
+            "score_breakdown": setup["score_breakdown"],
+            "backtest": setup["backtest"]
+        }
+
+
+def main():
+    """Main execution"""
+    screener = DailyShootScreener(top_n=10, backtest_days=30)
+
+    # Screen all assets
+    top_setups = screener.screen_all_assets()
+
+    if len(top_setups) == 0:
+        logger.warning("⚠️ No valid setups found today")
+        return
+
+    # Export to dashboard
+    screener.export_to_dashboard(top_setups)
+
+    # Print summary
+    logger.info(f"\n{'='*80}")
+    logger.info(f"📊 DAILY SHOOT TRADE SUMMARY")
+    logger.info(f"{'='*80}")
+
+    for idx, setup in enumerate(top_setups, 1):
+        logger.info(
+            f"{idx}. {setup['symbol']}: Score {setup['score']}/165 | "
+            f"{setup['direction']} @ {setup['entry_price']:.5f} | "
+            f"Backtest: {setup['backtest']['win_rate']:.1f}% WR ({setup['backtest']['confidence']})"
+        )
+
+    logger.info(f"{'='*80}\n")
+
+
+if __name__ == "__main__":
+    main()

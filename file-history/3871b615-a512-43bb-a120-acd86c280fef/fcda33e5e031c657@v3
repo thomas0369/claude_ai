@@ -1,0 +1,516 @@
+# Changelog - Block Puzzle Hero
+
+Alle bedeutenden Änderungen an diesem Projekt werden in dieser Datei dokumentiert.
+
+Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
+und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
+
+---
+
+## [Unreleased]
+
+### In Development (v0.4.0 - Session 6 - 2025-11-08)
+- ✅ ESLint warning fixes (Leaderboard.tsx)
+- ✅ localStorage progress tracking system (complete)
+- ✅ Time Attack, Puzzle, Zen game mode clients (complete)
+- 🚧 Daily Challenge game mode client
+- 🚧 Comprehensive test suite expansion
+- 📋 Database Integration (backend - future, optional)
+- 📋 Authentication Flow (NextAuth.js - future, optional)
+- 📋 BSV Blockchain Payment Integration (HandCash SDK - Phase 3)
+- 📋 Analytics Integration (future)
+- 📋 Progressive Web App (PWA) enhancements (future)
+- ❌ CI/CD pipeline (GitHub Actions not available - manual deployment)
+
+---
+
+## [0.3.1] - 2025-11-08
+
+### Fixed
+- **ESLint Warning** in Leaderboard component
+  - Fixed react-hooks/exhaustive-deps warning in useEffect
+  - Moved loadLeaderboard function definition before useEffect
+  - Added explicit eslint-disable comment for intentional behavior
+  - Build now completely clean (0 warnings, 0 errors)
+  - File: `components/game/Leaderboard.tsx:61-65`
+
+### Changed
+- **Memory-Bank Updates**
+  - Updated INDEX.md with Session 6 entry
+  - Added v0.4.0 upcoming version section
+  - Total sessions now: 6
+  - Documented full-stack implementation progress
+
+---
+
+## [0.3.0] - 2025-11-08
+
+### Added
+- **5 Game Modes Architecture** (`lib/game/modes/`)
+  - **Campaign Mode**: 50 progressive levels (FREE: 1-3, TRIAL: 4-10, PREMIUM: 11-50)
+  - **Time Attack**: 3 variants (60s, 180s, 300s) with score maximization
+  - **Puzzle Mode**: 30 move-limited challenges
+  - **Zen Mode**: Endless relaxing gameplay
+  - **Daily Challenge**: New challenge every 24 hours
+  - Type-safe mode definitions (`types.ts`)
+  - Mode configurations (`config.ts`)
+  - Mode service for data loading (`modeService.ts`)
+  - Commit: c208262
+
+- **Level Generation System**
+  - 50 campaign levels with progressive difficulty (1-10 scale)
+  - 30 puzzle challenges with move limits (3-10 moves)
+  - Grid size scaling (8x8 → 12x12 for advanced levels)
+  - Block set variation (4 → 11 different block types)
+  - Time limit introduction (gradual from none to 120s)
+  - Automated generation scripts (`scripts/generate-campaign-levels.js`, `scripts/generate-puzzles.js`)
+  - Commit: c208262
+
+- **UI Components** (`components/ui/`)
+  - **Timer**: Countdown timer with color warnings (green → yellow → red)
+  - **MoveCounter**: Move tracking with limit enforcement
+  - **StarRating**: 1-3 star display with performance calculation helpers
+  - Compact variants for mobile displays
+  - Progress bars and animations
+  - Commit: c208262
+
+- **Mode Selection UI** (`components/modes/`)
+  - Mode selector with beautiful animated cards
+  - Campaign level selector with tier badges
+  - Campaign game client with level loading
+  - Hover effects and visual feedback
+  - Tier-based access control (FREE/TRIAL/PREMIUM)
+  - Commit: c208262
+
+- **Mode Pages** (`app/modes/`)
+  - Main mode selection hub (`/modes`)
+  - Campaign level selector and gameplay (`/modes/campaign`, `/modes/campaign/[level]`)
+  - Time Attack variant selector (`/modes/time-attack`)
+  - Puzzle grid selector (`/modes/puzzle`)
+  - Zen mode landing (`/modes/zen`)
+  - Daily challenge landing (`/modes/daily`)
+  - Commit: c208262
+
+- **Monetization Strategy Documentation** (`MONETIZATION_STRATEGY.md`)
+  - Complete BSV blockchain integration plan
+  - HandCash SDK implementation roadmap
+  - Pay-per-play pricing: 0.01€ per game (enabled by 0.0001€ BSV transaction costs)
+  - Tournament system: 0.05€ entry fee (70% prize pool, 30% platform fee)
+  - Revenue projections: 1,000 users = 100€/month, 10,000 users = 1,240€/month
+  - 5-phase implementation roadmap
+  - Success metrics and KPIs
+  - Commit: c208262
+
+- **Scoreboard & Leaderboard System**
+  - **Scoreboard Component** (`components/ui/Scoreboard.tsx`) - 310 LOC
+    - Real-time score display with formatted numbers
+    - High score tracking and "NEW HIGH SCORE!" badge
+    - Combo multiplier display with visual feedback
+    - Lines cleared counter
+    - Level progress indicator
+    - Responsive design for mobile
+  - **Leaderboard Component** (`components/game/Leaderboard.tsx`) - 286 LOC
+    - Top 10 scores display
+    - Player rank highlighting
+    - localStorage persistence
+    - Formatted numbers and dates
+    - Fallback for empty state
+    - Medal icons for top 3
+  - **Leaderboard Page** (`app/leaderboard/page.tsx`) - 149 LOC
+    - Dedicated leaderboard route
+    - Tab navigation (All Time, Today, This Week)
+    - Filter by game mode
+    - Back navigation
+  - Commit: dd4a7e9, aa8fb4a
+
+- **Documentation Updates**
+  - `CLAUDE_CLI_SETUP.md` - Comprehensive guide for transitioning to Claude CLI (334 LOC)
+  - `CODE_QUALITY_ISSUES.md` - Detailed code quality analysis (496 LOC)
+  - `PROJECT_STATUS.md` - Complete project status report
+  - Commit: 8bda6ad
+
+- **Deployment Improvements**
+  - Added favicon (`app/icon.svg`)
+  - Fixed 404 errors for missing files
+  - Enhanced GitHub Pages deployment script
+  - Commit: aa8fb4a, 28692a8
+
+- **Memory-Bank Entries**
+  - Session documentation: `sessions/2025-11-08-game-modes-architecture.md`
+  - Session documentation: `sessions/2025-11-08-project-analysis-and-cleanup.md`
+  - Decision record: `decisions/002-game-modes-architecture.md`
+  - Updated INDEX.md
+  - Updated changelog (this file)
+  - Commit: TBD
+
+### Changed
+- **Home Page** (`app/page.tsx`)
+  - Updated CTA from `/levels` to `/modes`
+  - Changed description to highlight 5 game modes
+  - Updated tier cards with mode-specific features
+  - Added lifetime pricing: €9.99 (in addition to €0.99/month)
+  - Commit: c208262
+
+### Performance
+- Build successful: 20 pages exported (updated from 18)
+- Bundle size: 87.3 kB (unchanged)
+- Routes generated: +9 new routes (8 mode pages + 1 leaderboard)
+- Static JSON files: 85 files (50 campaign + 30 puzzles + 5 configs)
+- +3,341 lines of code (67+ new files, including Scoreboard & Leaderboard)
+
+### Architecture
+- Type-safe game mode system with TypeScript
+- Static export compatible (all levels as JSON)
+- Tier-based access control
+- Trial plays per day system (1 free play/day for premium modes)
+- Progressive difficulty scaling
+- Modular mode architecture (easy to add new modes)
+
+### Implementation Notes
+- User feedback addressed: "game 1 macht für mich keinen Sinn" → 5 distinct game modes with clear objectives
+- User direction followed: "Erstmal möchte ich das spiel perfektionieren bevor wir kommerziele funktionen einbauen" → Gameplay foundation built, monetization documented for future
+- Inspiration from: Candy Crush (campaign), Tetris Ultra (time attack), Chess.com (puzzles), Wordle (daily)
+- BSV blockchain chosen over traditional payment processors for profitable micropayments
+
+### Known Limitations
+- Game mode clients not fully implemented (pages exist, gameplay pending)
+- Progress tracking not implemented (localStorage integration pending)
+- Leaderboards not implemented (backend required)
+- BSV integration deferred until gameplay perfected
+
+---
+
+## [0.2.0] - 2025-11-07
+
+### Added
+- **Audio System** (`lib/audio/`)
+  - Background music with HTML5 Audio
+  - Sound effects via Web Audio API
+  - Volume controls and mute functionality
+  - localStorage persistence
+  - Commit: 908dcda
+
+- **Haptic Feedback** (`lib/utils/haptics.ts`)
+  - Touch feedback for all game interactions
+  - Predefined patterns (light, medium, heavy, success, error, combo)
+  - Game-specific methods (blockPickup, blockPlace, lineClear, etc.)
+  - Device support detection with graceful degradation
+  - Commit: 908dcda
+
+- **Visual Combo Feedback** (`components/game/ComboFeedback.tsx`)
+  - Animated combo notifications
+  - Particle effects for mega combos (3+)
+  - Screen flash for big combos
+  - Auto-dismissing with smooth animations
+  - Commit: 908dcda
+
+- **Interactive Tutorial** (`components/game/Tutorial.tsx`)
+  - 3-step onboarding (Drag blocks, Clear lines, Make combos)
+  - Shows once per device via localStorage
+  - Skippable with progress indicators
+  - Targets 15-20% early churn reduction
+  - Commit: 908dcda
+
+- **Audio Controls UI** (`components/game/AudioControls.tsx`)
+  - Toggle buttons for music, sounds, and haptics
+  - Visual state indication
+  - Auto-hides haptics toggle if device unsupported
+  - Commit: 908dcda
+
+- **Comprehensive Market Analysis** (`.memory-bank/analysis/market-analysis-2024.md`)
+  - 16,000-word analysis
+  - Market size: $5.6B → $12.16B by 2033
+  - Competition analysis (Blockudoku, Woodoku, 1010!)
+  - Customer journey optimizations
+  - Gaming strategy research
+  - Monetization models (Hybrid: Ads + IAP)
+  - Feature prioritization with ROI ratings
+  - Commit: aa77311
+
+### Changed
+- **Code Cleanup & Refactoring**
+  - Extracted line-clearing logic to `lib/game/mechanics/line-clearing.ts`
+  - Removed info panel from BlockPuzzleGame (cleaner UI)
+  - Removed 26 console.log statements
+  - Next.js 14 migration (viewport export)
+  - Removed headers config (incompatible with static export)
+  - Commits: 9142cdd, fb952fb, 758be61
+
+- **Game Integration**
+  - Audio initialization on first user interaction
+  - Sound effects and haptics on all game events
+  - Tutorial overlay on first launch
+  - Combo feedback on line clears
+  - Audio controls positioned top-right
+  - Commit: 908dcda
+
+### Removed
+- **Unused Dependencies** (16 MB saved)
+  - @prisma/client (3.2 MB)
+  - redis (8.5 MB)
+  - next-auth (4.1 MB)
+  - prisma (dev dependency)
+  - Commit: 758be61
+
+### Fixed
+- All build warnings resolved (0 warnings)
+- TypeScript strict mode compliance
+- ESLint errors fixed
+- Commits: 9142cdd, 908dcda
+
+### Performance
+- Bundle size unchanged: 87.3 kB (native APIs only)
+- First Load JS: 87.3 kB
+- Build time: ~15s
+- +1,248 lines of code (7 new files)
+
+---
+
+## [0.1.0] - 2025-11-06
+
+### Added
+- **Memory-Bank System** - Automatisches Dokumentationssystem
+  - Sessions-Tracking für chronologische Entwicklungsdokumentation
+  - Decision-Tracking (ADR) für architektonische Entscheidungen
+  - Changelog-System
+  - Context-Dokumentation (Project Overview, Technology Stack)
+  - Templates für alle Entry-Typen
+  - NPM-Scripts für einfache Nutzung
+  - Git-Integration
+  - Commit: TBD
+
+### Changed
+- **Projekt-Dokumentation** reorganisiert mit Memory-Bank als zentralem System
+  - Commit: TBD
+
+---
+
+## [0.0.9] - 2025-11-04
+
+### Changed
+- **MAJOR: Konva.js Migration** - Vollständige Migration von Phaser.js zu Konva.js
+  - Bundle Size: 600KB → 165KB (-72%)
+  - Code Lines: ~1400 → ~470 (-66%)
+  - Drag & Drop: 50+ lines → 3 lines (-90%)
+  - Files: 7 → 1 main file (-86%)
+  - Component: `components/game/KonvaGame.tsx`
+  - Demo: `components/konva/BlockPuzzleGame.tsx`
+  - Routes: `/konva-demo`, `/play/1` updated
+  - Decision: `decisions/001-konva-migration.md`
+  - Commit: e8fc541
+
+- **Phaser.js Code archiviert**
+  - Verschoben nach: `lib/game/archive-phaser/`
+  - Tests archiviert: `tests/e2e/archive-old-phaser-tests/`
+  - Referenz beibehalten für Vergleich
+  - Kann zukünftig entfernt werden
+  - Commit: e8fc541
+
+### Fixed
+- React-Konva Version-Mismatch (downgrade zu 18.2.14)
+- useEffect Infinite Loop (Level Object Dependency)
+- onScoreUpdate Callback Loop (useRef Fix)
+
+---
+
+## [0.0.8] - 2025-11-04
+
+### Changed
+- **Responsive Design optimiert**
+  - Grid Size reduziert für bessere Mobile UX
+  - Cell Size: MIN 30px, MAX 42px
+  - Canvas Auto-Scaling
+  - Touch-friendly Spacing
+  - Commit: 3ffdd7b
+
+---
+
+## [0.0.7] - 2025-11-02
+
+### Added
+- **Umfassende Workflow-Dokumentation** (WORKFLOW.md)
+  - Development Workflow
+  - Testing Strategy
+  - Build & Deployment
+  - Database Management
+  - Troubleshooting
+  - Code Quality Guidelines
+  - Performance Optimization
+  - Common Commands Reference
+  - Commit: 7486501
+
+### Fixed
+- Build-Issues mit TypeScript strict mode
+- Linting-Warnungen reduziert
+- Test-Coverage konfiguriert (70% threshold)
+
+---
+
+## [0.0.6] - 2025-11-01
+
+### Added
+- **E2E Test Suite** (Playwright)
+  - 8 aktuelle Test-Specs
+  - Game Logic Tests
+  - Autonomous Game Tests
+  - Design Alignment Tests
+  - Responsive Tests
+  - 75+ archivierte Phaser-Tests
+
+- **Unit Test Suite** (Jest)
+  - 62 Tests total
+  - `scoring.test.ts` (25 tests)
+  - `line-clearing.test.ts` (27 tests)
+  - `tierAccess.test.ts` (20 tests)
+  - Coverage: 70% threshold
+
+### Changed
+- Testing-Konfiguration optimiert
+- Playwright auf Chromium-only reduziert
+- Jest Setup mit jsdom environment
+
+---
+
+## [0.0.5] - 2025-10-30
+
+### Added
+- **Game Mechanics** vollständig implementiert
+  - 8x8 Grid Rendering
+  - Block Placement Validation
+  - Line Clearing (Rows & Columns)
+  - Scoring System mit Combo-Multiplier
+  - Block Respawning
+  - HUD (Score, Timer, Progress)
+
+- **Debug Mode** (`DEBUGGING.md`)
+  - `window.gameDebug` API
+  - Autonomous Block Placement
+  - Grid State Inspection
+  - Performance Metrics
+
+---
+
+## [0.0.4] - 2025-10-28
+
+### Added
+- **Level System**
+  - Level-Konfigurationen (JSON-basiert)
+  - 3 FREE-Tier Levels
+  - Level API Routes (`/api/game/levels`)
+  - Level Selector Component
+  - Dynamic Level Loading
+
+- **API Routes**
+  - `GET /api/game/levels` - Get all levels (filtered by tier)
+  - `GET /api/game/levels/[id]` - Get single level
+  - Zod Validation
+  - Redis Caching (1h TTL)
+
+---
+
+## [0.0.3] - 2025-10-25
+
+### Added
+- **Zustand State Management**
+  - `stores/gameStore.ts` - Game state
+  - `stores/authStore.ts` - Auth state (persisted)
+  - `stores/uiStore.ts` - UI state
+  - Persist Middleware
+  - DevTools Integration
+
+- **Database Schema** (Prisma)
+  - UserAccount model
+  - Subscription model
+  - Level model
+  - GameSession model
+  - ProgressSync model
+
+---
+
+## [0.0.2] - 2025-10-20
+
+### Added
+- **Phaser.js Game Engine Integration**
+  - Game Scene Setup
+  - Block Entity System
+  - Block Pool (Object Pooling)
+  - Grid System
+  - Basic Rendering
+
+- **UI Components**
+  - Button Component (Tailwind variants)
+  - Modal Component
+  - LoadingSpinner Component
+
+### Changed
+- Project Structure reorganisiert
+  - `app/` - Next.js Pages
+  - `components/` - React Components
+  - `lib/` - Core Libraries
+  - `stores/` - State Management
+
+---
+
+## [0.0.1] - 2025-10-15
+
+### Added
+- **Initial Project Setup**
+  - Next.js 14 with App Router
+  - TypeScript 5.x (strict mode)
+  - Tailwind CSS 3.x
+  - ESLint & Prettier
+  - Basic folder structure
+
+- **Core Dependencies**
+  - React 18.3.1
+  - Phaser 3.87.0
+  - Zustand 4.5.5
+  - Prisma 5.22.0
+  - NextAuth.js 5.0.0-beta.25
+
+- **Configuration Files**
+  - `next.config.js` - Next.js configuration
+  - `tsconfig.json` - TypeScript strict mode
+  - `tailwind.config.js` - Tailwind customization
+  - `.eslintrc.json` - Linting rules
+  - `.prettierrc` - Code formatting
+
+### Documentation
+- README.md - Project overview
+- CLAUDE.md - Development guidelines
+- .env.example - Environment variables template
+
+---
+
+## Kategorien
+
+- **Added** - Neue Features
+- **Changed** - Änderungen an bestehenden Features
+- **Deprecated** - Features, die bald entfernt werden
+- **Removed** - Entfernte Features
+- **Fixed** - Bug Fixes
+- **Security** - Sicherheits-Fixes
+
+---
+
+## Semantic Versioning
+
+- **MAJOR**: Inkompatible API-Änderungen (Breaking Changes)
+- **MINOR**: Neue Features (abwärtskompatibel)
+- **PATCH**: Bug Fixes (abwärtskompatibel)
+
+**Format**: MAJOR.MINOR.PATCH (z.B., 1.2.3)
+
+---
+
+## Links
+
+- [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
+- [Semantic Versioning](https://semver.org/lang/de/)
+- [GitHub Repository](https://github.com/thomas0369/block-puzzle-hero)
+
+---
+
+**Maintainer**: Thomas + Claude AI
+**Letzte Aktualisierung**: 2025-11-08
+**Format Version**: 1.0.0

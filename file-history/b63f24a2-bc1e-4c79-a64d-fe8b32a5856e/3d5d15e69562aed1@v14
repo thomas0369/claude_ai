@@ -1,0 +1,307 @@
+'use client';
+
+import { memo, useRef, useCallback } from 'react';
+import { FixedSizeList as List } from 'react-window';
+import { ZEREZUnit } from '@/lib/zerez-types';
+import { UnitFormatters } from '@/lib/unit-formatters';
+import { ZEREZ_UI_STRINGS } from '@/lib/ui-constants';
+
+type ZEREZUnitWithSelection = ZEREZUnit & {
+  selected?: boolean;
+};
+
+interface VirtualizedProductTableProps {
+  products: ZEREZUnitWithSelection[];
+  onToggleSelection: (id: string, checked: boolean) => void;
+}
+
+// Column definition type with optional styling properties
+type ColumnDefinition = {
+  key: string;
+  label: string;
+  width: number;
+  formatter: (v: any) => string;
+  sticky?: boolean;
+  monospace?: boolean;
+};
+
+// Field definitions - shows all important data (removed redundant UUIDs)
+// NOTE: modelName is rendered separately as a fixed column, not in this list
+const COLUMN_DEFINITIONS: ColumnDefinition[] = [
+  { key: 'manufacturerName', label: 'Hersteller', width: 180, formatter: (v: string | null | undefined) => v || ZEREZ_UI_STRINGS.MANUFACTURER_PLACEHOLDER },
+  { key: 'certificateAuthorityName', label: 'Zertifizierungsstelle', width: 200, formatter: (v: string | null | undefined) => v || 'Unbekannt' },
+
+  // Power specifications - German technical terms
+  { key: 'maxActivePower', label: 'Max. Wirkleistung', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.power(v) },
+  { key: 'ratedActivePower', label: 'Bemessungswirkleistung', width: 160, formatter: (v: number | null | undefined) => UnitFormatters.power(v) },
+  { key: 'maxApparentPower', label: 'Max. Scheinleistung', width: 150, formatter: (v: number | null | undefined) => UnitFormatters.power(v) },
+  { key: 'ratedApparentPower', label: 'Bemessungsscheinleistung', width: 180, formatter: (v: number | null | undefined) => UnitFormatters.power(v) },
+
+  // Electrical parameters - German technical terms
+  { key: 'ratedVoltage', label: 'Bemessungsspannung', width: 150, formatter: (v: number | null | undefined) => UnitFormatters.voltage(v) },
+  { key: 'ratedCurrent', label: 'Bemessungsstrom', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.current(v) },
+  { key: 'shortCircuitPeakCurrent', label: 'Stoßkurzschlussstrom', width: 160, formatter: (v: number | null | undefined) => UnitFormatters.current(v) },
+  { key: 'initialShortCircuitAlternatingCurrent', label: 'Anfangs-Kurzschlusswechselstrom', width: 220, formatter: (v: number | null | undefined) => UnitFormatters.current(v) },
+
+  // Fast voltage changes (Schnelle Spannungsänderungen)
+  { key: 'fastVoltageChangeTurnOnAtRatedConditions', label: 'Schnelle Spannungsänd. Ein (Rated)', width: 220, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 2) },
+  { key: 'fastVoltageChangeTurnOnWithoutSpecifications', label: 'Schnelle Spannungsänd. Ein (No Spec)', width: 230, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 2) },
+  { key: 'fastVoltageChangeTurnOffAtRatedPower', label: 'Schnelle Spannungsänd. Aus', width: 200, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 2) },
+  { key: 'fastVoltageChangeWorstCaseDuringGeneratorStageSwitching', label: 'Schnelle Spannungsänd. Worst Case', width: 240, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 2) },
+
+  // Flicker coefficients - System (cΨ values)
+  { key: 'systemFlickerCoefficientCY30', label: 'Flicker cΨ(30°)', width: 120, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 2) },
+  { key: 'systemFlickerCoefficientCY50', label: 'Flicker cΨ(50°)', width: 120, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 2) },
+  { key: 'systemFlickerCoefficientCY70', label: 'Flicker cΨ(70°)', width: 120, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 2) },
+  { key: 'systemFlickerCoefficientCY85', label: 'Flicker cΨ(85°)', width: 120, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 2) },
+
+  // Operation 1 - Flicker step factors d
+  { key: 'operation1FlickerStepFactor30', label: 'Operation 1 d(30°)', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 3) },
+  { key: 'operation1FlickerStepFactor50', label: 'Operation 1 d(50°)', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 3) },
+  { key: 'operation1FlickerStepFactor70', label: 'Operation 1 d(70°)', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 3) },
+  { key: 'operation1FlickerStepFactor85', label: 'Operation 1 d(85°)', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 3) },
+
+  // Operation 1 - Voltage variation factors k
+  { key: 'operation1VoltageVariationFactor30', label: 'Operation 1 k(30°)', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 3) },
+  { key: 'operation1VoltageVariationFactor50', label: 'Operation 1 k(50°)', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 3) },
+  { key: 'operation1VoltageVariationFactor70', label: 'Operation 1 k(70°)', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 3) },
+  { key: 'operation1VoltageVariationFactor85', label: 'Operation 1 k(85°)', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.number(v, 3) },
+
+  // Classification
+  { key: 'category', label: 'Kategorie', width: 120, formatter: (v: string | null | undefined) => UnitFormatters.string(v) },
+  { key: 'primaryEnergySource', label: 'Energiequelle', width: 120, formatter: (v: string | null | undefined) => UnitFormatters.string(v) },
+  { key: 'certificateNumber', label: 'Zertifikat Nr.', width: 150, formatter: (v: string | null | undefined) => UnitFormatters.string(v) },
+  { key: 'unitCode', label: 'ZEREZ ID', width: 150, formatter: (v: string | null | undefined) => UnitFormatters.string(v) },
+  { key: 'maxActivePowerRange', label: 'Max Power Range', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.power(v) },
+  { key: 'minActivePowerRange', label: 'Min Power Range', width: 140, formatter: (v: number | null | undefined) => UnitFormatters.power(v) },
+  { key: 'maxApparentPowerRange', label: 'Max Apparent Power', width: 150, formatter: (v: number | null | undefined) => UnitFormatters.power(v) },
+  { key: 'minApparentPowerRange', label: 'Min Apparent Power', width: 150, formatter: (v: number | null | undefined) => UnitFormatters.power(v) },
+  { key: 'certificateValidityStatusName', label: 'Gültigkeit', width: 140, formatter: (v: string | null | undefined) => UnitFormatters.string(v) },
+  { key: 'certificateNormIssueDateDescriptions', label: 'Normen', width: 250, formatter: (v: string | null | undefined) => UnitFormatters.string(v) },
+  { key: 'certificateIssueDate', label: 'Ausstellungsdatum', width: 140, formatter: (v: string | null | undefined) => UnitFormatters.date(v) },
+  { key: 'validityStartDate', label: 'Gültig ab', width: 120, formatter: (v: string | null | undefined) => UnitFormatters.date(v) },
+  { key: 'validityEndDate', label: 'Gültig bis', width: 120, formatter: (v: string | null | undefined) => UnitFormatters.date(v) },
+  { key: 'createdAt', label: 'Erstellt am', width: 120, formatter: (v: string | null | undefined) => UnitFormatters.date(v) },
+  { key: 'modifiedAt', label: 'Geändert am', width: 120, formatter: (v: string | null | undefined) => UnitFormatters.date(v) },
+  { key: 'isVerified', label: 'Verifiziert', width: 100, formatter: (v: boolean) => v ? '✓' : '✗' },
+  // is4105 removed - replaced by certificate norms multi-select filter (see certificateNormIssueDateDescriptions column)
+  { key: 'isImported', label: 'Importiert', width: 100, formatter: (v: boolean) => v ? '✓' : '✗' },
+] as const;
+
+// Calculate total width needed for horizontal scrolling
+const CHECKBOX_WIDTH = 64; // w-16 = 4rem = 64px
+const MODEL_NAME_WIDTH = 200; // Fixed model name column
+const TOTAL_COLUMNS_WIDTH = COLUMN_DEFINITIONS.reduce((sum, col) => sum + col.width, 0);
+const TOTAL_TABLE_WIDTH = CHECKBOX_WIDTH + MODEL_NAME_WIDTH + TOTAL_COLUMNS_WIDTH;
+
+// Memoized row component - only re-renders when product selection changes
+const ProductRow = memo(({
+  product,
+  index,
+  style,
+  onToggle
+}: {
+  product: ZEREZUnitWithSelection;
+  index: number;
+  style: React.CSSProperties;
+  onToggle: (id: string, checked: boolean) => void;
+}) => {
+  return (
+    <div
+      style={{ ...style, minWidth: `${TOTAL_TABLE_WIDTH}px` }}
+      className={`flex items-stretch border-b hover:bg-gray-50 dark:hover:bg-gray-800 ${
+        index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'
+      }`}
+    >
+      {/* Sticky checkbox column */}
+      <div className="flex-shrink-0 sticky left-0 z-10 flex items-center px-4 bg-inherit border-r">
+        <input
+          type="checkbox"
+          checked={product.selected ?? false}
+          onChange={(e) => onToggle(product.id, e.target.checked)}
+          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          aria-label={`Select ${product.modelName ?? 'product'}`}
+        />
+      </div>
+
+      {/* Sticky model name column */}
+      <div
+        style={{
+          width: `${MODEL_NAME_WIDTH}px`,
+          minWidth: `${MODEL_NAME_WIDTH}px`
+        }}
+        className="flex-shrink-0 sticky left-16 z-10 flex items-center px-3 py-2 text-sm bg-inherit border-r"
+      >
+        <span className="truncate font-medium" title={product.modelName ?? '-'}>
+          {UnitFormatters.string(product.modelName)}
+        </span>
+      </div>
+
+      {/* Scrollable content - all other fields */}
+      <div className="flex items-stretch">
+        {COLUMN_DEFINITIONS.map((col) => {
+          const value = product[col.key as keyof ZEREZUnit];
+          const formattedValue = col.formatter(value as any);
+
+          return (
+            <div
+              key={col.key}
+              style={{
+                width: `${col.width}px`,
+                minWidth: `${col.width}px`
+              }}
+              className={`flex items-center px-3 py-2 text-sm border-r ${
+                col.monospace ? 'font-mono text-xs' : ''
+              }`}
+            >
+              <span className="truncate" title={String(formattedValue)}>
+                {formattedValue}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}, (prev, next) => {
+  // Only re-render if selection state or id changes
+  return prev.product.selected === next.product.selected
+    && prev.product.id === next.product.id;
+});
+
+ProductRow.displayName = 'ProductRow';
+
+function VirtualizedProductTable({
+  products,
+  onToggleSelection
+}: VirtualizedProductTableProps) {
+  // Refs for scroll synchronization
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+  const isSyncingScrollRef = useRef(false);
+
+  // Sync scroll positions between header and body
+  // Guard flag prevents infinite loop when scroll events cascade
+  const handleHeaderScroll = useCallback(() => {
+    if (!isSyncingScrollRef.current && headerScrollRef.current && bodyScrollRef.current) {
+      isSyncingScrollRef.current = true;
+      bodyScrollRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
+      requestAnimationFrame(() => {
+        isSyncingScrollRef.current = false;
+      });
+    }
+  }, []);
+
+  const handleBodyScroll = useCallback(() => {
+    if (!isSyncingScrollRef.current && bodyScrollRef.current && headerScrollRef.current) {
+      isSyncingScrollRef.current = true;
+      headerScrollRef.current.scrollLeft = bodyScrollRef.current.scrollLeft;
+      requestAnimationFrame(() => {
+        isSyncingScrollRef.current = false;
+      });
+    }
+  }, []);
+
+  // Row renderer - React Window handles rendering optimization internally
+  // ProductRow is already memoized, so this wrapper doesn't need memoization
+  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => (
+    <ProductRow
+      product={products[index]}
+      index={index}
+      style={style}
+      onToggle={onToggleSelection}
+    />
+  );
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      {/* Info banner about horizontal scrolling */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border-b px-4 py-2">
+        <p className="text-xs text-blue-600 dark:text-blue-400">
+          💡 Scroll horizontally to see all {COLUMN_DEFINITIONS.length + 1} fields | Checkbox and model name stay fixed
+        </p>
+      </div>
+
+      {/* Horizontally scrollable table header */}
+      <div
+        ref={headerScrollRef}
+        className="overflow-x-auto"
+        onScroll={handleHeaderScroll}
+      >
+        <div
+          style={{ minWidth: `${TOTAL_TABLE_WIDTH}px` }}
+          className="flex items-stretch bg-gray-50 dark:bg-gray-800 border-b font-semibold text-xs sticky top-0 z-10"
+          role="row"
+          aria-label="Table header"
+        >
+          {/* Sticky checkbox header */}
+          <div className="flex-shrink-0 sticky left-0 z-20 flex items-center justify-center px-4 py-3 w-16 bg-gray-50 dark:bg-gray-800 border-r" role="columnheader">
+            <span className="sr-only">Select</span>
+          </div>
+
+          {/* Sticky model name header */}
+          <div
+            style={{
+              width: `${MODEL_NAME_WIDTH}px`,
+              minWidth: `${MODEL_NAME_WIDTH}px`
+            }}
+            className="flex-shrink-0 sticky left-16 z-20 flex items-center px-3 py-3 bg-gray-50 dark:bg-gray-800 border-r"
+            role="columnheader"
+          >
+            <span className="truncate" title="Modell">
+              Modell
+            </span>
+          </div>
+
+          {/* All other column headers */}
+          <div className="flex items-stretch">
+            {COLUMN_DEFINITIONS.map((col, idx) => (
+              <div
+                key={col.key}
+                style={{
+                  width: `${col.width}px`,
+                  minWidth: `${col.width}px`
+                }}
+                className="flex items-center px-3 py-3 border-r"
+                role="columnheader"
+              >
+                <span className="truncate" title={col.label}>
+                  {col.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Horizontally scrollable virtualized list */}
+      <div
+        ref={bodyScrollRef}
+        className="overflow-x-auto"
+        style={{ contain: 'layout style paint' }}
+        onScroll={handleBodyScroll}
+      >
+        <List
+          height={400}
+          itemCount={products.length}
+          itemSize={48} // Single row height
+          width={TOTAL_TABLE_WIDTH}
+          overscanCount={5}
+        >
+          {Row}
+        </List>
+      </div>
+
+      {/* Empty state */}
+      {products.length === 0 && (
+        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+          No products found
+        </div>
+      )}
+    </div>
+  );
+}
+
+VirtualizedProductTable.displayName = 'VirtualizedProductTable';
+
+export default VirtualizedProductTable;

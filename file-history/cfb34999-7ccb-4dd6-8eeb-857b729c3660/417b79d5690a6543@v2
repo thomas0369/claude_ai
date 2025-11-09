@@ -1,0 +1,117 @@
+/**
+ * DEBUG: Check Phaser's internal input list
+ */
+
+import { test } from '@playwright/test';
+
+test('Debug Phaser Input Manager List', async ({ page }) => {
+  console.log('\n🔍 PHASER INPUT MANAGER DEBUG\n');
+  console.log('='.repeat(80));
+
+  test.setTimeout(120000);
+
+  await page.goto('/play/1', { waitUntil: 'networkidle', timeout: 60000 });
+  await page.locator('canvas').waitFor({ state: 'visible', timeout: 30000 });
+  await page.waitForFunction(() => typeof (window as any).game !== 'undefined', { timeout: 40000 });
+  await page.waitForTimeout(8000);
+
+  console.log('✅ Game loaded\n');
+
+  // Check Phaser's internal input list
+  const inputDebug = await page.evaluate(() => {
+    const game = (window as any).game;
+    const scene = game.scene.scenes[0];
+
+    // Get all interactive objects registered with Phaser
+    const inputPlugin = scene.input;
+    const interactiveObjects = inputPlugin._list || [];
+
+    // Get our blocks
+    const blocks = Array.from(scene.blockPool.activeBlocks);
+
+    return {
+      inputPluginEnabled: inputPlugin.enabled,
+      totalInteractiveObjects: interactiveObjects.length,
+      interactiveObjects: interactiveObjects.map((obj: any) => ({
+        type: obj.constructor.name,
+        hasInput: !!obj.input,
+        draggable: obj.input?.draggable,
+        enabled: obj.input?.enabled
+      })),
+      ourBlocks: blocks.map((block: any) => ({
+        id: block.blockData.id,
+        isInInputList: interactiveObjects.includes(block),
+        hasInput: !!block.input,
+        inputEnabled: block.input?.enabled,
+        draggable: block.input?.draggable,
+        active: block.active,
+        visible: block.visible,
+        x: block.x,
+        y: block.y
+      }))
+    };
+  });
+
+  console.log('📊 Phaser Input Manager Status:\n');
+  console.log(`   Input Plugin Enabled: ${inputDebug.inputPluginEnabled}`);
+  console.log(`   Total Interactive Objects: ${inputDebug.totalInteractiveObjects}\n`);
+
+  if (inputDebug.interactiveObjects.length > 0) {
+    console.log('   Interactive Objects in Phaser:');
+    inputDebug.interactiveObjects.forEach((obj: any, idx: number) => {
+      console.log(`      ${idx + 1}. ${obj.type} - hasInput=${obj.hasInput}, draggable=${obj.draggable}, enabled=${obj.enabled}`);
+    });
+    console.log('');
+  }
+
+  console.log('📦 Our Blocks Status:\n');
+  inputDebug.ourBlocks.forEach((block: any) => {
+    console.log(`   Block ${block.id}:`);
+    console.log(`      Is in Input List: ${block.isInInputList} ${block.isInInputList ? '✅' : '❌'}`);
+    console.log(`      Has Input: ${block.hasInput}`);
+    console.log(`      Input Enabled: ${block.inputEnabled}`);
+    console.log(`      Draggable: ${block.draggable}`);
+    console.log(`      Active: ${block.active}`);
+    console.log(`      Visible: ${block.visible}`);
+    console.log(`      Position: (${block.x}, ${block.y})`);
+    console.log('');
+  });
+
+  // Try to manually register a block with input
+  if (inputDebug.ourBlocks.some((b: any) => !b.isInInputList)) {
+    console.log('⚠️  FOUND BLOCKS NOT IN INPUT LIST! Attempting to fix...\n');
+
+    const fixResult = await page.evaluate(() => {
+      const game = (window as any).game;
+      const scene = game.scene.scenes[0];
+      const blocks = Array.from(scene.blockPool.activeBlocks);
+      const inputPlugin = scene.input;
+
+      blocks.forEach((block: any) => {
+        if (block.input && block.input.enabled) {
+          // Force re-register with input plugin
+          console.log(`[FIX] Re-registering ${block.blockData.id} with input plugin`);
+
+          // Remove and re-add to input list
+          inputPlugin.disable(block);
+          inputPlugin.enable(block);
+        }
+      });
+
+      // Check if blocks are now in the list
+      const interactiveObjects = inputPlugin._list || [];
+      return blocks.map((block: any) => ({
+        id: block.blockData.id,
+        nowInList: interactiveObjects.includes(block)
+      }));
+    });
+
+    console.log('🔧 Fix Results:');
+    fixResult.forEach((result: any) => {
+      console.log(`   ${result.id}: ${result.nowInList ? '✅ NOW IN LIST' : '❌ STILL NOT IN LIST'}`);
+    });
+  }
+
+  console.log('\n' + '='.repeat(80));
+  console.log('✅ INPUT MANAGER DEBUG COMPLETE\n');
+});

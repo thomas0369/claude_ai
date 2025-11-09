@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""
+ZEREZ Detailed Unit Fetcher
+============================
+
+Fetches complete detailed unit data using the GraphQL unit(id: UUID) query.
+Returns ALL 83 fields including technical specifications not available in unitOverview.
+
+Additional fields vs unitOverview (58 fields):
+- ratedActivePower, ratedApparentPower (vs just maxActivePower)
+- shortCircuitPeakCurrent, initialShortCircuitAlternatingCurrent
+- Flicker coefficients: systemFlickerCoefficientCY30/50/70/85
+- Fast voltage changes: fastVoltageChangeTurnOnAtRatedConditions, etc.
+- Operation parameters: operation1/2/3FlickerStepFactor, VoltageVariationFactor
+- And 20+ more detailed technical fields
+
+Usage:
+    python3 zerez_fetch_detailed_units.py --unit-ids '["uuid1", "uuid2"]'
+"""
+
+import argparse
+import json
+import logging
+import sys
+import requests
+from typing import List, Dict, Optional
+
+logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+ZEREZ_GRAPHQL_ENDPOINT = 'https://app-zerez-weeu-gatewaysvc-prod-01.azurewebsites.net/graphql/'
+
+# Complete unit query with ALL 83 fields
+DETAILED_UNIT_QUERY = """
+query GetDetailedUnit($id: UUID!) {
+  unit(id: $id) {
+    # Core Identifiers
+    id
+    unitCode
+    modelName
+    modelNumber
+
+    # Power Specifications (12 fields)
+    maxActivePower
+    ratedActivePower
+    maxApparentPower
+    ratedApparentPower
+    maxActivePowerRange
+    minActivePowerRange
+    maxApparentPowerRange
+    minApparentPowerRange
+    maxActivePower09
+    hasActivePowerRange
+    hasApparentPowerRange
+    fastVoltageChangeTurnOffAtRatedPower
+
+    # Electrical Parameters (19 fields)
+    ratedVoltage
+    ratedCurrent
+    shortCircuitPeakCurrent
+    initialShortCircuitAlternatingCurrent
+    fastVoltageChangeTurnOnAtRatedConditions
+    fastVoltageChangeTurnOnWithoutSpecifications
+    fastVoltageChangeWorstCaseDuringGeneratorStageSwitching
+    operation1VoltageVariationFactor30
+    operation1VoltageVariationFactor50
+    operation1VoltageVariationFactor70
+    operation1VoltageVariationFactor85
+    operation2VoltageVariationFactor30
+    operation2VoltageVariationFactor50
+    operation2VoltageVariationFactor70
+    operation2VoltageVariationFactor85
+    operation3VoltageVariationFactor30
+    operation3VoltageVariationFactor50
+    operation3VoltageVariationFactor70
+    operation3VoltageVariationFactor85
+
+    # Flicker Coefficients (5 fields)
+    systemFlickerCoefficientCY30
+    systemFlickerCoefficientCY50
+    systemFlickerCoefficientCY70
+    systemFlickerCoefficientCY85
+    operationAllWorstCase
+
+    # Operation 1 Parameters (6 fields)
+    operation1FlickerStepFactor30
+    operation1FlickerStepFactor50
+    operation1FlickerStepFactor70
+    operation1FlickerStepFactor85
+    operation1MaxNumberN120
+    operation1MaxSwitchN10
+    hasSwitchingOperation1
+
+    # Operation 2 Parameters (6 fields)
+    operation2FlickerStepFactor30
+    operation2FlickerStepFactor50
+    operation2FlickerStepFactor70
+    operation2FlickerStepFactor85
+    operation2MaxNumberN120
+    operation2MaxSwitchN10
+    hasSwitchingOperation2
+
+    # Operation 3 Parameters (6 fields)
+    operation3FlickerStepFactor30
+    operation3FlickerStepFactor50
+    operation3FlickerStepFactor70
+    operation3FlickerStepFactor85
+    operation3MaxNumberN120
+    operation3MaxSwitchN10
+    hasSwitchingOperation3
+
+    # Status & Metadata
+    isImported
+    revision
+    createdAt
+    modifiedAt
+    createdBy
+    modifiedBy
+
+    # IDs
+    manufacturerId
+    replacedByUnitId
+    tenantId
+    unitTypeId
+    ledgerStartTransactionId
+    ledgerEndTransactionId
+    ledgerStartSequenceNumber
+    ledgerEndSequenceNumber
+  }
+}
+"""
+
+
+def fetch_detailed_unit(unit_id: str) -> Optional[Dict]:
+    """
+    Fetch detailed unit data using unit(id) query.
+
+    Returns:
+        Complete unit data with all 83 fields, or None if fetch failed
+    """
+    try:
+        payload = {
+            "operationName": "GetDetailedUnit",
+            "variables": {"id": unit_id},
+            "query": DETAILED_UNIT_QUERY
+        }
+
+        response = requests.post(
+            ZEREZ_GRAPHQL_ENDPOINT,
+            json=payload,
+            timeout=10
+        )
+
+        if response.status_code != 200:
+            logger.error(f"HTTP {response.status_code} for unit {unit_id}")
+            return None
+
+        data = response.json()
+
+        # Check for GraphQL errors
+        if 'errors' in data:
+            error_messages = [err.get('message', str(err)) for err in data['errors']]
+            logger.error(f"GraphQL errors for {unit_id}: {'; '.join(error_messages)}")
+            return None
+
+        # Extract unit data
+        unit = data.get('data', {}).get('unit')
+        if not unit:
+            logger.error(f"No unit data returned for {unit_id}")
+            return None
+
+        logger.info(f"✓ Fetched {unit.get('modelName', unit_id)} with {len(unit)} fields")
+        return unit
+
+    except Exception as e:
+        logger.error(f"Failed to fetch {unit_id}: {e}")
+        return None
+
+
+def fetch_multiple_units(unit_ids: List[str]) -> Dict:
+    """
+    Fetch multiple units and return results.
+
+    Returns:
+        {
+            "units": [...],  # List of unit data dicts
+            "total": N,
+            "fetched": M,
+            "failed": K
+        }
+    """
+    units = []
+    failed_count = 0
+
+    for unit_id in unit_ids:
+        logger.info(f"Fetching unit {unit_id[:8]}...")
+        unit_data = fetch_detailed_unit(unit_id)
+
+        if unit_data:
+            units.append(unit_data)
+        else:
+            failed_count += 1
+
+    return {
+        "units": units,
+        "total": len(unit_ids),
+        "fetched": len(units),
+        "failed": failed_count
+    }
+
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description='Fetch detailed ZEREZ unit data using unit(id) query',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Fetch single unit
+  python3 zerez_fetch_detailed_units.py --unit-ids '["6314260b-364a-4d53-368d-08dd4b5a9353"]'
+
+  # Fetch multiple units
+  python3 zerez_fetch_detailed_units.py --unit-ids '["uuid1", "uuid2", "uuid3"]'
+
+Output:
+  JSON object with all 83 fields per unit including:
+  - Power: ratedActivePower, ratedApparentPower, maxActivePower, etc.
+  - Electrical: shortCircuitPeakCurrent, initialShortCircuitAlternatingCurrent
+  - Flicker: systemFlickerCoefficientCY30/50/70/85
+  - Fast voltage changes: multiple parameters
+  - Operation parameters: flicker step factors, voltage variation factors
+        """
+    )
+    parser.add_argument(
+        '--unit-ids',
+        required=True,
+        help='JSON array of unit UUIDs to fetch'
+    )
+
+    args = parser.parse_args()
+
+    try:
+        # Parse unit IDs
+        unit_ids = json.loads(args.unit_ids)
+
+        if not isinstance(unit_ids, list):
+            raise ValueError("--unit-ids must be a JSON array")
+
+        if not unit_ids:
+            raise ValueError("--unit-ids cannot be empty")
+
+        # Fetch units
+        result = fetch_multiple_units(unit_ids)
+
+        # Print result
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+
+        # Exit with error code if any failures
+        sys.exit(1 if result['failed'] > 0 else 0)
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON: {e}")
+        sys.exit(1)
+
+    except ValueError as e:
+        logger.error(f"Invalid input: {e}")
+        sys.exit(1)
+
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

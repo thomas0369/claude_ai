@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""
+Multi-Timeframe Backtest Comparison
+
+Validates the Elliott Wave strategy across different timeframes to find
+the optimal configuration. Compares 1H, 4H, and Daily timeframes.
+
+Output: Comprehensive comparison report with recommendations
+"""
+
+import sys
+from pathlib import Path
+import json
+from datetime import datetime
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from backtest_elliott_wave_v2 import ElliottWaveBacktester, BacktestResult
+from typing import List, Dict
+
+
+class MultiTimeframeValidator:
+    """Compare strategy performance across multiple timeframes"""
+
+    def __init__(self, start_date: str, end_date: str):
+        self.start_date = start_date
+        self.end_date = end_date
+        self.results: Dict[str, BacktestResult] = {}
+
+    def run_comparison(self) -> Dict[str, BacktestResult]:
+        """Run backtest on all timeframes"""
+
+        timeframes = ["1h", "4h", "1d"]
+
+        print(f"\n{'='*70}")
+        print(f"🔬 MULTI-TIMEFRAME VALIDATION")
+        print(f"{'='*70}\n")
+
+        for tf in timeframes:
+            print(f"\n⏱️  Testing Timeframe: {tf.upper()}\n")
+
+            backtester = ElliottWaveBacktester(
+                start_date=self.start_date,
+                end_date=self.end_date,
+                timeframe=tf
+            )
+
+            result = backtester.run_backtest()
+            self.results[tf] = result
+
+            # Save individual result
+            backtester.save_results(
+                result,
+                f"data/backtest_{tf}_results.json"
+            )
+
+        return self.results
+
+    def generate_comparison_report(self) -> str:
+        """Generate formatted comparison report"""
+
+        report = f"\n{'='*70}\n"
+        report += f"📊 MULTI-TIMEFRAME COMPARISON REPORT\n"
+        report += f"{'='*70}\n\n"
+
+        report += f"Period: {self.start_date} to {self.end_date}\n\n"
+
+        # Performance table
+        report += f"{'PERFORMANCE METRICS':-^70}\n"
+        report += f"{'Metric':<30} {'1H':>10} {'4H':>10} {'1D':>10}\n"
+        report += f"{'-'*70}\n"
+
+        metrics = [
+            ('Total Return (%)', 'total_return'),
+            ('Annual Return (%)', 'annual_return'),
+            ('Win Rate (%)', 'win_rate'),
+            ('Total Trades', 'total_trades'),
+            ('Sharpe Ratio', 'sharpe_ratio'),
+            ('Max Drawdown (%)', 'max_drawdown'),
+            ('Profit Factor', 'profit_factor'),
+        ]
+
+        for label, attr in metrics:
+            values = {tf: getattr(self.results[tf], attr) for tf in ['1h', '4h', '1d']}
+            report += f"{label:<30} {values['1h']:>10.2f} {values['4h']:>10.2f} {values['1d']:>10.2f}\n"
+
+        report += f"\n{'RECOMMENDATION':-^70}\n"
+
+        # Find best timeframe
+        best_tf = max(self.results.keys(),
+                      key=lambda tf: self.results[tf].sharpe_ratio)
+
+        best_result = self.results[best_tf]
+
+        report += f"\n🏆 Best Timeframe: {best_tf.upper()}\n"
+        report += f"   - Sharpe Ratio: {best_result.sharpe_ratio:.2f}\n"
+        report += f"   - Annual Return: {best_result.annual_return:.2f}%\n"
+        report += f"   - Win Rate: {best_result.win_rate:.1f}%\n"
+        report += f"   - Max Drawdown: {best_result.max_drawdown:.2f}%\n\n"
+
+        report += f"{'='*70}\n"
+
+        return report
+
+    def save_comparison(self, output_file: str = "data/timeframe_comparison.json"):
+        """Save comparison results"""
+
+        comparison_data = {
+            'period': {
+                'start': self.start_date,
+                'end': self.end_date,
+                'generated_at': datetime.now().isoformat()
+            },
+            'results': {tf: result.__dict__ for tf, result in self.results.items()},
+            'best_timeframe': max(
+                self.results.keys(),
+                key=lambda tf: self.results[tf].sharpe_ratio
+            )
+        }
+
+        with open(output_file, 'w') as f:
+            json.dump(comparison_data, f, indent=2)
+
+        print(f"\n💾 Comparison saved to: {output_file}")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--start-date", default="2024-01-01")
+    parser.add_argument("--end-date", default="2025-01-01")
+    args = parser.parse_args()
+
+    validator = MultiTimeframeValidator(args.start_date, args.end_date)
+    validator.run_comparison()
+
+    report = validator.generate_comparison_report()
+    print(report)
+
+    validator.save_comparison()

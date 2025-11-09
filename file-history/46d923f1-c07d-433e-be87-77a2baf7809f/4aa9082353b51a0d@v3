@@ -1,0 +1,286 @@
+"""
+Twelve Data Provider for Elliott Wave Trading Bot.
+
+Provides OHLCV data from Twelve Data API with:
+- FREE tier support (8 calls/min, 800/day)
+- 5-minute base data for optimal caching
+- All required timeframes (5m, 15m, 1h, 4h, daily)
+- Rate limiting to respect API quotas
+"""
+
+import os
+import logging
+import time
+from typing import List, Optional
+from datetime import datetime
+import pandas as pd
+from twelvedata import TDClient
+
+logger = logging.getLogger(__name__)
+
+
+class TwelveDataProvider:
+    """
+    Twelve Data API provider with rate limiting and error handling.
+
+    FREE Tier Limits:
+    - 8 API calls per minute
+    - 800 API calls per day
+    - No credit card required
+
+    Supported Timeframes:
+    - 1min, 5min, 15min, 30min, 45min
+    - 1h, 2h, 4h
+    - 1day, 1week, 1month
+    """
+
+    # Rate limiting config
+    CALLS_PER_MINUTE = 8
+    CALL_DELAY = 60.0 / CALLS_PER_MINUTE  # 7.5 seconds between calls
+
+    # Timeframe mapping
+    TIMEFRAME_MAP = {
+        "1m": "1min",
+        "5m": "5min",
+        "15m": "15min",
+        "30m": "30min",
+        "1h": "1h",
+        "2h": "2h",
+        "4h": "4h",
+        "1d": "1day",
+        "1w": "1week",
+        "1M": "1month"
+    }
+
+    # Symbol mapping (Twelve Data uses different formats)
+    SYMBOL_MAP = {
+        # === ELITE PORTFOLIO (4 assets) ===
+        # Forex Majors
+        "EUR/USD": "EUR/USD",  # 88% predictable
+        "GBP/USD": "GBP/USD",  # 84% predictable
+
+        # Commodities
+        "XAU/USD": "XAU/USD",  # 95% predictable - Gold
+        "USOIL": "USOIL",      # 82% predictable - WTI Crude Oil
+
+        # === OPTIONAL FOREX ===
+        "USD/JPY": "USD/JPY",  # 73% predictable
+        "AUD/USD": "AUD/USD",  # 70% predictable
+        "USD/CHF": "USD/CHF",  # 57% predictable
+
+        # === OPTIONAL CRYPTO (HIGH RISK) ===
+        "BTC/USD": "BTC/USD",  # 50% predictable
+        "ETH/USD": "ETH/USD",  # 45% predictable
+        "BNB/USD": "BNB/USD",
+        "SOL/USD": "SOL/USD",
+
+        # === OPTIONAL COMMODITIES ===
+        "XAG/USD": "XAG/USD",  # Silver
+    }
+
+    def __init__(self, api_key: Optional[str] = None):
+        """
+        Initialize Twelve Data provider.
+
+        Args:
+            api_key: Twelve Data API key (defaults to TWELVEDATA_API_KEY env var)
+        """
+        self.api_key = api_key or os.getenv("TWELVEDATA_API_KEY", "")
+
+        if not self.api_key:
+            logger.warning(
+                "No Twelve Data API key provided. "
+                "Set TWELVEDATA_API_KEY environment variable or pass api_key parameter."
+            )
+
+        self.client = TDClient(apikey=self.api_key) if self.api_key else None
+        self.last_call_time = 0
+        self.call_count = 0
+
+    def _rate_limit(self):
+        """Apply rate limiting to respect API quotas."""
+        current_time = time.time()
+        time_since_last_call = current_time - self.last_call_time
+
+        if time_since_last_call < self.CALL_DELAY:
+            sleep_time = self.CALL_DELAY - time_since_last_call
+            logger.debug(f"Rate limiting: sleeping {sleep_time:.1f}s")
+            time.sleep(sleep_time)
+
+        self.last_call_time = time.time()
+        self.call_count += 1
+
+    def _map_symbol(self, symbol: str) -> str:
+        """Map internal symbol format to Twelve Data format."""
+        return self.SYMBOL_MAP.get(symbol, symbol)
+
+    def _map_timeframe(self, timeframe: str) -> str:
+        """Map internal timeframe to Twelve Data format."""
+        return self.TIMEFRAME_MAP.get(timeframe, timeframe)
+
+    def get_ohlcv(
+        self,
+        symbol: str,
+        timeframe: str,
+        limit: int = 200
+    ) -> Optional[List[List]]:
+        """
+        Fetch OHLCV data from Twelve Data.
+
+        Args:
+            symbol: Asset symbol (e.g., "EUR/USD", "BTC/USD")
+            timeframe: Timeframe (e.g., "5m", "1h", "1d")
+            limit: Number of candles to fetch (max 5000)
+
+        Returns:
+            List of OHLCV candles: [[timestamp_ms, open, high, low, close, volume], ...]
+            Returns None if fetch fails
+        """
+        if not self.client:
+            logger.error("Twelve Data client not initialized (missing API key)")
+            return None
+
+        try:
+            # Apply rate limiting
+            self._rate_limit()
+
+            # Map symbol and timeframe
+            td_symbol = self._map_symbol(symbol)
+            td_timeframe = self._map_timeframe(timeframe)
+
+            logger.info(
+                f"Twelve Data: Fetching {symbol} ({td_symbol}) "
+                f"{timeframe} ({td_timeframe}), {limit} candles "
+                f"[Call #{self.call_count}]"
+            )
+
+            # Fetch time series data
+            ts = self.client.time_series(
+                symbol=td_symbol,
+                interval=td_timeframe,
+                outputsize=limit,
+                timezone="UTC"
+            )
+
+            # Get as pandas DataFrame
+            df = ts.as_pandas()
+
+            if df is None or df.empty:
+                logger.warning(f"No data returned for {symbol} {timeframe}")
+                return None
+
+            # Twelve Data returns newest first, so reverse it
+            df = df.iloc[::-1].reset_index()
+
+            # Convert to expected format: [timestamp_ms, open, high, low, close, volume]
+            ohlcv = []
+            for _, row in df.iterrows():
+                # Parse datetime and convert to milliseconds
+                timestamp = pd.to_datetime(row['datetime'])
+                timestamp_ms = int(timestamp.timestamp() * 1000)
+
+                ohlcv.append([
+                    timestamp_ms,
+                    float(row['open']),
+                    float(row['high']),
+                    float(row['low']),
+                    float(row['close']),
+                    float(row['volume']) if 'volume' in row and pd.notna(row['volume']) else 0.0
+                ])
+
+            logger.info(f"✓ Fetched {len(ohlcv)} candles for {symbol} {timeframe}")
+            return ohlcv
+
+        except Exception as e:
+            logger.error(f"Error fetching {symbol} {timeframe} from Twelve Data: {e}", exc_info=True)
+            return None
+
+    def get_call_count(self) -> int:
+        """Get number of API calls made in this session."""
+        return self.call_count
+
+    def reset_call_count(self):
+        """Reset API call counter."""
+        self.call_count = 0
+        logger.info("API call counter reset")
+
+    def get_available_symbols(self) -> List[str]:
+        """Get list of available symbols."""
+        return list(self.SYMBOL_MAP.keys())
+
+    def get_available_timeframes(self) -> List[str]:
+        """Get list of available timeframes."""
+        return list(self.TIMEFRAME_MAP.keys())
+
+
+def test_twelvedata_provider():
+    """Quick test of Twelve Data provider."""
+    import sys
+
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+    logger.addHandler(handler)
+
+    print("=" * 60)
+    print("TESTING TWELVE DATA PROVIDER")
+    print("=" * 60)
+
+    provider = TwelveDataProvider()
+
+    if not provider.client:
+        print("\n❌ No API key configured!")
+        print("\nTo use Twelve Data:")
+        print("1. Sign up at https://twelvedata.com/")
+        print("2. Get your FREE API key")
+        print("3. Set environment variable:")
+        print("   export TWELVEDATA_API_KEY='your_api_key_here'")
+        return False
+
+    # Test 1: Fetch 5-minute EUR/USD data
+    print("\n" + "=" * 60)
+    print("TEST 1: Fetching EUR/USD 5m data (200 candles)")
+    print("=" * 60)
+
+    ohlcv = provider.get_ohlcv("EUR/USD", "5m", limit=200)
+
+    if ohlcv:
+        print(f"\n✓ Success! Got {len(ohlcv)} candles")
+        print(f"\nFirst candle: {ohlcv[0]}")
+        print(f"Last candle:  {ohlcv[-1]}")
+
+        # Convert to DataFrame for better display
+        df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        df['datetime'] = pd.to_datetime(df['timestamp'], unit='ms')
+        print(f"\nData range: {df['datetime'].iloc[0]} to {df['datetime'].iloc[-1]}")
+    else:
+        print("\n❌ Failed to fetch data")
+        return False
+
+    # Test 2: Fetch 1-hour data
+    print("\n" + "=" * 60)
+    print("TEST 2: Fetching EUR/USD 1h data (100 candles)")
+    print("=" * 60)
+
+    ohlcv = provider.get_ohlcv("EUR/USD", "1h", limit=100)
+
+    if ohlcv:
+        print(f"\n✓ Success! Got {len(ohlcv)} candles")
+    else:
+        print("\n❌ Failed to fetch data")
+        return False
+
+    # Summary
+    print("\n" + "=" * 60)
+    print("✓ ALL TESTS PASSED")
+    print("=" * 60)
+    print(f"\nTotal API calls: {provider.get_call_count()}")
+    print(f"Available symbols: {len(provider.get_available_symbols())}")
+    print(f"Available timeframes: {len(provider.get_available_timeframes())}")
+
+    return True
+
+
+if __name__ == "__main__":
+    success = test_twelvedata_provider()
+    exit(0 if success else 1)

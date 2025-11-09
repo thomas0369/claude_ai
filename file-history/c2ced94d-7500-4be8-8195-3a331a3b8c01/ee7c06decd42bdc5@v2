@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Testing artifacts (test files SHOULD be in git, only artifacts ignored)
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml
+
+# Data files (keep structure, not content)
+data/*.json
+!data/.gitkeep
+data/*.csv
+data/backtest_results/
+
+# Market data cache (local storage to minimize API traffic)
+data/market_data/*.csv
+!data/market_data/.gitkeep
+data/market_data/cache_metadata.json
+
+# Visualization outputs (generated charts - keep structure, not files)
+data/*.html
+data/charts/*.html
+data/charts/data/*.json
+!data/charts/data/index.json
+data/charts/*.png
+!data/charts/.gitkeep
+
+# Playwright test artifacts
+playwright-report/
+test-results/
+
+# Development files (nicht in Production)
+*-dev/
+*-feature-*/
+scratch/
+temp/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Distribution
+dist/
+build/
+*.egg-info/
+node_modules/

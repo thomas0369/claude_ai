@@ -1,0 +1,35 @@
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'Block Puzzle Hero',
+  description: 'A modern block puzzle game with tiered monetization',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // Prevent zoom for app-like experience
+  themeColor: '#0ea5e9',
+  viewportFit: 'cover', // Fullscreen on notched devices
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const basePath = process.env.NODE_ENV === 'production' ? '/block-puzzle-hero' : '';
+
+  return (
+    <html lang="en">
+      <head>
+        <link rel="manifest" href={`${basePath}/manifest.json`} />
+      </head>
+      <body className="font-sans antialiased">
+        <main className="min-h-screen bg-gray-50">{children}</main>
+      </body>
+    </html>
+  );
+}

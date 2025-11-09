@@ -1,0 +1,438 @@
+# Git-based PDF Storage - Setup Guide
+
+## Übersicht
+
+PDFs werden **direkt in Ihr GitHub Repository** committed, sodass:
+- ✅ Alle PDFs versioniert sind
+- ✅ PDFs automatisch zu Vercel deployed werden
+- ✅ Team-Mitglieder PDFs hinzufügen können
+- ✅ GitHub als Backup dient
+
+## Verzeichnis-Struktur
+
+```
+public/data/
+├── pdfs/              # ✅ IN GIT COMMITTED
+│   └── {manufacturer}/
+│       └── {model}/
+│           ├── datasheet.pdf     # Committed to Git
+│           ├── extracted.json    # Committed to Git
+│           └── metadata.json     # Committed to Git
+│
+└── staging/           # ❌ NICHT COMMITTED (lokal/temporär)
+    └── products/
+        └── {uuid}.json           # Nur lokal
+```
+
+## Setup-Schritte
+
+### 1. .gitignore Anpassen
+
+Fügen Sie zu `benchmark-app/.gitignore` hinzu:
+
+```gitignore
+# PDF Import System
+# Keep PDFs in Git, exclude staging data
+public/data/staging/          # Temporäre ungeprüfte Daten
+!public/data/pdfs/            # PDFs SOLLEN committed werden
+```
+
+### 2. Git LFS Installieren (Optional, aber empfohlen)
+
+Git LFS (Large File Storage) ist ideal für PDFs:
+
+```bash
+# Installation
+# macOS
+brew install git-lfs
+
+# Windows
+# Download von: https://git-lfs.github.com/
+
+# Linux
+sudo apt-get install git-lfs
+
+# Git LFS initialisieren
+git lfs install
+
+# PDFs für LFS tracken
+git lfs track "*.pdf"
+
+# .gitattributes committen
+git add .gitattributes
+git commit -m "chore: Configure Git LFS for PDF files"
+```
+
+**Vorteile von Git LFS**:
+- Kleinere Repository-Größe
+- Schnellere Clone-Zeiten
+- Bessere Performance für große Dateien
+
+### 3. Vorhandene PDFs Committen
+
+Falls Sie bereits PDFs haben:
+
+```bash
+cd benchmark-app
+
+# Alle PDFs zum Staging hinzufügen
+git add public/data/pdfs/
+
+# Committen
+git commit -m "feat: Add existing PDF datasheets
+
+🤖 Generated with Claude Code"
+
+# Zu GitHub pushen
+git push origin main
+```
+
+## Verwendung
+
+### Option 1: Automatisches Commit (Empfohlen)
+
+PDFs werden automatisch committed nach dem Upload:
+
+```typescript
+import { savePDFToGit } from '@/lib/pdf/git-storage';
+
+// PDF speichern und automatisch committen
+await savePDFToGit(
+  'BYD',
+  'Cube Pro C230',
+  pdfBuffer,
+  {
+    originalFilename: 'datasheet.pdf',
+    fileSize: pdfBuffer.byteLength,
+    pages: 4,
+    source: 'manual_upload',
+  },
+  {
+    autoCommit: true,       // ✅ Automatisch committen
+    autoPush: false,        // ❌ Manuell pushen (sicherer)
+    useGitLFS: true,        // ✅ Git LFS verwenden
+  }
+);
+```
+
+### Option 2: Batch-Commit
+
+Mehrere PDFs auf einmal committen:
+
+```typescript
+import { commitMultiplePDFs } from '@/lib/pdf/git-storage';
+
+// Nach Import von vielen PDFs
+await commitMultiplePDFs(
+  'feat: Add 50 PDF datasheets from ZEREZ import\n\n🤖 Generated with Claude Code',
+  false // autoPush = false
+);
+```
+
+### Option 3: Manuelles Git
+
+Klassische Git-Befehle verwenden:
+
+```bash
+# Status prüfen
+git status public/data/pdfs/
+
+# Alle PDFs hinzufügen
+git add public/data/pdfs/
+
+# Committen
+git commit -m "feat: Add new datasheets"
+
+# Pushen
+git push origin main
+```
+
+## API Integration
+
+### API Route mit automatischem Commit
+
+```typescript
+// app/api/pdf/upload/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { savePDFToGit } from '@/lib/pdf/git-storage';
+
+export async function POST(request: NextRequest) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get('pdf') as File;
+    const manufacturer = formData.get('manufacturer') as string;
+    const model = formData.get('model') as string;
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    // PDF speichern und zu Git committen
+    const location = await savePDFToGit(
+      manufacturer,
+      model,
+      buffer,
+      {
+        originalFilename: file.name,
+        fileSize: file.size,
+        pages: 0, // Wird später gefüllt
+        source: 'manual_upload',
+      },
+      {
+        autoCommit: true,
+        autoPush: false,
+        useGitLFS: true,
+      }
+    );
+
+    return NextResponse.json({
+      success: true,
+      location,
+      message: 'PDF saved and committed to Git',
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to save PDF', message: error.message },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## Commit-Strategie
+
+### Einzelne PDFs (auto-commit)
+
+```typescript
+// Jedes PDF wird sofort committed
+const options = {
+  autoCommit: true,
+  autoPush: false,  // Manuelle Kontrolle
+  commitMessage: (manufacturer, model) =>
+    `feat: Add ${manufacturer} ${model} datasheet\n\n🤖 Generated with Claude Code`,
+};
+```
+
+### Batch-Import (manueller commit)
+
+```typescript
+// 1. Alle PDFs herunterladen (ohne commit)
+for (const product of products) {
+  await savePDFToFilesystem(...);  // Kein Git
+}
+
+// 2. Alle auf einmal committen
+await commitMultiplePDFs(
+  `feat: Add ${products.length} datasheets from ZEREZ import\n\n🤖 Generated with Claude Code`,
+  false
+);
+
+// 3. Manuell pushen nach Prüfung
+// git push origin main
+```
+
+## GitHub Actions Integration (Optional)
+
+Automatisches Deployment zu Vercel nach PDF-Commits:
+
+```yaml
+# .github/workflows/deploy-pdfs.yml
+name: Deploy PDFs to Vercel
+
+on:
+  push:
+    paths:
+      - 'benchmark-app/public/data/pdfs/**'
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Vercel
+        run: vercel --prod
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+```
+
+## Repository-Limits
+
+### GitHub Limits
+- **Einzeldatei**: Max 100 MB
+- **Repository**: Empfohlen < 1 GB (soft limit)
+- **Mit Git LFS**: Bis zu mehrere GB möglich
+
+### Empfehlungen
+- ✅ PDFs < 10 MB: Direkt in Git
+- ✅ PDFs 10-50 MB: Git LFS verwenden
+- ⚠️ PDFs > 50 MB: Komprimieren oder separates Storage
+
+### Beispiel-Kalkulation
+- 1000 PDFs × 3 MB durchschnittlich = 3 GB
+- Mit Git LFS: Kein Problem ✅
+- Ohne Git LFS: Grenzwertig (Repository wird groß)
+
+## Monitoring
+
+### Git Status prüfen
+
+```typescript
+import { getPDFsGitStatus } from '@/lib/pdf/git-storage';
+
+const status = await getPDFsGitStatus();
+console.log('Staged:', status.staged.length);
+console.log('Modified:', status.modified.length);
+console.log('Untracked:', status.untracked.length);
+```
+
+### Dashboard-Integration
+
+Zeigen Sie den Status in der UI:
+
+```typescript
+// app/admin/pdfs/page.tsx
+export default async function PDFAdminPage() {
+  const status = await getPDFsGitStatus();
+
+  return (
+    <div>
+      <h2>PDF Git Status</h2>
+      <p>Uncommitted PDFs: {status.untracked.length}</p>
+      <button onClick={() => commitMultiplePDFs(...)}>
+        Commit All PDFs
+      </button>
+    </div>
+  );
+}
+```
+
+## Sicherheits-Überlegungen
+
+### ✅ Vorteile
+- Versionskontrolle (alle Änderungen nachverfolgbar)
+- Backup (GitHub ist Ihr Backup)
+- Team-Collaboration (PRs für neue PDFs)
+- Audit-Trail (wer, was, wann)
+
+### ⚠️ Beachten
+- PDFs sind öffentlich sichtbar (öffentliches Repo)
+- Große Binärdateien machen Repository langsam
+- Git LFS empfohlen für viele/große PDFs
+
+### 🔒 Private PDFs
+Falls PDFs vertraulich sind:
+
+1. **Private Repository** verwenden
+2. **Oder**: PDFs in separatem private Repo
+3. **Oder**: GitHub Releases (privat) verwenden
+4. **Oder**: Externe Storage (S3) mit Access Control
+
+## Troubleshooting
+
+### Problem: "Git not available"
+
+```bash
+# Git installieren
+# macOS
+brew install git
+
+# Windows
+# Download von: https://git-scm.com/
+
+# Linux
+sudo apt-get install git
+```
+
+### Problem: "File too large"
+
+```bash
+# Git LFS verwenden
+git lfs track "*.pdf"
+git add .gitattributes
+git commit -m "chore: Enable Git LFS"
+
+# Große Datei erneut hinzufügen
+git add public/data/pdfs/
+git commit -m "feat: Add large PDF with LFS"
+```
+
+### Problem: "Push failed"
+
+```bash
+# Repository-Größe prüfen
+git count-objects -vH
+
+# Große Dateien finden
+git rev-list --objects --all | \
+  git cat-file --batch-check='%(objectsize) %(objectname) %(rest)' | \
+  sort -nr | head -20
+
+# Ggf. Git LFS nachträglich aktivieren
+git lfs migrate import --include="*.pdf"
+```
+
+## Best Practices
+
+### ✅ DO
+- Git LFS für PDFs verwenden
+- Aussagekräftige Commit-Messages
+- Batch-Commits für viele PDFs
+- Regelmäßig pushen
+- `.gitignore` für `staging/` verwenden
+
+### ❌ DON'T
+- Sehr große PDFs (> 100 MB) ohne LFS
+- Auto-push ohne Prüfung
+- Staging-Daten committen
+- PDFs ohne Metadaten
+
+## Vergleich: Git vs. Externes Storage
+
+### Git Storage (Ihre Wahl) ✅
+```
+Vorteile:
++ Versionskontrolle
++ Einfaches Deployment
++ Kein externes Service
++ Team-Collaboration via PRs
++ Kostenlos (GitHub Free)
+
+Nachteile:
+- Repository-Größe wächst
+- Langsamer bei vielen großen Dateien
+- 100 MB Limit pro Datei
+```
+
+### Externes Storage (S3, Cloudflare R2)
+```
+Vorteile:
++ Unbegrenzte Größe
++ Schneller für sehr viele Dateien
++ CDN-Integration
++ Granulare Access Control
+
+Nachteile:
+- Zusätzliches Service
+- Monatliche Kosten
+- Komplexere Setup
+- Keine Versionskontrolle
+```
+
+## Fazit
+
+**Empfehlung für Ihr Projekt**:
+
+✅ **Git + Git LFS** für PDFs verwenden
+
+**Warum?**
+1. Einfache Integration (bereits in Git)
+2. Kostenlos mit GitHub
+3. Automatisches Vercel Deployment
+4. Perfekt für 1000-5000 PDFs
+5. Versionskontrolle inklusive
+
+**Setup-Zeit**: ~10 Minuten
+**Kosten**: $0 (GitHub Free + Git LFS Free Tier)
+**Maintenance**: Minimal
+
+Sie haben die richtige Entscheidung getroffen! 🚀

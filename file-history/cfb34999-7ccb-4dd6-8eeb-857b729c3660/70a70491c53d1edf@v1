@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { getAllLevels, getLevelsByTier } from '@/lib/game/levels/levelService';
+import { handleError, formatErrorResponse } from '@/lib/utils/error-handling';
+import { GetLevelsQuerySchema, formatValidationError } from '@/lib/utils/api-validation';
+import { apiLogger } from '@/lib/utils/logger';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Extract and validate query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const rawParams = {
+      tier: searchParams.get('tier') || undefined,
+      page: searchParams.get('page') || undefined,
+      limit: searchParams.get('limit') || undefined,
+    };
+
+    // Validate with Zod
+    const validationResult = GetLevelsQuerySchema.safeParse(rawParams);
+
+    if (!validationResult.success) {
+      apiLogger.warn('Invalid query parameters for GET /api/game/levels', {
+        params: rawParams,
+        errors: validationResult.error.errors,
+      });
+      return NextResponse.json(
+        formatValidationError(validationResult.error),
+        { status: 400 }
+      );
+    }
+
+    const { tier } = validationResult.data;
+
+    apiLogger.debug('Fetching levels', { tier: tier || 'all' });
+
+    let levels;
+    if (tier) {
+      levels = await getLevelsByTier(tier);
+    } else {
+      levels = await getAllLevels();
+    }
+
+    return NextResponse.json({ levels }, { status: 200 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(formatValidationError(error), { status: 400 });
+    }
+
+    const appError = handleError(error);
+    apiLogger.error('Error fetching levels', appError);
+    return NextResponse.json(formatErrorResponse(appError), { status: appError.statusCode });
+  }
+}

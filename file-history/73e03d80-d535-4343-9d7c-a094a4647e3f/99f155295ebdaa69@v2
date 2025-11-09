@@ -1,0 +1,120 @@
+/**
+ * Demo Page Debug Test
+ *
+ * This test debugs the demo page to identify any issues
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Demo Page Debug', () => {
+  test('should load and display demo page', async ({ page }) => {
+    // Enable console logging
+    page.on('console', msg => {
+      console.log(`BROWSER [${msg.type()}]:`, msg.text());
+    });
+
+    // Enable error logging
+    page.on('pageerror', error => {
+      console.error('BROWSER ERROR:', error);
+    });
+
+    // Navigate to demo page
+    console.log('Navigating to demo page...');
+    await page.goto('http://localhost:3001/demo');
+
+    // Wait for page to load
+    await page.waitForLoadState('networkidle');
+
+    // Take screenshot
+    await page.screenshot({ path: 'demo-initial.png', fullPage: true });
+    console.log('Screenshot saved: demo-initial.png');
+
+    // Check if main heading exists
+    const heading = await page.locator('h1:has-text("Block Puzzle Demo")');
+    await expect(heading).toBeVisible();
+    console.log('✅ Heading found');
+
+    // Check if Phaser canvas loads
+    console.log('Waiting for Phaser canvas...');
+    const canvas = await page.locator('canvas').first();
+
+    // Wait up to 10 seconds for canvas
+    try {
+      await canvas.waitFor({ timeout: 10000 });
+      console.log('✅ Canvas found');
+
+      // Get canvas bounds
+      const box = await canvas.boundingBox();
+      console.log('Canvas bounds:', box);
+
+      // Take screenshot with canvas
+      await page.screenshot({ path: 'demo-with-canvas.png', fullPage: true });
+      console.log('Screenshot saved: demo-with-canvas.png');
+
+    } catch (error) {
+      console.error('❌ Canvas not found within 10 seconds');
+      console.error(error);
+
+      // Get page content for debugging
+      const content = await page.content();
+      console.log('Page HTML (first 1000 chars):', content.substring(0, 1000));
+
+      throw error;
+    }
+
+    // Check for any error messages on page
+    const errorMessages = await page.locator('text=/error|Error|ERROR/i').all();
+    if (errorMessages.length > 0) {
+      console.log('⚠️ Found error messages on page:');
+      for (const msg of errorMessages) {
+        const text = await msg.textContent();
+        console.log('  -', text);
+      }
+    }
+
+    // Wait a bit for game to initialize
+    await page.waitForTimeout(3000);
+
+    // Check if blocks are rendered
+    console.log('Checking for game objects...');
+    const gameState = await page.evaluate(() => {
+      return {
+        hasWindow: typeof window !== 'undefined',
+        hasPhaser: typeof (window as any).Phaser !== 'undefined',
+        canvasCount: document.querySelectorAll('canvas').length,
+      };
+    });
+    console.log('Game state:', gameState);
+
+    // Final screenshot
+    await page.screenshot({ path: 'demo-final.png', fullPage: true });
+    console.log('Screenshot saved: demo-final.png');
+  });
+
+  test('should handle errors gracefully', async ({ page }) => {
+    const errors: string[] = [];
+
+    page.on('pageerror', error => {
+      errors.push(error.message);
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        errors.push(msg.text());
+      }
+    });
+
+    await page.goto('http://localhost:3001/demo');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(5000);
+
+    if (errors.length > 0) {
+      console.log('❌ Errors found:');
+      errors.forEach((err, i) => {
+        console.log(`  ${i + 1}. ${err}`);
+      });
+    } else {
+      console.log('✅ No errors found');
+    }
+  });
+});

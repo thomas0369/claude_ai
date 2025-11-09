@@ -1,0 +1,71 @@
+#!/bin/bash
+# Test runner script for Elliott Wave Trading Bot v3.0
+
+set -e  # Exit on error
+
+echo "=========================================="
+echo "Elliott Wave Trading Bot - Test Suite"
+echo "=========================================="
+echo ""
+
+# Activate virtual environment
+if [ -d ".venv" ]; then
+    source .venv/bin/activate
+    echo "✓ Virtual environment activated"
+else
+    echo "✗ Virtual environment not found!"
+    echo "  Run: python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
+    exit 1
+fi
+
+# Check if pytest is installed
+if ! command -v pytest &> /dev/null; then
+    echo "✗ pytest not installed!"
+    echo "  Run: pip install -r requirements.txt"
+    exit 1
+fi
+
+echo "✓ pytest installed"
+echo ""
+
+# Run tests based on arguments
+case "${1:-all}" in
+    unit)
+        echo "Running unit tests only..."
+        pytest tests/test_data_quality.py tests/test_timeframe_engine.py tests/test_signal_history.py -v
+        ;;
+    integration)
+        echo "Running integration tests only..."
+        pytest tests/test_api_endpoints.py -v
+        ;;
+    coverage)
+        echo "Running all tests with coverage..."
+        pytest --cov=src --cov-report=html --cov-report=term-missing
+        echo ""
+        echo "✓ Coverage report generated in htmlcov/index.html"
+        ;;
+    fast)
+        echo "Running fast tests only (excluding slow tests)..."
+        pytest -m "not slow" -v
+        ;;
+    all)
+        echo "Running all tests..."
+        pytest -v
+        ;;
+    *)
+        echo "Usage: ./run_tests.sh [unit|integration|coverage|fast|all]"
+        echo ""
+        echo "Options:"
+        echo "  unit        - Run unit tests only"
+        echo "  integration - Run integration tests only"
+        echo "  coverage    - Run all tests with coverage report"
+        echo "  fast        - Run fast tests only (exclude slow tests)"
+        echo "  all         - Run all tests (default)"
+        exit 1
+        ;;
+esac
+
+echo ""
+echo "=========================================="
+echo "Tests completed!"
+echo "=========================================="

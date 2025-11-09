@@ -1,0 +1,346 @@
+#!/usr/bin/env python3
+"""
+STEP 2 ENHANCED: PDF → JSON with DeepSeek Vision
+=================================================
+
+Enhanced PDF extraction using DeepSeek Vision API for intelligent datasheet parsing.
+Falls back to traditional extraction if API key not available.
+
+Features:
+- DeepSeek-VL2 vision model for intelligent extraction
+- Saves JSON alongside each PDF (manufacturer/product.json)
+- Also saves to centralized location (data/processed/pdf_products.json)
+- Fallback to traditional pdftotext method
+- Better data quality and extraction rates
+
+Input:  datasheets/*/*.pdf (57 files)
+Output: datasheets/*/product.json + data/processed/pdf_products.json
+
+Usage:
+    # With DeepSeek API (recommended)
+    export DEEPSEEK_API_KEY=your_key_here
+    python step2_pdf_to_json_enhanced.py
+
+    # Without API (uses fallback)
+    python step2_pdf_to_json_enhanced.py --no-api
+"""
+
+import json
+import os
+import sys
+import logging
+import tempfile
+from pathlib import Path
+from datetime import datetime
+from typing import Dict, List, Optional
+
+# Add scripts directory to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+try:
+    from deepseek_vision_client import DeepSeekVisionClient
+    from pdf_to_images import PDFToImageConverter
+    DEEPSEEK_AVAILABLE = True
+except ImportError:
+    DEEPSEEK_AVAILABLE = False
+    logging.warning("DeepSeek modules not available")
+
+from step2_pdf_to_json import PDFExtractor as FallbackExtractor
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger(__name__)
+
+
+class EnhancedPDFExtractor:
+    """Enhanced PDF extractor using DeepSeek Vision with fallback."""
+
+    def __init__(self, use_deepseek: bool = True):
+        """
+        Initialize extractor.
+
+        Args:
+            use_deepseek: Try to use DeepSeek API (requires DEEPSEEK_API_KEY)
+        """
+        self.products = []
+        self.stats = {
+            'total_pdfs': 0,
+            'deepseek_success': 0,
+            'fallback_success': 0,
+            'failed': 0,
+            'json_files_saved': 0
+        }
+
+        # Initialize DeepSeek client if available
+        self.vision_client = None
+        self.pdf_converter = None
+
+        if use_deepseek and DEEPSEEK_AVAILABLE:
+            api_key = os.getenv("DEEPSEEK_API_KEY")
+            if api_key:
+                try:
+                    self.vision_client = DeepSeekVisionClient(api_key=api_key)
+                    self.pdf_converter = PDFToImageConverter(dpi=300, format='png')
+                    logger.info("✓ DeepSeek Vision API initialized")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize DeepSeek: {e}")
+            else:
+                logger.warning("DEEPSEEK_API_KEY not set, using fallback method")
+
+        # Initialize fallback extractor
+        self.fallback = FallbackExtractor()
+
+    def extract_with_deepseek(self, pdf_path: Path) -> Optional[Dict]:
+        """
+        Extract using DeepSeek Vision API.
+
+        Args:
+            pdf_path: Path to PDF file
+
+        Returns:
+            Extracted product data or None
+        """
+        if not self.vision_client or not self.pdf_converter:
+            return None
+
+        try:
+            # Convert PDF to images (first 3 pages usually contain specs)
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                images = self.pdf_converter.convert(pdf_path, temp_path, max_pages=3)
+
+                if not images:
+                    logger.warning(f"Failed to convert {pdf_path.name} to images")
+                    return None
+
+                # Extract from images
+                extracted_data = self.vision_client.extract_from_pdf_images(images, aggregate=True)
+
+                if not extracted_data:
+                    return None
+
+                # Convert to our product format
+                manufacturer = self._extract_manufacturer_from_path(pdf_path)
+
+                product = {
+                    "identification": {
+                        "model": extracted_data.get("model_name", pdf_path.stem),
+                        "manufacturer": extracted_data.get("manufacturer", manufacturer),
+                        "pdf_filename": pdf_path.name
+                    },
+                    "power": {
+                        "rated_power_kw": extracted_data.get("power", {}).get("rated_power_kw"),
+                        "max_power_kw": extracted_data.get("power", {}).get("max_power_kw")
+                    },
+                    "efficiency": {
+                        "peak_percent": extracted_data.get("efficiency", {}).get("peak_percent")
+                    },
+                    "physical": extracted_data.get("physical", {
+                        "width_mm": None,
+                        "height_mm": None,
+                        "depth_mm": None,
+                        "weight_kg": None
+                    }),
+                    "voltage": extracted_data.get("voltage", {
+                        "nominal_v": None,
+                        "max_v": None,
+                        "min_v": None
+                    }),
+                    "environmental": extracted_data.get("environmental", {
+                        "operating_temp_min_c": None,
+                        "operating_temp_max_c": None
+                    }),
+                    "battery": extracted_data.get("battery", {
+                        "capacity_kwh": None,
+                        "type": None,
+                        "cycles": None
+                    }),
+                    "certifications": extracted_data.get("certifications", []),
+                    "data_source": {
+                        "source": "pdf_datasheet",
+                        "extraction_method": "deepseek_vision_api",
+                        "confidence_level": 5,  # Higher confidence for AI extraction
+                        "parsed_at": datetime.now().isoformat(),
+                        "pdf_path": str(pdf_path.relative_to(pdf_path.parent.parent.parent)),
+                        "raw_extraction": extracted_data  # Keep full extraction for reference
+                    }
+                }
+
+                logger.info(f"✓ DeepSeek extracted: {product['identification']['model']}")
+                return product
+
+        except Exception as e:
+            logger.error(f"DeepSeek extraction failed for {pdf_path.name}: {e}")
+            return None
+
+    def _extract_manufacturer_from_path(self, pdf_path: Path) -> str:
+        """Extract manufacturer from directory structure."""
+        return pdf_path.parent.name
+
+    def extract_with_fallback(self, pdf_path: Path) -> Optional[Dict]:
+        """
+        Extract using traditional pdftotext method.
+
+        Args:
+            pdf_path: Path to PDF file
+
+        Returns:
+            Extracted product data or None
+        """
+        try:
+            return self.fallback.parse_pdf(pdf_path)
+        except Exception as e:
+            logger.error(f"Fallback extraction failed for {pdf_path.name}: {e}")
+            return None
+
+    def save_json_alongside_pdf(self, pdf_path: Path, product_data: Dict) -> bool:
+        """
+        Save JSON file alongside the PDF.
+
+        Args:
+            pdf_path: Original PDF path
+            product_data: Extracted product data
+
+        Returns:
+            True if successful
+        """
+        try:
+            json_path = pdf_path.with_suffix('.json')
+
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(product_data, f, indent=2, ensure_ascii=False)
+
+            logger.info(f"💾 Saved: {json_path.name}")
+            self.stats['json_files_saved'] += 1
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to save JSON for {pdf_path.name}: {e}")
+            return False
+
+    def parse_pdf(self, pdf_path: Path) -> Optional[Dict]:
+        """
+        Parse PDF using best available method.
+
+        Args:
+            pdf_path: Path to PDF file
+
+        Returns:
+            Extracted product data or None
+        """
+        product = None
+
+        # Try DeepSeek first
+        if self.vision_client:
+            product = self.extract_with_deepseek(pdf_path)
+            if product:
+                self.stats['deepseek_success'] += 1
+                # Save JSON alongside PDF
+                self.save_json_alongside_pdf(pdf_path, product)
+                return product
+
+        # Fallback to traditional method
+        logger.info(f"Using fallback extraction for {pdf_path.name}")
+        product = self.extract_with_fallback(pdf_path)
+
+        if product:
+            self.stats['fallback_success'] += 1
+            # Save JSON alongside PDF
+            self.save_json_alongside_pdf(pdf_path, product)
+            return product
+
+        self.stats['failed'] += 1
+        return None
+
+    def parse_directory(self, datasheets_dir: Path) -> List[Dict]:
+        """Parse all PDFs in directory."""
+        pdf_files = list(datasheets_dir.glob("*/*.pdf"))
+
+        print(f"📂 STEP 2 ENHANCED: Parsing {len(pdf_files)} PDF datasheets...")
+        self.stats['total_pdfs'] = len(pdf_files)
+
+        if self.vision_client:
+            print("   🤖 Using DeepSeek Vision API for intelligent extraction")
+        else:
+            print("   📄 Using fallback pdftotext extraction")
+
+        for i, pdf_file in enumerate(pdf_files, 1):
+            print(f"\n   [{i}/{len(pdf_files)}] Processing: {pdf_file.name}")
+
+            product = self.parse_pdf(pdf_file)
+            if product:
+                self.products.append(product)
+
+        # Print stats
+        print(f"\n{'='*70}")
+        print(f"EXTRACTION STATISTICS")
+        print(f"{'='*70}")
+        print(f"   Total PDFs:          {self.stats['total_pdfs']}")
+        print(f"   DeepSeek Success:    {self.stats['deepseek_success']}")
+        print(f"   Fallback Success:    {self.stats['fallback_success']}")
+        print(f"   Total Success:       {self.stats['deepseek_success'] + self.stats['fallback_success']}")
+        print(f"   Failed:              {self.stats['failed']}")
+        print(f"   JSON Files Saved:    {self.stats['json_files_saved']}")
+        print(f"   Success Rate:        {((self.stats['deepseek_success'] + self.stats['fallback_success']) / self.stats['total_pdfs'] * 100):.1f}%")
+
+        return self.products
+
+
+def main():
+    """Main execution."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Enhanced PDF extraction')
+    parser.add_argument('--no-api', action='store_true', help='Skip DeepSeek API, use fallback only')
+
+    args = parser.parse_args()
+
+    print("=" * 70)
+    print("STEP 2 ENHANCED: PDF → JSON with DeepSeek Vision")
+    print("=" * 70)
+    print()
+
+    project_root = Path(__file__).parent.parent
+    datasheets_dir = project_root / "datasheets"
+    output_dir = project_root / "data" / "processed"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / "pdf_products.json"
+
+    if not datasheets_dir.exists():
+        print(f"❌ ERROR: Datasheets directory not found: {datasheets_dir}")
+        return 1
+
+    # Initialize extractor
+    extractor = EnhancedPDFExtractor(use_deepseek=not args.no_api)
+
+    # Parse PDFs
+    products = extractor.parse_directory(datasheets_dir)
+
+    if not products:
+        print("⚠️  WARNING: No products extracted from PDFs")
+        # Create empty file so Step 3 doesn't fail
+        with open(output_path, 'w') as f:
+            json.dump([], f)
+        print(f"\n💾 Created empty: {output_path}")
+        return 0
+
+    # Save centralized JSON
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(products, f, indent=2, ensure_ascii=False)
+
+    file_size_kb = output_path.stat().st_size / 1024
+
+    print(f"\n💾 CENTRALIZED OUTPUT:")
+    print(f"   File: {output_path}")
+    print(f"   Size: {file_size_kb:.1f} KB")
+    print(f"   Products: {len(products)}")
+
+    print("\n✅ Step 2 Enhanced Complete!")
+    print("   Next: Run step3_merge_json_files.py")
+    print()
+
+    return 0
+
+
+if __name__ == "__main__":
+    exit(main())

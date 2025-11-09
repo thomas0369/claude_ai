@@ -1,0 +1,577 @@
+# ZEREZ GraphQL API Documentation
+
+**Last Updated:** 2025-11-04
+**API Endpoint:** `https://app-zerez-weeu-gatewaysvc-prod-01.azurewebsites.net/graphql/`
+**Website:** https://www.zerez.net
+
+## Table of Contents
+- [Overview](#overview)
+- [Two-Tier Query Architecture](#two-tier-query-architecture)
+- [GraphQL Queries](#graphql-queries)
+- [Data Enrichment Pattern](#data-enrichment-pattern)
+- [Known Issues and Limitations](#known-issues-and-limitations)
+- [Field Reference](#field-reference)
+- [Example Usage](#example-usage)
+
+---
+
+## Overview
+
+ZEREZ is a German certificate database for power generation units (inverters, battery storage systems, etc.). The GraphQL API provides access to certified unit specifications and certificate information.
+
+### Key Characteristics
+- **No authentication required** for public queries
+- **GraphQL-based** API (not REST)
+- **German language** field names and values
+- **UUID-based** identifiers
+- **Pagination** support with cursor-based navigation
+- **Variable data quality** - not all fields populated for all units
+
+---
+
+## Two-Tier Query Architecture
+
+**CRITICAL DISCOVERY:** The ZEREZ API has two separate queries with different field sets:
+
+### 1. `unitOverview` Query (Search/List)
+**Purpose:** Fast search and listing of units
+**Fields:** ~30 fields including:
+- ✓ `manufacturerName` - Full manufacturer name (e.g., "Schneider Electric")
+- ✓ `primaryEnergySource` - Energy type (PV, STORAGE, PV_WITH_STORAGE, etc.)
+- ✓ `category` - Unit category (INVERTER, STORAGE_INVERTER, etc.)
+- ✓ `certificateNumber` - Certificate identifier
+- ✓ `maxActivePower` - Basic power rating
+
+**Missing:** Detailed technical specifications (75+ German technical parameters)
+
+### 2. `unit(id: UUID)` Query (Detailed)
+**Purpose:** Fetch complete technical specifications for a single unit
+**Fields:** 75+ fields including:
+- ✓ `ratedActivePower`, `ratedApparentPower` - Detailed power ratings
+- ✓ `ratedVoltage`, `ratedCurrent` - Electrical parameters
+- ✓ `shortCircuitPeakCurrent`, `initialShortCircuitAlternatingCurrent`
+- ✓ Flicker coefficients: `systemFlickerCoefficientCY30/50/70/85`
+- ✓ Fast voltage change parameters
+- ✓ Operation parameters for three switching modes
+
+**Missing:** Manufacturer name, category, energy source, certificate number
+
+### Why This Matters
+
+**Problem:** You cannot get all data from a single query!
+
+```typescript
+// ❌ BAD: Will lose manufacturer name and category
+const detailedUnit = await fetchUnit(id); // Missing manufacturerName
+
+// ❌ BAD: Will lack 75+ technical specs
+const searchUnit = await searchUnits(filters); // Missing ratedActivePower, etc.
+
+// ✅ GOOD: Merge both queries
+const searchResults = await searchUnits(filters);
+const detailedData = await Promise.all(
+  searchResults.map(u => fetchUnit(u.id))
+);
+const enriched = enrichZEREZUnits(searchResults, detailedData);
+```
+
+**Solution:** Always use the data enrichment pattern (see below).
+
+---
+
+## GraphQL Queries
+
+### 1. Search Units (`unitOverview`)
+
+```graphql
+query GetUnitsForUnitsOverview(
+  $skip: Int
+  $take: Int
+  $where: UnitOverviewFilterInput
+  $order: [UnitOverviewSortInput!]
+) {
+  unitOverview(skip: $skip, take: $take, where: $where, order: $order) {
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+    totalCount
+    items {
+      id
+      unitCode
+      modelName
+      modelNumber
+      manufacturerName              # ← Only in unitOverview!
+      primaryEnergySource            # ← Only in unitOverview!
+      category                       # ← Only in unitOverview!
+      certificateNumber              # ← Only in unitOverview!
+      certificateIssueDate
+      certificateValidityStatusName
+      certificateNormIssueDateDescriptions
+      maxActivePower
+      isVerified
+      is4105
+      validityStartDate
+      validityEndDate
+      createdAt
+      modifiedAt
+    }
+  }
+}
+```
+
+**Available Filters:**
+```typescript
+{
+  maxActivePower?: { gte?: number, lte?: number },
+  ratedVoltage?: { gte?: number, lte?: number },
+  primaryEnergySource?: { eq?: PrimaryEnergySource },
+  category?: { eq?: Category },
+  isVerified?: { eq?: boolean },
+  is4105?: { eq?: boolean },
+  manufacturerId?: { eq?: string }, // UUID
+  certificateAuthorityId?: { eq?: string }, // UUID
+  certificateNormIssueDateDescriptions?: { contains?: string },
+  createdAt?: { gte?: DateTime, lte?: DateTime },
+  modifiedAt?: { gte?: DateTime, lte?: DateTime }
+}
+```
+
+### 2. Get Detailed Unit (`unit`)
+
+```graphql
+query GetDetailedUnit($id: UUID!) {
+  unit(id: $id) {
+    # Core Identifiers
+    id
+    unitCode
+    modelName
+    modelNumber
+
+    # Power Specifications (12 fields)
+    maxActivePower
+    ratedActivePower                              # ← Only in unit(id)!
+    maxApparentPower                              # ← Only in unit(id)!
+    ratedApparentPower                            # ← Only in unit(id)!
+    maxActivePowerRange
+    minActivePowerRange
+    maxApparentPowerRange
+    minApparentPowerRange
+    maxActivePower09
+    hasActivePowerRange
+    hasApparentPowerRange
+    fastVoltageChangeTurnOffAtRatedPower
+
+    # Electrical Parameters (19 fields)
+    ratedVoltage                                  # ← Only in unit(id)!
+    ratedCurrent                                  # ← Only in unit(id)!
+    shortCircuitPeakCurrent                       # ← Only in unit(id)!
+    initialShortCircuitAlternatingCurrent         # ← Only in unit(id)!
+    fastVoltageChangeTurnOnAtRatedConditions
+    fastVoltageChangeTurnOnWithoutSpecifications
+    fastVoltageChangeWorstCaseDuringGeneratorStageSwitching
+    operation1VoltageVariationFactor30
+    operation1VoltageVariationFactor50
+    operation1VoltageVariationFactor70
+    operation1VoltageVariationFactor85
+    operation2VoltageVariationFactor30
+    operation2VoltageVariationFactor50
+    operation2VoltageVariationFactor70
+    operation2VoltageVariationFactor85
+    operation3VoltageVariationFactor30
+    operation3VoltageVariationFactor50
+    operation3VoltageVariationFactor70
+    operation3VoltageVariationFactor85
+
+    # Flicker Coefficients (5 fields)
+    systemFlickerCoefficientCY30
+    systemFlickerCoefficientCY50
+    systemFlickerCoefficientCY70
+    systemFlickerCoefficientCY85
+    operationAllWorstCase
+
+    # Operation 1 Parameters (7 fields)
+    operation1FlickerStepFactor30
+    operation1FlickerStepFactor50
+    operation1FlickerStepFactor70
+    operation1FlickerStepFactor85
+    operation1MaxNumberN120
+    operation1MaxSwitchN10
+    hasSwitchingOperation1
+
+    # Operation 2 Parameters (7 fields)
+    operation2FlickerStepFactor30
+    operation2FlickerStepFactor50
+    operation2FlickerStepFactor70
+    operation2FlickerStepFactor85
+    operation2MaxNumberN120
+    operation2MaxSwitchN10
+    hasSwitchingOperation2
+
+    # Operation 3 Parameters (7 fields)
+    operation3FlickerStepFactor30
+    operation3FlickerStepFactor50
+    operation3FlickerStepFactor70
+    operation3FlickerStepFactor85
+    operation3MaxNumberN120
+    operation3MaxSwitchN10
+    hasSwitchingOperation3
+
+    # Status & Metadata
+    isImported
+    revision
+    createdAt
+    modifiedAt
+    createdBy
+    modifiedBy
+
+    # IDs (UUIDs)
+    manufacturerId                 # UUID only, not the name!
+    replacedByUnitId
+    tenantId
+    unitTypeId
+    ledgerStartTransactionId
+    ledgerEndTransactionId
+    ledgerStartSequenceNumber
+    ledgerEndSequenceNumber
+  }
+}
+```
+
+### 3. Get Manufacturer Name (`tenant`)
+
+**Required to resolve `manufacturerId` → `manufacturerName`**
+
+```graphql
+query GetTenant($id: UUID!) {
+  tenant(id: $id) {
+    id
+    name  # This is the manufacturer name
+  }
+}
+```
+
+### 4. GraphQL Introspection (Enum Values)
+
+```graphql
+query GetEnumValues {
+  __type(name: "PrimaryEnergySource") {
+    enumValues {
+      name
+    }
+  }
+  __type(name: "Category") {
+    enumValues {
+      name
+    }
+  }
+}
+```
+
+**Enum Values Discovered:**
+- **PrimaryEnergySource:** `WIND`, `PV`, `PV_WITH_STORAGE`, `STORAGE`, `SYNCHRONOUS_GENERATOR`, `ASYNCHRONOUS_GENERATOR`, `EXTERNAL_ENERGIZED_SYNCHRONOUS_GENERATOR`, `HYDRO`, `CHP`
+- **Category:** `INVERTER`, `STORAGE_INVERTER`, `ASYNCHRONOUS_GENERATOR`, `SYNCHRONOUS_GENERATOR`, `EXTERNAL_ENERGIZED_SYNCHRONOUS_GENERATOR`, `BIOGAS_UNIT`, `WIND_TURBINE`, `WATER_TURBINE`, `CHP`, `DC_STRING`, `NA`
+
+---
+
+## Data Enrichment Pattern
+
+### The Problem
+
+```typescript
+// unitOverview returns: manufacturerName ✓, but ratedActivePower ✗
+// unit(id) returns: ratedActivePower ✓, but manufacturerName ✗
+```
+
+### The Solution
+
+**File:** `/benchmark-app/lib/zerez-data-utils.ts`
+
+```typescript
+export function enrichZEREZUnits(
+  basicUnits: ZEREZUnit[],    // from unitOverview query
+  detailedUnits: ZEREZUnit[]  // from unit(id) query
+): ZEREZUnit[] {
+  if (basicUnits.length === 0) return [];
+  if (detailedUnits.length === 0) return basicUnits;
+
+  // O(1) lookup via Map
+  const detailedMap = new Map(detailedUnits.map(u => [u.id, u]));
+
+  return basicUnits.map(basicUnit => {
+    const detailedUnit = detailedMap.get(basicUnit.id);
+    if (!detailedUnit) return basicUnit;
+
+    // CRITICAL SPREAD ORDER:
+    // 1. basicUnit first → preserves manufacturerName, category, etc.
+    // 2. detailedUnit second → adds technical specs, overwrites shared fields
+    return { ...basicUnit, ...detailedUnit };
+  });
+}
+```
+
+**Key Points:**
+1. **Spread order matters!** `{ ...basicUnit, ...detailedUnit }` preserves unitOverview-only fields
+2. **Detailedunit wins** for overlapping fields (e.g., more accurate `maxActivePower`)
+3. **O(n) performance** via Map instead of nested loops
+
+### Usage Example
+
+```typescript
+// 1. Search for units (gets manufacturerName, category, etc.)
+const searchResults = await fetch('/api/zerez/search', {
+  method: 'POST',
+  body: JSON.stringify({ powerMin: 50, powerMax: 200 })
+});
+
+// 2. Fetch detailed specs (gets ratedActivePower, ratedVoltage, etc.)
+const unitIds = searchResults.units.map(u => u.id);
+const detailedResults = await fetch('/api/zerez/fetch-detailed', {
+  method: 'POST',
+  body: JSON.stringify({ unitIds })
+});
+
+// 3. Enrich!
+const enriched = enrichZEREZUnits(
+  searchResults.units,
+  detailedResults.units
+);
+
+// Now enriched[0] has BOTH manufacturerName AND ratedActivePower!
+```
+
+---
+
+## Known Issues and Limitations
+
+### 1. Incomplete Data Quality
+
+**Issue:** Many units lack complete technical specifications
+**Evidence:** Testing unit `31a1ec03-d151-40ae-22c4-08dd3bce9e48` (Schneider HY8K3EU1) shows complete data, but many other units have null values for:
+- `ratedActivePower`, `ratedApparentPower`
+- `ratedVoltage`, `ratedCurrent`
+- Flicker coefficients
+- Fast voltage change parameters
+
+**Impact:** Tables will show "N/A" or "Nicht verfügbar" when ZEREZ doesn't have the data
+
+**Workaround:** This is not a bug in our code. Display "N/A" gracefully.
+
+### 2. Manufacturer Name Resolution
+
+**Issue:** `unit(id)` returns `manufacturerId` (UUID) not `manufacturerName` (string)
+**Solution:**
+- Option 1: Use `unitOverview` query (includes resolved name)
+- Option 2: Query `tenant(id: $manufacturerId)` separately and cache results
+
+Our implementation uses Option 1 (data enrichment pattern).
+
+### 3. Boolean Fields with Null Values
+
+**Issue:** Fields like `isVerified`, `is4105` sometimes return `null` instead of `false`
+**Evidence:** Zod validation errors: `"expected boolean, received null"`
+
+**Workaround:**
+```typescript
+// In Zod schema
+isVerified: z.boolean().nullable().default(false),
+is4105: z.boolean().nullable().default(false),
+```
+
+### 4. No Batch Query Support
+
+**Issue:** Must make N separate `unit(id)` queries for N units (no `units(ids: [UUID])` query)
+**Impact:** Performance bottleneck for large imports
+
+**Workaround:**
+```typescript
+// Parallel requests with Promise.all
+const detailedUnits = await Promise.all(
+  unitIds.map(id => fetchDetailedUnit(id))
+);
+```
+
+### 5. Rate Limiting Unknown
+
+**Issue:** No documented rate limits
+**Observation:** Successfully tested 20 parallel requests without issues
+
+**Recommendation:** Implement exponential backoff and retry logic as precaution
+
+---
+
+## Field Reference
+
+### Field Coverage Matrix
+
+| Field | unitOverview | unit(id) | Type | Notes |
+|-------|:------------:|:--------:|------|-------|
+| **Core Identifiers** |
+| `id` | ✓ | ✓ | UUID | Primary key |
+| `unitCode` | ✓ | ✓ | String | ZEREZ unit code (e.g., "ZE-RTTR-CRN5-0001") |
+| `modelName` | ✓ | ✓ | String | Product model name |
+| `modelNumber` | ✓ | ✓ | String | Model number |
+| **Manufacturer & Classification** |
+| `manufacturerName` | ✓ | ✗ | String | **Only in unitOverview!** |
+| `manufacturerId` | ✗ | ✓ | UUID | Must resolve via tenant query |
+| `primaryEnergySource` | ✓ | ✗ | Enum | **Only in unitOverview!** |
+| `category` | ✓ | ✗ | Enum | **Only in unitOverview!** |
+| **Certificate Information** |
+| `certificateNumber` | ✓ | ✗ | String | **Only in unitOverview!** |
+| `certificateIssueDate` | ✓ | ✗ | DateTime | |
+| `certificateValidityStatusName` | ✓ | ✗ | String | |
+| `certificateNormIssueDateDescriptions` | ✓ | ✗ | String | |
+| **Power Specifications** |
+| `maxActivePower` | ✓ | ✓ | Float | kW - Both queries (detailed is more accurate) |
+| `ratedActivePower` | ✗ | ✓ | Float | kW - **Only in unit(id)!** |
+| `maxApparentPower` | ✗ | ✓ | Float | kVA - **Only in unit(id)!** |
+| `ratedApparentPower` | ✗ | ✓ | Float | kVA - **Only in unit(id)!** |
+| **Electrical Parameters** |
+| `ratedVoltage` | ✗ | ✓ | Float | V - **Only in unit(id)!** |
+| `ratedCurrent` | ✗ | ✓ | Float | A - **Only in unit(id)!** |
+| `shortCircuitPeakCurrent` | ✗ | ✓ | Float | A - **Only in unit(id)!** |
+| `initialShortCircuitAlternatingCurrent` | ✗ | ✓ | Float | A - **Only in unit(id)!** |
+| **Compliance** |
+| `isVerified` | ✓ | ✓ | Boolean | Can be null! |
+| `is4105` | ✓ | ✓ | Boolean | VDE-AR-N 4105 compliance - Can be null! |
+| **Metadata** |
+| `createdAt` | ✓ | ✓ | DateTime | |
+| `modifiedAt` | ✓ | ✓ | DateTime | |
+| `validityStartDate` | ✓ | ✗ | DateTime | Certificate validity |
+| `validityEndDate` | ✓ | ✗ | DateTime | Certificate validity |
+
+### German Technical Terms Reference
+
+| English | German | Field Name |
+|---------|--------|------------|
+| Rated Active Power | Bemessungswirkleistung | `ratedActivePower` |
+| Max Active Power | Maximale Wirkleistung | `maxActivePower` |
+| Rated Apparent Power | Bemessungsscheinleistung | `ratedApparentPower` |
+| Max Apparent Power | Maximale Scheinleistung | `maxApparentPower` |
+| Rated Voltage | Bemessungsspannung | `ratedVoltage` |
+| Rated Current | Bemessungsstrom | `ratedCurrent` |
+| Peak Short-Circuit Current | Stoßkurzschlussstrom | `shortCircuitPeakCurrent` |
+| Initial Short-Circuit AC | Anfangs-Kurzschlusswechselstrom | `initialShortCircuitAlternatingCurrent` |
+| Fast Voltage Change | Schnelle Spannungsänderung | `fastVoltageChange*` |
+| Flicker Coefficient | Flimmerfaktor | `systemFlickerCoefficientCY*` |
+| Voltage Variation Factor | Spannungsänderungsfaktor | `operation*VoltageVariationFactor*` |
+
+---
+
+## Example Usage
+
+### Complete Implementation Flow
+
+```typescript
+// 1. Search for units matching criteria
+async function searchZEREZUnits(filters: {
+  powerMin: number;
+  powerMax: number;
+  category?: string;
+}) {
+  const response = await fetch(ZEREZ_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: UNIT_OVERVIEW_QUERY,
+      variables: {
+        skip: 0,
+        take: 50,
+        where: {
+          maxActivePower: {
+            gte: filters.powerMin,
+            lte: filters.powerMax
+          },
+          category: filters.category ? { eq: filters.category } : undefined
+        }
+      }
+    })
+  });
+
+  const data = await response.json();
+  return data.data.unitOverview.items; // Has manufacturerName ✓
+}
+
+// 2. Fetch detailed specifications
+async function fetchDetailedUnit(unitId: string) {
+  const response = await fetch(ZEREZ_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      operationName: 'GetDetailedUnit',
+      query: DETAILED_UNIT_QUERY,
+      variables: { id: unitId }
+    })
+  });
+
+  const data = await response.json();
+  return data.data.unit; // Has ratedActivePower ✓
+}
+
+// 3. Enrich and use
+const searchResults = await searchZEREZUnits({ powerMin: 50, powerMax: 200 });
+const detailedResults = await Promise.all(
+  searchResults.map(u => fetchDetailedUnit(u.id))
+);
+
+const enrichedUnits = enrichZEREZUnits(searchResults, detailedResults);
+
+// Now you have complete data!
+enrichedUnits.forEach(unit => {
+  console.log(`${unit.manufacturerName} - ${unit.modelName}`);
+  console.log(`  Max Power: ${unit.maxActivePower} kW`);
+  console.log(`  Rated Power: ${unit.ratedActivePower} kW`);
+  console.log(`  Voltage: ${unit.ratedVoltage} V`);
+});
+```
+
+### Real-World Test Case
+
+**Unit:** `31a1ec03-d151-40ae-22c4-08dd3bce9e48`
+**Manufacturer:** Schneider Electric IT Corporation
+**Model:** HY8K3EU1
+
+**Verified API Response:**
+```json
+{
+  "id": "31a1ec03-d151-40ae-22c4-08dd3bce9e48",
+  "modelName": "HY8K3EU1",
+  "maxActivePower": 8,
+  "ratedActivePower": 8,
+  "maxApparentPower": 8.8,
+  "ratedApparentPower": 8,
+  "ratedVoltage": 400,
+  "ratedCurrent": 11.6,
+  "shortCircuitPeakCurrent": 53.6,
+  "initialShortCircuitAlternatingCurrent": 21
+}
+```
+
+This unit demonstrates that **when ZEREZ has complete data**, all fields are properly returned.
+
+---
+
+## Implementation Files
+
+- **Enrichment Logic:** `/benchmark-app/lib/zerez-data-utils.ts`
+- **Type Definitions:** `/benchmark-app/lib/zerez-types.ts`
+- **Python Client:** `/scripts/zerez_graphql_client.py`
+- **Detailed Unit Fetcher:** `/scripts/zerez_fetch_detailed_units.py`
+- **Test Script:** `/scripts/test_unit_query_fields.py`
+- **Unit Tests:** `/benchmark-app/__tests__/lib/zerez-data-utils.test.ts`
+- **API Routes:**
+  - Search: `/benchmark-app/app/api/zerez/search/route.ts`
+  - Fetch Detailed: `/benchmark-app/app/api/zerez/fetch-detailed/route.ts`
+  - Enum Values: `/benchmark-app/app/api/zerez/enum-values/route.ts`
+
+---
+
+## Additional Resources
+
+- **ZEREZ Website:** https://www.zerez.net
+- **Example Unit:** https://www.zerez.net/units/31a1ec03-d151-40ae-22c4-08dd3bce9e48
+- **VDE-AR-N 4105 Standard:** Grid connection regulations for German power generation units
+
+---
+
+**Document Maintainers:** Add your findings and updates here as you discover more about the API!

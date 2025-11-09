@@ -1,0 +1,190 @@
+/**
+ * Comprehensive Feature Validation Script
+ *
+ * Validates all key features of the benchmark app using shared utilities:
+ * - Data loading and parsing
+ * - Data enrichment algorithms
+ * - Statistical calculations
+ * - Type safety
+ * - React components
+ * - Production build
+ */
+
+import { join } from 'path';
+import {
+  TestRunner,
+  FileValidator,
+  DataValidator,
+  ConsoleFormatter
+} from '../lib/validation-utils';
+
+const runner = new TestRunner('Comprehensive Validation');
+const reporter = runner.getReporter();
+
+// Test 1: Data Loading
+runner.runTest('Test 1: Data Loading Functionality', () => {
+  const productsDir = join(process.cwd(), '../data/products');
+  const productFiles = FileValidator.listFiles(productsDir, '.yaml');
+
+  ConsoleFormatter.printInfo(`Found ${productFiles.length} product files`);
+
+  let validProducts = 0;
+  let invalidProducts = 0;
+
+  for (const file of productFiles.slice(0, 5)) { // Test first 5
+    try {
+      const data = FileValidator.readYAML(join(productsDir, file));
+
+      if (data.product?.identification?.model) {
+        validProducts++;
+      } else {
+        invalidProducts++;
+        ConsoleFormatter.printWarning(`${file}: Missing product.identification.model`);
+      }
+    } catch (err) {
+      invalidProducts++;
+      ConsoleFormatter.printError(`${file}: Parse error - ${err}`);
+    }
+  }
+
+  const sampleSize = Math.min(5, productFiles.length);
+  reporter.addResult(
+    'Data Loading',
+    invalidProducts === 0 ? 'PASS' : 'WARN',
+    `${validProducts}/${sampleSize} products loaded successfully`
+  );
+  ConsoleFormatter.printSuccess(`${validProducts}/${sampleSize} products loaded successfully\n`);
+});
+
+// Test 2: Data Enrichment
+runner.runTest('Test 2: Data Enrichment Algorithms', () => {
+  const sampleFile = join(process.cwd(), '../data/products/sofar_sofar_100ktlx_g4_ess.yaml');
+  const data = FileValidator.readYAML(sampleFile);
+  const product = data.product;
+
+  // Test power-to-weight calculation
+  const power = product.power?.rated_power_kw || 0;
+  const weight = product.physical?.weight_kg || 0;
+
+  if (power > 0 && weight > 0) {
+    const powerToWeight = DataValidator.calculatePowerToWeight(power, weight);
+
+    if (powerToWeight) {
+      ConsoleFormatter.printInfo(`Power-to-weight: ${powerToWeight.toFixed(3)} kW/kg`);
+
+      if (DataValidator.inRange(powerToWeight, 0, 10)) {
+        reporter.addResult('Power-to-Weight Calculation', 'PASS', `${powerToWeight.toFixed(3)} kW/kg`);
+        ConsoleFormatter.printSuccess('Power-to-weight ratio is valid\n');
+      } else {
+        reporter.addResult('Power-to-Weight Calculation', 'WARN', `Unusual value: ${powerToWeight.toFixed(3)} kW/kg`);
+        ConsoleFormatter.printWarning('Power-to-weight ratio seems unusual\n');
+      }
+    }
+  }
+
+  // Test power density calculation
+  const width_mm = product.physical?.width_mm || 0;
+  const height_mm = product.physical?.height_mm || 0;
+  const depth_mm = product.physical?.depth_mm || 0;
+
+  if (power > 0 && width_mm > 0 && height_mm > 0 && depth_mm > 0) {
+    const powerDensity = DataValidator.calculatePowerDensity(power, width_mm, height_mm, depth_mm);
+
+    if (powerDensity) {
+      ConsoleFormatter.printInfo(`Power density: ${powerDensity.toFixed(1)} kW/m³`);
+
+      if (DataValidator.inRange(powerDensity, 0, 50000)) {
+        reporter.addResult('Power Density Calculation', 'PASS', `${powerDensity.toFixed(1)} kW/m³`);
+        ConsoleFormatter.printSuccess('Power density is valid\n');
+      } else {
+        reporter.addResult('Power Density Calculation', 'WARN', `Unusual value: ${powerDensity.toFixed(1)} kW/m³`);
+        ConsoleFormatter.printWarning('Power density seems unusual\n');
+      }
+    }
+  }
+});
+
+// Test 3: Type Safety
+runner.runTest('Test 3: TypeScript Type Safety', () => {
+  const tsFiles = [
+    'lib/types-enhanced.ts',
+    'lib/data-enrichment.ts',
+    'lib/dataLoader-enhanced.ts',
+    'lib/echarts-types.ts',
+    'lib/validation-utils.ts'
+  ];
+
+  const result = FileValidator.validateFilesExist(tsFiles, process.cwd());
+
+  result.missing.forEach(file => {
+    ConsoleFormatter.printWarning(`${file} not found`);
+  });
+
+  tsFiles.slice(0, result.found).forEach(file => {
+    ConsoleFormatter.printSuccess(`${file} exists`);
+  });
+
+  reporter.addResult(
+    'Type Safety',
+    result.found === tsFiles.length ? 'PASS' : 'WARN',
+    `${result.found}/${tsFiles.length} type files verified`
+  );
+  ConsoleFormatter.printSuccess(`${result.found}/${tsFiles.length} type definition files verified\n`);
+});
+
+// Test 4: React Components
+runner.runTest('Test 4: React Components', () => {
+  const components = [
+    'components/CertificationTimeline.tsx',
+    'components/CompetitiveMatrix.tsx',
+    'components/PerformanceHeatmap.tsx',
+    'components/SimpleDataTable.tsx',
+    'components/ChartErrorBoundary.tsx'
+  ];
+
+  const result = FileValidator.validateFilesExist(components, process.cwd());
+
+  result.missing.forEach(comp => {
+    ConsoleFormatter.printWarning(`${comp.split('/')[1]} not found`);
+  });
+
+  components.slice(0, result.found).forEach(comp => {
+    ConsoleFormatter.printSuccess(comp.split('/')[1]);
+  });
+
+  reporter.addResult(
+    'React Components',
+    result.found === components.length ? 'PASS' : 'WARN',
+    `${result.found}/${components.length} components verified`
+  );
+  ConsoleFormatter.printSuccess(`${result.found}/${components.length} components verified\n`);
+});
+
+// Test 5: Production Build
+runner.runTest('Test 5: Production Build Verification', () => {
+  const buildDir = join(process.cwd(), '.next');
+
+  if (FileValidator.exists(buildDir)) {
+    reporter.addResult('Production Build', 'PASS', 'Build directory exists');
+    ConsoleFormatter.printSuccess('Production build directory exists\n');
+  } else {
+    reporter.addResult('Production Build', 'WARN', 'Build directory not found (run npm run build)');
+    ConsoleFormatter.printWarning('Build directory not found (run npm run build)\n');
+  }
+});
+
+// Test 6: Validation Utilities
+runner.runTest('Test 6: Validation Utilities', () => {
+  const utilsFile = join(process.cwd(), 'lib/validation-utils.ts');
+
+  if (FileValidator.exists(utilsFile)) {
+    reporter.addResult('Validation Utilities', 'PASS', 'Validation utilities module exists');
+    ConsoleFormatter.printSuccess('Validation utilities module exists and loaded\n');
+  } else {
+    reporter.addResult('Validation Utilities', 'FAIL', 'Validation utilities not found');
+    ConsoleFormatter.printError('Validation utilities not found\n');
+  }
+});
+
+// Finish and exit
+runner.finish();

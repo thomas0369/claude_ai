@@ -1,0 +1,1180 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Filter,
+  Download,
+  Database,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  ArrowRight,
+  ArrowLeft,
+  FileText
+} from 'lucide-react';
+import { ZEREZUnit } from '@/lib/zerez-types';
+import { filterValidEnumValues } from '@/lib/ui-utils';
+import { UnitFormatters } from '@/lib/unit-formatters';
+import { ZEREZ_UI_STRINGS } from '@/lib/ui-constants';
+import { isValidUUID } from '@/lib/api-validation-utils';
+import { consumeSSEStream, SSE_CONFIG } from '@/lib/sse-utils';
+import { ZEREZ_IMPORT_LIMITS, DEFAULT_FILTERS, ALL_OPTIONS_SENTINEL } from '@/lib/zerez-constants';
+
+type ZEREZUnitWithSelection = ZEREZUnit & {
+  selected?: boolean;
+};
+
+type ImportStep = 'filter' | 'import' | 'match';
+
+type ImportProgress = {
+  total: number;
+  downloaded: number;
+  failed: number;
+  saved_files: number;
+  current: string;
+  errors: string[];
+};
+
+type MatchResult = {
+  zerezProduct: string;
+  pdfMatch: string | null;
+  confidence: number;
+};
+
+type Manufacturer = {
+  id: string;    // UUID
+  name: string;  // Manufacturer name
+};
+
+export default function ZEREZImportPage() {
+  // Step management
+  const [currentStep, setCurrentStep] = useState<ImportStep>('filter');
+
+  // Enum values from GraphQL
+  const [enumValues, setEnumValues] = useState<{
+    primaryEnergySource: string[];
+    category: string[];
+  }>({
+    primaryEnergySource: [],
+    category: []
+  });
+  const [isLoadingEnums, setIsLoadingEnums] = useState(true);
+  const [enumError, setEnumError] = useState<string | null>(null);
+
+  // Manufacturers for autocomplete
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [isLoadingManufacturers, setIsLoadingManufacturers] = useState(true);
+  const [manufacturerSearchTerm, setManufacturerSearchTerm] = useState('');
+  const [manufacturerError, setManufacturerError] = useState<string | null>(null);
+
+  // Authority ID validation
+  const [authorityIdError, setAuthorityIdError] = useState<string | null>(null);
+
+  // Products to match with PDF (stored for step 3)
+  const [productsForMatching, setProductsForMatching] = useState<ZEREZUnit[]>([]);
+
+  // Step 2: Import state
+  const [importProgress, setImportProgress] = useState<ImportProgress>({
+    total: 0,
+    downloaded: 0,
+    failed: 0,
+    saved_files: 0,
+    current: '',
+    errors: []
+  });
+
+  // Step 3: Match state
+  const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
+  const [isMatching, setIsMatching] = useState(false);
+
+  // Step 1: Filter state
+  const defaultFilters = {
+    powerMin: DEFAULT_FILTERS.POWER_MIN,
+    powerMax: DEFAULT_FILTERS.POWER_MAX,
+    voltageMin: '',
+    voltageMax: '',
+    primaryEnergySource: ALL_OPTIONS_SENTINEL,
+    category: ALL_OPTIONS_SENTINEL,
+    isVerified: DEFAULT_FILTERS.IS_VERIFIED,
+    is4105: DEFAULT_FILTERS.IS_4105_COMPLIANT,
+    // NEW: Additional filters
+    certificateNormsVDE: false,
+    certificateNormsCE: false,
+    certificateNormsIEC: false,
+    createdAfter: '',
+    createdBefore: '',
+    modifiedAfter: '',
+    modifiedBefore: '',
+    manufacturerId: ALL_OPTIONS_SENTINEL,
+    authorityId: ''
+  };
+
+  const [filters, setFilters] = useState(defaultFilters);
+  const [products, setProducts] = useState<ZEREZUnitWithSelection[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  // Load enum values on mount
+  useEffect(() => {
+    async function loadEnumValues() {
+      try {
+        const response = await fetch('/api/zerez/enum-values');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        setEnumValues(data);
+        setEnumError(null); // Clear any previous errors
+      } catch (error) {
+        setEnumError(
+          'Failed to load filter options from ZEREZ. Dropdown filters will show all available values when data loads.'
+        );
+      } finally {
+        setIsLoadingEnums(false);
+      }
+    }
+    loadEnumValues();
+  }, []);
+
+  // Load manufacturers on mount
+  useEffect(() => {
+    async function loadManufacturers() {
+      try {
+        const response = await fetch('/api/zerez/manufacturers');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data: Manufacturer[] = await response.json();
+        setManufacturers(data);
+        setManufacturerError(null); // Clear any previous errors
+      } catch (error) {
+        const message = 'Failed to load manufacturer list. You can still enter UUID manually below.';
+        setManufacturerError(message);
+        console.error('Failed to load manufacturers:', error);
+      } finally {
+        setIsLoadingManufacturers(false);
+      }
+    }
+    loadManufacturers();
+  }, []);
+
+  // Step 3: Match with PDF knowledge base
+  const handleMatchWithPDF = useCallback(async (importedProducts: ZEREZUnit[]) => {
+    setIsMatching(true);
+
+    try {
+      const response = await fetch('/api/zerez/match-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          products: importedProducts
+        })
+      });
+
+      const data = await response.json();
+      setMatchResults(data.matches);
+    } catch (error) {
+      console.error('PDF matching failed:', error);
+      setPreviewError(error instanceof Error ? error.message : 'Matching failed');
+    } finally {
+      setIsMatching(false);
+    }
+  }, []); // Empty deps array - setState functions are stable
+
+  // Validate Authority ID (UUID format)
+  const handleAuthorityIdChange = (value: string) => {
+    // Update filter value
+    setFilters({ ...filters, authorityId: value });
+
+    // Validate UUID format (only if non-empty)
+    if (value.trim() !== '') {
+      if (!isValidUUID(value.trim())) {
+        setAuthorityIdError('Must be a valid UUID format (e.g., 123e4567-e89b-12d3-a456-426614174000)');
+      } else {
+        setAuthorityIdError(null); // Valid UUID
+      }
+    } else {
+      setAuthorityIdError(null); // Empty is allowed (optional field)
+    }
+  };
+
+  // Step 1: Load product preview from GraphQL
+  const handlePreviewProducts = async () => {
+    // Validate filters before making API call
+    const validationErrors: string[] = [];
+
+    if (filters.powerMin > filters.powerMax) {
+      validationErrors.push('Minimum power cannot be greater than maximum power');
+    }
+
+    // Validate voltage inputs are numeric
+    if (filters.voltageMin && isNaN(Number(filters.voltageMin))) {
+      validationErrors.push('Minimum voltage must be a valid number');
+    }
+    if (filters.voltageMax && isNaN(Number(filters.voltageMax))) {
+      validationErrors.push('Maximum voltage must be a valid number');
+    }
+
+    // Validate voltage range (only if both are valid numbers)
+    if (filters.voltageMin && filters.voltageMax) {
+      const vMin = Number(filters.voltageMin);
+      const vMax = Number(filters.voltageMax);
+      if (!isNaN(vMin) && !isNaN(vMax) && vMin > vMax) {
+        validationErrors.push('Minimum voltage cannot be greater than maximum voltage');
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      setPreviewError(validationErrors.join('. '));
+      return;
+    }
+
+    setIsLoadingPreview(true);
+    setPreviewError(null);
+
+    try {
+      // Build request body with only non-empty values
+      const requestBody: Record<string, unknown> = {
+        powerMin: filters.powerMin,
+        powerMax: filters.powerMax,
+        isVerified: filters.isVerified,
+        is4105: filters.is4105
+      };
+
+      // Add optional filters if they have values
+      if (filters.voltageMin) {
+        requestBody.voltageMin = Number(filters.voltageMin);
+      }
+      if (filters.voltageMax) {
+        requestBody.voltageMax = Number(filters.voltageMax);
+      }
+      // Only send enum filters if they're not the "All" sentinel value
+      if (filters.primaryEnergySource && filters.primaryEnergySource !== ALL_OPTIONS_SENTINEL) {
+        requestBody.primaryEnergySource = filters.primaryEnergySource;
+      }
+      if (filters.category && filters.category !== ALL_OPTIONS_SENTINEL) {
+        requestBody.category = filters.category;
+      }
+
+      // NEW: Certificate norms filter (build array from checkboxes)
+      const certificateNorms: string[] = [];
+      if (filters.certificateNormsVDE) certificateNorms.push('VDE');
+      if (filters.certificateNormsCE) certificateNorms.push('CE');
+      if (filters.certificateNormsIEC) certificateNorms.push('IEC');
+      if (certificateNorms.length > 0) {
+        requestBody.certificateNorms = certificateNorms;
+      }
+
+      // NEW: Date filters
+      if (filters.createdAfter && filters.createdAfter.trim() !== '') {
+        requestBody.createdAfter = filters.createdAfter;
+      }
+      if (filters.createdBefore && filters.createdBefore.trim() !== '') {
+        requestBody.createdBefore = filters.createdBefore;
+      }
+      if (filters.modifiedAfter && filters.modifiedAfter.trim() !== '') {
+        requestBody.modifiedAfter = filters.modifiedAfter;
+      }
+      if (filters.modifiedBefore && filters.modifiedBefore.trim() !== '') {
+        requestBody.modifiedBefore = filters.modifiedBefore;
+      }
+
+      // NEW: ID filters (UUID format)
+      if (filters.manufacturerId && filters.manufacturerId !== ALL_OPTIONS_SENTINEL && filters.manufacturerId.trim() !== '') {
+        requestBody.manufacturerId = filters.manufacturerId.trim();
+      }
+      if (filters.authorityId && filters.authorityId.trim() !== '') {
+        requestBody.authorityId = filters.authorityId.trim();
+      }
+
+      // Limit preview for faster response
+      requestBody.maxResults = ZEREZ_IMPORT_LIMITS.PREVIEW_PRODUCT_LIMIT;
+
+      const response = await fetch('/api/zerez/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setProducts(data.units.map((u: ZEREZUnit) => ({ ...u, selected: true })));
+      setTotalCount(data.totalCount);
+    } catch (error) {
+      setPreviewError(error instanceof Error ? error.message : 'Failed to load products');
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  // Step 2: Import HTML details
+  const handleImportDetails = async () => {
+    const selectedProducts = products.filter(p => p.selected);
+
+    // Track final progress using local variable (fixes race condition)
+    let finalProgress: ImportProgress = {
+      total: selectedProducts.length,
+      downloaded: 0,
+      failed: 0,
+      saved_files: 0,
+      current: '',
+      errors: []
+    };
+
+    setImportProgress(finalProgress);
+    setCurrentStep('import');
+
+    try {
+      const response = await fetch('/api/zerez/import-details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productIds: selectedProducts.map(p => p.id)
+        })
+      });
+
+      // Check for HTTP errors before attempting to stream
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
+      }
+
+      // Consume stream and capture final progress synchronously
+      await consumeSSEStream<ImportProgress>(
+        response.body,
+        (progressData) => {
+          // Update both local variable and React state
+          finalProgress = { ...finalProgress, ...progressData };
+          setImportProgress(finalProgress);
+        },
+        {
+          maxParseErrors: SSE_CONFIG.MAX_PARSE_ERRORS,
+          onError: (errorMsg) => {
+            console.error('SSE Error:', errorMsg);
+            finalProgress.errors.push(errorMsg);
+          }
+        }
+      );
+
+      // Verify import using FINAL state from local variable (not React state)
+      const verificationErrors = [...finalProgress.errors];
+      let hasVerificationFailure = false;
+
+      if (finalProgress.saved_files !== finalProgress.downloaded && finalProgress.downloaded > 0) {
+        const diff = finalProgress.downloaded - finalProgress.saved_files;
+        const failurePercent = (diff / finalProgress.downloaded) * 100;
+
+        if (failurePercent > 10) {
+          hasVerificationFailure = true;
+          verificationErrors.push(
+            `❌ CRITICAL: ${diff} file(s) not saved (${failurePercent.toFixed(1)}% failure rate). Import may be incomplete.`
+          );
+        } else {
+          verificationErrors.push(
+            `⚠️ Warning: ${diff} file(s) may not have been saved properly (${failurePercent.toFixed(1)}% of downloads)`
+          );
+        }
+      }
+
+      // Update final state with verification errors
+      setImportProgress(prev => ({ ...prev, errors: verificationErrors }));
+
+      // Decision based on FINAL state (no race condition)
+      if (!hasVerificationFailure && finalProgress.saved_files > 0) {
+        // Store products and move to match step
+        setProductsForMatching(selectedProducts);
+        setCurrentStep('match');
+        // Trigger PDF matching directly
+        await handleMatchWithPDF(selectedProducts);
+      } else if (hasVerificationFailure) {
+        setPreviewError(
+          `Import verification failed: More than 10% of files could not be saved. Please check disk space and file permissions.`
+        );
+      } else if (finalProgress.saved_files === 0) {
+        setPreviewError(
+          `Import failed: No files were saved. Please check the error messages above and try again.`
+        );
+      }
+    } catch (error) {
+      console.error('Import failed:', error);
+      setPreviewError(error instanceof Error ? error.message : 'Import failed');
+    }
+  };
+
+  const selectedCount = products.filter(p => p.selected).length;
+
+  return (
+    <div className="container mx-auto p-6 max-w-6xl">
+      {/* Navigation Header */}
+      <div className="mb-6 flex items-center justify-between">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+          aria-label="Navigate back to dashboard"
+        >
+          <ArrowLeft size={20} aria-hidden="true" />
+          <span>Back to Dashboard</span>
+        </Link>
+
+        <div className="flex items-center gap-2 text-gray-500" role="status" aria-label="Current location">
+          <Database size={20} aria-hidden="true" />
+          <span className="text-sm">Import Wizard</span>
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">ZEREZ Import Wizard</h1>
+        <p className="text-gray-600">
+          Import battery storage systems from ZEREZ database with 3 easy steps
+        </p>
+      </div>
+
+      {/* Progress Steps */}
+      <div className="flex items-center justify-between mb-8">
+        <div className={`flex items-center ${currentStep === 'filter' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+            currentStep === 'filter' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+          }`}>
+            <Filter size={20} />
+          </div>
+          <span className="ml-2 font-medium">Filter & Preview</span>
+        </div>
+
+        <ArrowRight className="text-gray-400" />
+
+        <div className={`flex items-center ${currentStep === 'import' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+            currentStep === 'import' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+          }`}>
+            <Download size={20} />
+          </div>
+          <span className="ml-2 font-medium">Import Details</span>
+        </div>
+
+        <ArrowRight className="text-gray-400" />
+
+        <div className={`flex items-center ${currentStep === 'match' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+            currentStep === 'match' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+          }`}>
+            <Database size={20} />
+          </div>
+          <span className="ml-2 font-medium">Match with PDFs</span>
+        </div>
+      </div>
+
+      {/* STEP 1: Filter & Preview */}
+      {currentStep === 'filter' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Step 1: Configure Filters</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Filter Form */}
+            <div className="space-y-4">
+              {/* Power Range */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Power Range</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="powerMin">Minimum (kW)</Label>
+                    <Input
+                      id="powerMin"
+                      type="number"
+                      value={filters.powerMin}
+                      onChange={(e) => setFilters({ ...filters, powerMin: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="powerMax">Maximum (kW)</Label>
+                    <Input
+                      id="powerMax"
+                      type="number"
+                      value={filters.powerMax}
+                      onChange={(e) => setFilters({ ...filters, powerMax: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Voltage Range */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Voltage Range (Optional)</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="voltageMin">Minimum (V)</Label>
+                    <Input
+                      id="voltageMin"
+                      type="number"
+                      placeholder="e.g., 230"
+                      value={filters.voltageMin}
+                      onChange={(e) => setFilters({ ...filters, voltageMin: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="voltageMax">Maximum (V)</Label>
+                    <Input
+                      id="voltageMax"
+                      type="number"
+                      placeholder="e.g., 400"
+                      value={filters.voltageMax}
+                      onChange={(e) => setFilters({ ...filters, voltageMax: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Filters */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Category Filters</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="primaryEnergySource">Energy Source</Label>
+                    <Select
+                      value={filters.primaryEnergySource}
+                      onValueChange={(value) => setFilters({ ...filters, primaryEnergySource: value })}
+                      disabled={isLoadingEnums}
+                    >
+                      <SelectTrigger id="primaryEnergySource">
+                        <SelectValue placeholder={isLoadingEnums ? "Loading..." : "All Sources"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL_OPTIONS_SENTINEL}>All Sources</SelectItem>
+                        {/* Filter out invalid values (empty/null/whitespace) - Radix doesn't allow empty strings */}
+                        {filterValidEnumValues(enumValues.primaryEnergySource).map((source) => (
+                          <SelectItem key={source} value={source}>
+                            {source}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Select
+                      value={filters.category}
+                      onValueChange={(value) => setFilters({ ...filters, category: value })}
+                      disabled={isLoadingEnums}
+                    >
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder={isLoadingEnums ? "Loading..." : "All Categories"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL_OPTIONS_SENTINEL}>All Categories</SelectItem>
+                        {/* Filter out invalid values (empty/null/whitespace) - Radix doesn't allow empty strings */}
+                        {filterValidEnumValues(enumValues.category).map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Compliance Filters */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Compliance</h3>
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isVerified"
+                      checked={filters.isVerified}
+                      onCheckedChange={(checked) => setFilters({ ...filters, isVerified: checked as boolean })}
+                    />
+                    <Label htmlFor="isVerified">Only Verified Products</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="is4105"
+                      checked={filters.is4105}
+                      onCheckedChange={(checked) => setFilters({ ...filters, is4105: checked as boolean })}
+                    />
+                    <Label htmlFor="is4105">Only 4105 Compliant</Label>
+                  </div>
+                </div>
+              </div>
+
+              {/* NEW: Certificate Norms */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Certificate Norms (Optional)</h3>
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="certVDE"
+                      checked={filters.certificateNormsVDE}
+                      onCheckedChange={(checked) => setFilters({ ...filters, certificateNormsVDE: checked as boolean })}
+                    />
+                    <Label htmlFor="certVDE">VDE</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="certCE"
+                      checked={filters.certificateNormsCE}
+                      onCheckedChange={(checked) => setFilters({ ...filters, certificateNormsCE: checked as boolean })}
+                    />
+                    <Label htmlFor="certCE">CE</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="certIEC"
+                      checked={filters.certificateNormsIEC}
+                      onCheckedChange={(checked) => setFilters({ ...filters, certificateNormsIEC: checked as boolean })}
+                    />
+                    <Label htmlFor="certIEC">IEC</Label>
+                  </div>
+                </div>
+              </div>
+
+              {/* NEW: Date Filters */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Date Filters (Optional)</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="createdAfter">Created After</Label>
+                    <Input
+                      id="createdAfter"
+                      type="date"
+                      value={filters.createdAfter}
+                      onChange={(e) => setFilters({ ...filters, createdAfter: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="createdBefore">Created Before</Label>
+                    <Input
+                      id="createdBefore"
+                      type="date"
+                      value={filters.createdBefore}
+                      onChange={(e) => setFilters({ ...filters, createdBefore: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="modifiedAfter">Modified After</Label>
+                    <Input
+                      id="modifiedAfter"
+                      type="date"
+                      value={filters.modifiedAfter}
+                      onChange={(e) => setFilters({ ...filters, modifiedAfter: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="modifiedBefore">Modified Before</Label>
+                    <Input
+                      id="modifiedBefore"
+                      type="date"
+                      value={filters.modifiedBefore}
+                      onChange={(e) => setFilters({ ...filters, modifiedBefore: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* NEW: Advanced ID Filters */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Advanced ID Filters (Optional)</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="manufacturerId">Manufacturer</Label>
+                    <Select
+                      value={filters.manufacturerId}
+                      onValueChange={(value) => setFilters({ ...filters, manufacturerId: value })}
+                      disabled={isLoadingManufacturers}
+                    >
+                      <SelectTrigger id="manufacturerId">
+                        <SelectValue placeholder={isLoadingManufacturers ? "Loading manufacturers..." : "Search manufacturer..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="sticky top-0 bg-white dark:bg-gray-950 p-2 border-b">
+                          <label htmlFor="manufacturer-search" className="sr-only">
+                            Search manufacturers by name
+                          </label>
+                          <Input
+                            id="manufacturer-search"
+                            placeholder="Type to search..."
+                            value={manufacturerSearchTerm}
+                            onChange={(e) => setManufacturerSearchTerm(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                              // Prevent Select dropdown from closing when Enter is pressed in search
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }
+                              // Allow clearing search with Escape
+                              if (e.key === 'Escape') {
+                                e.stopPropagation();
+                                setManufacturerSearchTerm('');
+                              }
+                            }}
+                            className="h-8"
+                            role="searchbox"
+                            aria-label="Search manufacturers by name"
+                            aria-controls="manufacturer-list"
+                          />
+                        </div>
+                        <div id="manufacturer-list" role="group" aria-label="Manufacturer options">
+                          <SelectItem value={ALL_OPTIONS_SENTINEL}>All Manufacturers</SelectItem>
+                          {(() => {
+                            // Filter first, then slice to avoid incorrect count
+                            const filteredManufacturers = manufacturers.filter((m) =>
+                              m.name.toLowerCase().includes(manufacturerSearchTerm.toLowerCase())
+                            );
+                            const displayedManufacturers = filteredManufacturers.slice(0, 50);
+
+                            return (
+                              <>
+                                {displayedManufacturers.map((manufacturer) => (
+                                  <SelectItem key={manufacturer.id} value={manufacturer.id}>
+                                    {manufacturer.name}
+                                  </SelectItem>
+                                ))}
+                                {filteredManufacturers.length > 50 && (
+                                  <div className="p-2 text-xs text-gray-500 italic text-center">
+                                    Showing first 50 of {filteredManufacturers.length} results. Type to narrow down.
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </SelectContent>
+                    </Select>
+                    {!isLoadingManufacturers && manufacturers.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {manufacturers.length} manufacturers available
+                      </p>
+                    )}
+                    {manufacturerError && (
+                      <Alert className="mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{manufacturerError}</AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="authorityId">Authority ID (UUID)</Label>
+                    <Input
+                      id="authorityId"
+                      type="text"
+                      placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
+                      value={filters.authorityId}
+                      onChange={(e) => handleAuthorityIdChange(e.target.value)}
+                      aria-invalid={authorityIdError ? 'true' : 'false'}
+                      aria-describedby={authorityIdError ? 'authorityId-error' : undefined}
+                      className={authorityIdError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                    />
+                    {authorityIdError && (
+                      <p id="authorityId-error" className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" aria-hidden="true" />
+                        {authorityIdError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {enumError && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{enumError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handlePreviewProducts}
+                disabled={isLoadingPreview}
+                className="flex-1"
+              >
+                {isLoadingPreview ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading Products...
+                  </>
+                ) : (
+                  <>
+                    <Filter className="mr-2 h-4 w-4" />
+                    Preview Products
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => {
+                  setFilters(defaultFilters);
+                  setProducts([]);
+                  setTotalCount(0);
+                  setPreviewError(null);
+                }}
+                variant="outline"
+                disabled={isLoadingPreview}
+              >
+                Reset Filters
+              </Button>
+            </div>
+
+            {previewError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{previewError}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Product Preview Table */}
+            {products.length > 0 && (
+              <div className="mt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">
+                    Found {products.length}{totalCount > products.length && ` of ${totalCount.toLocaleString()}`} products
+                    {totalCount > products.length && ' (preview limited)'}
+                  </h3>
+                  <div className="space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProducts(products.map(p => ({ ...p, selected: true })))}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProducts(products.map(p => ({ ...p, selected: false })))}
+                    >
+                      Select None
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="max-h-96 overflow-x-auto overflow-y-auto">
+                    <table className="w-full text-sm" aria-label="ZEREZ product selection table">
+                      <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                        <tr>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">
+                            <span className="sr-only">Select product</span>
+                            Select
+                          </th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">Typ / Modell Name</th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">ZEREZ ID</th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">Kategorie</th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">Norm</th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">Primärenergie</th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">Hersteller</th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">Max. Wirkleistung</th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">Bemessungsspannung</th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">Nachweisdokument</th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">Zertifikatsprüfung</th>
+                          <th scope="col" className="px-3 py-2 text-left font-medium">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {products.map((product) => (
+                          <tr key={product.id} className="border-t hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <td className="px-3 py-2">
+                              <Checkbox
+                                checked={product.selected}
+                                onCheckedChange={(checked) => {
+                                  setProducts(products.map(p =>
+                                    p.id === product.id ? { ...p, selected: checked as boolean } : p
+                                  ));
+                                }}
+                                aria-label={`Select ${product.modelName ?? 'product'}`}
+                              />
+                            </td>
+                            <td className="px-3 py-2 font-medium">{UnitFormatters.string(product.modelName)}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{UnitFormatters.string(product.unitCode)}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{UnitFormatters.string(product.category)}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400">
+                              {UnitFormatters.string(product.certificateNormIssueDateDescriptions)}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{UnitFormatters.string(product.primaryEnergySource)}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400">
+                              {product.manufacturerName ? (
+                                UnitFormatters.string(product.manufacturerName)
+                              ) : (
+                                <span
+                                  className="text-xs italic text-gray-500 dark:text-gray-500"
+                                  title={ZEREZ_UI_STRINGS.MANUFACTURER_PLACEHOLDER_TOOLTIP}
+                                >
+                                  {ZEREZ_UI_STRINGS.MANUFACTURER_PLACEHOLDER}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{UnitFormatters.power(product.maxActivePower)}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{UnitFormatters.voltage(product.ratedVoltage)}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{UnitFormatters.string(product.certificateNumber)}</td>
+                            <td className="px-3 py-2">
+                              {product.isVerified ? (
+                                <span title="Verified" className="flex items-center gap-1 text-green-600">
+                                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                                  <span className="text-xs">Verifiziert</span>
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">Nicht verifiziert</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{UnitFormatters.string(product.certificateValidityStatusName)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-between items-center">
+                  <p className="text-sm text-gray-600">
+                    {selectedCount} of {products.length} products selected
+                  </p>
+                  <Button
+                    onClick={handleImportDetails}
+                    disabled={selectedCount === 0}
+                  >
+                    Proceed to Import Details
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* STEP 2: Import HTML Details */}
+      {currentStep === 'import' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Step 2: Importing Product Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span>Progress</span>
+                <span>{importProgress.downloaded} / {importProgress.total}</span>
+              </div>
+              <Progress
+                value={(importProgress.downloaded / importProgress.total) * 100}
+                className="h-3"
+              />
+            </div>
+
+            {importProgress.current && (
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600 mr-3" />
+                  <div>
+                    <p className="font-medium">Currently Processing</p>
+                    <p className="text-sm text-gray-600">{importProgress.current}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold">{importProgress.downloaded}</p>
+                    <p className="text-sm text-gray-600">Downloaded</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold">{importProgress.failed}</p>
+                    <p className="text-sm text-gray-600">Failed</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold">{importProgress.total - importProgress.downloaded}</p>
+                    <p className="text-sm text-gray-600">Remaining</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {importProgress.errors.length > 0 && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-medium mb-2">Errors occurred during import:</p>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    {importProgress.errors.slice(0, ZEREZ_IMPORT_LIMITS.MAX_DISPLAYED_ERRORS).map((error, i) => (
+                      <li key={i}>{error}</li>
+                    ))}
+                  </ul>
+                  {importProgress.errors.length > ZEREZ_IMPORT_LIMITS.MAX_DISPLAYED_ERRORS && (
+                    <p className="text-sm mt-2">... and {importProgress.errors.length - ZEREZ_IMPORT_LIMITS.MAX_DISPLAYED_ERRORS} more errors</p>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Note: Pause/Cancel functionality not yet implemented */}
+            {/* TODO: Add AbortController support for canceling imports */}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* STEP 3: Match with PDF Knowledge Base */}
+      {currentStep === 'match' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Step 3: PDF Knowledge Base Matching</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {isMatching ? (
+              <div className="text-center py-12">
+                <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+                <p className="text-lg font-medium">Matching products with PDF database...</p>
+                <p className="text-sm text-gray-600 mt-2">This may take a few moments</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-4">
+                  <Card className="bg-green-50">
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold">
+                          {matchResults.filter(r => r.pdfMatch).length}
+                        </p>
+                        <p className="text-sm text-gray-600">PDF Enriched</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {((matchResults.filter(r => r.pdfMatch).length / matchResults.length) * 100).toFixed(1)}%
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-yellow-50">
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <AlertCircle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold">
+                          {matchResults.filter(r => !r.pdfMatch).length}
+                        </p>
+                        <p className="text-sm text-gray-600">ZEREZ Only</p>
+                        <p className="text-xs text-gray-500 mt-1">No PDF match</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-blue-50">
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <FileText className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold">{matchResults.length}</p>
+                        <p className="text-sm text-gray-600">Total Products</p>
+                        <p className="text-xs text-gray-500 mt-1">Import complete</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="max-h-96 overflow-y-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-2 text-left">ZEREZ Product</th>
+                          <th className="px-4 py-2 text-left">PDF Match</th>
+                          <th className="px-4 py-2 text-left">Confidence</th>
+                          <th className="px-4 py-2 text-left">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {matchResults.map((result, i) => (
+                          <tr key={i} className="border-t hover:bg-gray-50">
+                            <td className="px-4 py-2 font-medium">{result.zerezProduct}</td>
+                            <td className="px-4 py-2 text-sm text-gray-600">
+                              {result.pdfMatch || '-'}
+                            </td>
+                            <td className="px-4 py-2">
+                              {result.pdfMatch && (
+                                <div className="flex items-center">
+                                  <div className="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                                    <div
+                                      className="bg-green-600 h-2 rounded-full"
+                                      style={{ width: `${result.confidence}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-sm">{result.confidence}%</span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-2">
+                              {result.pdfMatch ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                              ) : (
+                                <AlertCircle className="h-5 w-5 text-yellow-600" />
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="flex space-x-2">
+                  <Button className="flex-1">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Results (JSON)
+                  </Button>
+                  <Button variant="outline" className="flex-1">
+                    <FileText className="mr-2 h-4 w-4" />
+                    View Detailed Report
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setCurrentStep('filter');
+                      setProducts([]);
+                      setMatchResults([]);
+                    }}
+                  >
+                    Import Again
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

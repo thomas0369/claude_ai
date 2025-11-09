@@ -1,0 +1,258 @@
+#!/usr/bin/env node
+/**
+ * End-to-end functional test for certificate norms filter
+ * Tests the complete flow from API request to response
+ */
+
+const http = require('http');
+
+const colors = {
+  reset: '\x1b[0m',
+  green: '\x1b[32m',
+  red: '\x1b[31m',
+  blue: '\x1b[34m',
+  yellow: '\x1b[33m'
+};
+
+function log(message, color = colors.reset) {
+  console.log(`${color}${message}${colors.reset}`);
+}
+
+function makeRequest(data) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify(data);
+
+    const options = {
+      hostname: 'localhost',
+      port: 3000,
+      path: '/api/zerez/search',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = http.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        try {
+          resolve({
+            statusCode: res.statusCode,
+            data: JSON.parse(body)
+          });
+        } catch (e) {
+          reject(new Error(`Failed to parse response: ${body.substring(0, 200)}`));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(postData);
+    req.end();
+  });
+}
+
+async function testCertificateNormsFilter() {
+  log('\n========================================', colors.blue);
+  log('Certificate Norms E2E Functional Test', colors.blue);
+  log('========================================\n', colors.blue);
+
+  let passed = 0;
+  let failed = 0;
+
+  // Test 1: Single certificate norm
+  try {
+    log('Test 1: Single certificate norm (VDE-AR-N 4105)...', colors.blue);
+    const result1 = await makeRequest({
+      isVerified: true,
+      certificateNorms: ['VDE-AR-N 4105'],
+      maxResults: 5
+    });
+
+    if (result1.statusCode === 200 && result1.data.units && Array.isArray(result1.data.units)) {
+      log(`  ✓ PASS: API returned ${result1.data.units.length} units (HTTP ${result1.statusCode})`, colors.green);
+      log(`  Total count: ${result1.data.totalCount}`, colors.green);
+      passed++;
+    } else {
+      log(`  ✗ FAIL: Unexpected response structure`, colors.red);
+      console.log('  Response:', result1);
+      failed++;
+    }
+  } catch (e) {
+    log(`  ✗ FAIL: ${e.message}`, colors.red);
+    failed++;
+  }
+
+  // Test 2: Multiple certificate norms
+  try {
+    log('\nTest 2: Multiple certificate norms (VDE-AR-N 4105, CE, IEC)...', colors.blue);
+    const result2 = await makeRequest({
+      isVerified: true,
+      certificateNorms: ['VDE-AR-N 4105', 'CE', 'IEC'],
+      maxResults: 5
+    });
+
+    if (result2.statusCode === 200 && result2.data.units && Array.isArray(result2.data.units)) {
+      log(`  ✓ PASS: API returned ${result2.data.units.length} units (HTTP ${result2.statusCode})`, colors.green);
+      log(`  Total count: ${result2.data.totalCount}`, colors.green);
+      passed++;
+    } else {
+      log(`  ✗ FAIL: Unexpected response structure`, colors.red);
+      console.log('  Response:', result2);
+      failed++;
+    }
+  } catch (e) {
+    log(`  ✗ FAIL: ${e.message}`, colors.red);
+    failed++;
+  }
+
+  // Test 3: Empty certificate norms (should work)
+  try {
+    log('\nTest 3: Empty certificate norms array...', colors.blue);
+    const result3 = await makeRequest({
+      isVerified: true,
+      certificateNorms: [],
+      maxResults: 5
+    });
+
+    if (result3.statusCode === 200 && result3.data.units && Array.isArray(result3.data.units)) {
+      log(`  ✓ PASS: API returned ${result3.data.units.length} units (HTTP ${result3.statusCode})`, colors.green);
+      log(`  Total count: ${result3.data.totalCount}`, colors.green);
+      passed++;
+    } else {
+      log(`  ✗ FAIL: Unexpected response structure`, colors.red);
+      console.log('  Response:', result3);
+      failed++;
+    }
+  } catch (e) {
+    log(`  ✗ FAIL: ${e.message}`, colors.red);
+    failed++;
+  }
+
+  // Test 4: No certificate norms field (should work)
+  try {
+    log('\nTest 4: No certificate norms field provided...', colors.blue);
+    const result4 = await makeRequest({
+      isVerified: true,
+      maxResults: 5
+    });
+
+    if (result4.statusCode === 200 && result4.data.units && Array.isArray(result4.data.units)) {
+      log(`  ✓ PASS: API returned ${result4.data.units.length} units (HTTP ${result4.statusCode})`, colors.green);
+      log(`  Total count: ${result4.data.totalCount}`, colors.green);
+      passed++;
+    } else {
+      log(`  ✗ FAIL: Unexpected response structure`, colors.red);
+      console.log('  Response:', result4);
+      failed++;
+    }
+  } catch (e) {
+    log(`  ✗ FAIL: ${e.message}`, colors.red);
+    failed++;
+  }
+
+  // Test 5: Invalid certificate norm (should fail with 400)
+  try {
+    log('\nTest 5: Invalid certificate norm (INVALID)...', colors.blue);
+    const result5 = await makeRequest({
+      isVerified: true,
+      certificateNorms: ['INVALID'],
+      maxResults: 5
+    });
+
+    if (result5.statusCode === 400 && result5.data.error) {
+      log(`  ✓ PASS: API rejected invalid norm (HTTP ${result5.statusCode})`, colors.green);
+      log(`  Error message: ${result5.data.error}`, colors.green);
+      passed++;
+    } else {
+      log(`  ✗ FAIL: API should have returned 400 for invalid norm`, colors.red);
+      console.log('  Response:', result5);
+      failed++;
+    }
+  } catch (e) {
+    log(`  ✗ FAIL: ${e.message}`, colors.red);
+    failed++;
+  }
+
+  // Test 6: Mix of valid and invalid norms (should fail with 400)
+  try {
+    log('\nTest 6: Mix of valid and invalid norms...', colors.blue);
+    const result6 = await makeRequest({
+      isVerified: true,
+      certificateNorms: ['VDE-AR-N 4105', 'INVALID'],
+      maxResults: 5
+    });
+
+    if (result6.statusCode === 400 && result6.data.error) {
+      log(`  ✓ PASS: API rejected mixed valid/invalid norms (HTTP ${result6.statusCode})`, colors.green);
+      log(`  Error message: ${result6.data.error}`, colors.green);
+      passed++;
+    } else {
+      log(`  ✗ FAIL: API should have returned 400 for mixed norms`, colors.red);
+      console.log('  Response:', result6);
+      failed++;
+    }
+  } catch (e) {
+    log(`  ✗ FAIL: ${e.message}`, colors.red);
+    failed++;
+  }
+
+  // Test 7: Verify is4105 field no longer works
+  try {
+    log('\nTest 7: Verify is4105 field is ignored (deprecated)...', colors.blue);
+    const result7 = await makeRequest({
+      isVerified: true,
+      is4105: true, // This should be ignored
+      maxResults: 5
+    });
+
+    if (result7.statusCode === 200 && result7.data.units && Array.isArray(result7.data.units)) {
+      log(`  ✓ PASS: API accepted request (is4105 field ignored) (HTTP ${result7.statusCode})`, colors.green);
+      log(`  Note: is4105 field should now be ignored by the API`, colors.yellow);
+      passed++;
+    } else {
+      log(`  ✗ FAIL: Unexpected response structure`, colors.red);
+      console.log('  Response:', result7);
+      failed++;
+    }
+  } catch (e) {
+    log(`  ✗ FAIL: ${e.message}`, colors.red);
+    failed++;
+  }
+
+  // Summary
+  log('\n========================================', colors.blue);
+  log('Test Summary', colors.blue);
+  log('========================================', colors.blue);
+  log(`Total tests: ${passed + failed}`, colors.blue);
+  log(`✓ Passed: ${passed}`, colors.green);
+  log(`✗ Failed: ${failed}`, failed > 0 ? colors.red : colors.green);
+
+  if (failed === 0) {
+    log('\n🎉 All tests passed! Certificate norms filter is working correctly.', colors.green);
+    process.exit(0);
+  } else {
+    log(`\n⚠️  ${failed} test(s) failed. Please review the errors above.`, colors.red);
+    process.exit(1);
+  }
+}
+
+// Check if server is running
+http.get('http://localhost:3000/import/zerez', (res) => {
+  if (res.statusCode === 200) {
+    log('✓ Server is running on port 3000', colors.green);
+    testCertificateNormsFilter().catch((e) => {
+      log(`\nFatal error: ${e.message}`, colors.red);
+      process.exit(1);
+    });
+  } else {
+    log('✗ Server returned unexpected status code', colors.red);
+    process.exit(1);
+  }
+}).on('error', (e) => {
+  log(`✗ Cannot connect to server on port 3000: ${e.message}`, colors.red);
+  log('  Make sure the dev server is running: npm run dev', colors.yellow);
+  process.exit(1);
+});

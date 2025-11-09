@@ -1,0 +1,163 @@
+/**
+ * Demo Page Interaction Test
+ *
+ * Test drag and drop functionality
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Demo Drag and Drop', () => {
+  test('should drag block onto grid', async ({ page }) => {
+    // Enable console logging
+    page.on('console', msg => {
+      if (msg.text().includes('DRAG') || msg.text().includes('POINTER')) {
+        console.log(`BROWSER:`, msg.text());
+      }
+    });
+
+    await page.goto('http://localhost:3001/demo');
+    await page.waitForLoadState('networkidle');
+
+    // Wait for canvas
+    const canvas = await page.locator('canvas').first();
+    await canvas.waitFor({ timeout: 10000 });
+
+    // Wait for game to initialize
+    await page.waitForTimeout(2000);
+
+    console.log('Canvas ready, getting bounds...');
+    const canvasBounds = await canvas.boundingBox();
+    if (!canvasBounds) {
+      throw new Error('Canvas bounds not found');
+    }
+
+    console.log('Canvas bounds:', canvasBounds);
+
+    // Calculate positions
+    // Blocks spawn at y=500 in game coordinates
+    // Grid is at offset (100, 50) with cells of size 50
+
+    // Block 1 position (first block, roughly at x=280, y=500 in game coords)
+    const blockX = canvasBounds.x + 280;
+    const blockY = canvasBounds.y + 500;
+
+    // Grid center (roughly row 4, col 4)
+    const gridCenterX = canvasBounds.x + 100 + (4 * 50) + 25; // offset + 4 cells + half cell
+    const gridCenterY = canvasBounds.y + 50 + (4 * 50) + 25;
+
+    console.log(`Block position: (${blockX}, ${blockY})`);
+    console.log(`Grid center: (${gridCenterX}, ${gridCenterY})`);
+
+    // Take screenshot before drag
+    await page.screenshot({ path: 'demo-before-drag.png', fullPage: true });
+
+    // Perform drag
+    console.log('Starting drag...');
+    await page.mouse.move(blockX, blockY);
+    await page.waitForTimeout(500);
+
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+
+    console.log('Dragging to grid...');
+    await page.mouse.move(gridCenterX, gridCenterY, { steps: 20 });
+    await page.waitForTimeout(500);
+
+    // Take screenshot during drag
+    await page.screenshot({ path: 'demo-during-drag.png', fullPage: true });
+
+    await page.mouse.up();
+    console.log('Drag complete');
+
+    await page.waitForTimeout(1000);
+
+    // Take screenshot after drag
+    await page.screenshot({ path: 'demo-after-drag.png', fullPage: true });
+
+    // Check if score changed (block was placed)
+    const scoreText = await page.locator('text=/Score:/').textContent();
+    console.log('Score after drag:', scoreText);
+
+    // Check active blocks count
+    const infoText = await page.locator('text=/Active Blocks:/').textContent();
+    console.log('Info after drag:', infoText);
+  });
+
+  test('should show visual feedback during drag', async ({ page }) => {
+    await page.goto('http://localhost:3001/demo');
+    await page.waitForLoadState('networkidle');
+
+    const canvas = await page.locator('canvas').first();
+    await canvas.waitFor({ timeout: 10000 });
+    await page.waitForTimeout(2000);
+
+    const canvasBounds = await canvas.boundingBox();
+    if (!canvasBounds) throw new Error('Canvas not found');
+
+    // Hover over first block
+    const blockX = canvasBounds.x + 280;
+    const blockY = canvasBounds.y + 500;
+
+    await page.mouse.move(blockX, blockY);
+    await page.waitForTimeout(500);
+
+    await page.screenshot({ path: 'demo-hover.png', fullPage: true });
+    console.log('Hover screenshot saved');
+
+    // Start drag (should scale block)
+    await page.mouse.down();
+    await page.waitForTimeout(300);
+
+    await page.screenshot({ path: 'demo-dragstart.png', fullPage: true });
+    console.log('Drag start screenshot saved');
+
+    await page.mouse.up();
+  });
+
+  test('should spawn new blocks after placement', async ({ page }) => {
+    page.on('console', msg => {
+      if (msg.text().includes('spawned') || msg.text().includes('despawn')) {
+        console.log(`BROWSER:`, msg.text());
+      }
+    });
+
+    await page.goto('http://localhost:3001/demo');
+    await page.waitForLoadState('networkidle');
+
+    const canvas = await page.locator('canvas').first();
+    await canvas.waitFor({ timeout: 10000 });
+    await page.waitForTimeout(2000);
+
+    const canvasBounds = await canvas.boundingBox();
+    if (!canvasBounds) throw new Error('Canvas not found');
+
+    // Place all 3 blocks
+    for (let i = 0; i < 3; i++) {
+      const blockX = canvasBounds.x + 280 + (i * 120);
+      const blockY = canvasBounds.y + 500;
+
+      const gridX = canvasBounds.x + 100 + (i * 100);
+      const gridY = canvasBounds.y + 50 + 50;
+
+      console.log(`Placing block ${i + 1}...`);
+
+      await page.mouse.move(blockX, blockY);
+      await page.waitForTimeout(200);
+      await page.mouse.down();
+      await page.waitForTimeout(100);
+      await page.mouse.move(gridX, gridY, { steps: 10 });
+      await page.waitForTimeout(100);
+      await page.mouse.up();
+      await page.waitForTimeout(500);
+    }
+
+    // Wait for respawn
+    await page.waitForTimeout(1000);
+
+    await page.screenshot({ path: 'demo-after-respawn.png', fullPage: true });
+    console.log('After respawn screenshot saved');
+
+    const infoText = await page.locator('text=/Active Blocks:/').textContent();
+    console.log('Info after respawn:', infoText);
+  });
+});

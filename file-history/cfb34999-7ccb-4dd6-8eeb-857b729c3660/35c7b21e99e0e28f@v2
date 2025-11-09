@@ -1,0 +1,74 @@
+import { PrismaClient, SubscriptionTier } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('Seeding database...');
+
+  // Create free tier levels (1-3)
+  const freeLevels = [
+    {
+      levelNumber: 1,
+      tier: SubscriptionTier.FREE,
+      difficulty: 1,
+      gridConfig: { rows: 8, cols: 8 },
+      blocks: [
+        { shape: 'I', color: '#3B82F6' },
+        { shape: 'O', color: '#10B981' },
+        { shape: 'T', color: '#F59E0B' },
+      ],
+      targetScore: 500,
+      isActive: true,
+    },
+    {
+      levelNumber: 2,
+      tier: SubscriptionTier.FREE,
+      difficulty: 2,
+      gridConfig: { rows: 8, cols: 8 },
+      blocks: [
+        { shape: 'I', color: '#3B82F6' },
+        { shape: 'L', color: '#EF4444' },
+        { shape: 'T', color: '#F59E0B' },
+        { shape: 'Z', color: '#8B5CF6' },
+      ],
+      targetScore: 1000,
+      isActive: true,
+    },
+    {
+      levelNumber: 3,
+      tier: SubscriptionTier.FREE,
+      difficulty: 3,
+      gridConfig: { rows: 8, cols: 8 },
+      blocks: [
+        { shape: 'I', color: '#3B82F6' },
+        { shape: 'L', color: '#EF4444' },
+        { shape: 'J', color: '#06B6D4' },
+        { shape: 'T', color: '#F59E0B' },
+        { shape: 'Z', color: '#8B5CF6' },
+      ],
+      timeLimit: 180, // 3 minutes
+      targetScore: 1500,
+      isActive: true,
+    },
+  ];
+
+  for (const level of freeLevels) {
+    await prisma.level.upsert({
+      where: { levelNumber: level.levelNumber },
+      update: level,
+      create: level,
+    });
+    console.log(`✓ Created level ${level.levelNumber}`);
+  }
+
+  console.log('Seeding completed!');
+}
+
+main()
+  .catch(e => {
+    console.error('Seeding error:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

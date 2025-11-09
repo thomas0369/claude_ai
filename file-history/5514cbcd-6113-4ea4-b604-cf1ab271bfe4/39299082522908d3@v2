@@ -1,0 +1,425 @@
+/**
+ * Intelligent PDF Extraction Service
+ * ===================================
+ *
+ * Complete extraction pipeline with:
+ * - Multi-product table extraction
+ * - Validation and verification
+ * - Unit normalization
+ * - Database cross-check
+ * - Self-verification
+ */
+
+import { DeepSeekVisionClient } from '@/lib/deepseek/client';
+import {
+  getExtractionPrompt,
+  createValidationPrompt,
+  type PromptContext,
+} from '@/lib/deepseek/enhanced-prompts';
+import {
+  validateProductData,
+  crossValidateWithDatabase,
+  type ValidationResult,
+  type ValidationIssue,
+} from '@/lib/validation/data-validator';
+
+export interface ExtractionContext {
+  /** Manufacturer name */
+  manufacturer?: string;
+  /** Expected model names */
+  expectedModels?: string[];
+  /** Reference data from database for cross-validation */
+  referenceData?: any[];
+  /** Language of the datasheet */
+  language?: 'en' | 'de' | 'auto';
+  /** Enable strict validation (reject if any errors) */
+  strictValidation?: boolean;
+}
+
+export interface ExtractedProduct {
+  model_name: string;
+  manufacturer: string | null;
+  power: any;
+  efficiency: any;
+  voltage: any;
+  current: any;
+  physical: any;
+  environmental: any;
+  certifications: string[];
+  battery: any;
+  connection: any;
+  features: string[];
+}
+
+export interface ExtractionReport {
+  /** Successfully extracted products */
+  products: ExtractedProduct[];
+  /** Validation results for each product */
+  validations: ValidationResult[];
+  /** Overall extraction metadata */
+  metadata: {
+    pagesProcessed: number;
+    tableDetected: boolean;
+    multiProduct: boolean;
+    extractionDuration: number;
+    cost: number;
+    overallConfidence: number;
+  };
+  /** Issues found during extraction/validation */
+  allIssues: ValidationIssue[];
+  /** Summary of extraction quality */
+  summary: string;
+}
+
+export class IntelligentExtractor {
+  private client: DeepSeekVisionClient;
+
+  constructor(apiKey: string) {
+    this.client = new DeepSeekVisionClient({
+      apiKey,
+      maxCostUsd: 0.10,  // Higher limit for complex extractions
+      maxRequestsPerMinute: 60,
+      timeout: 120000,  // 2 minute timeout for complex PDFs
+      retries: 3,
+    });
+  }
+
+  /**
+   * Extract data from PDF with full validation pipeline
+   */
+  async extractWithValidation(
+    imageBase64List: string[],
+    context: ExtractionContext = {}
+  ): Promise<ExtractionReport> {
+    const startTime = Date.now();
+
+    // Step 1: Extract raw data with enhanced prompt
+    console.log('📄 Step 1: Extracting data with enhanced prompt...');
+    const promptContext: PromptContext = {
+      manufacturer: context.manufacturer,
+      expectedModels: context.expectedModels,
+      language: context.language,
+      multiProduct: true,
+    };
+
+    const rawData = await this.extractRawData(imageBase64List, promptContext);
+
+    if (!rawData || !rawData.products || rawData.products.length === 0) {
+      throw new Error('No products extracted from PDF');
+    }
+
+    console.log(`✅ Extracted ${rawData.products.length} product(s)`);
+
+    // Step 2: Validate each product
+    console.log('🔍 Step 2: Validating extracted data...');
+    const validations: ValidationResult[] = [];
+    const allIssues: ValidationIssue[] = [];
+
+    for (let i = 0; i < rawData.products.length; i++) {
+      const product = rawData.products[i];
+      console.log(`  Validating ${product.model_name}...`);
+
+      // Validate against plausibility rules
+      const validation = validateProductData(product);
+      validations.push(validation);
+      allIssues.push(...validation.issues);
+
+      // Cross-validate with database if reference data provided
+      if (context.referenceData && context.referenceData.length > 0) {
+        const matchingRef = context.referenceData.find(
+          (ref) => ref.model_name === product.model_name ||
+                   ref.identification?.model === product.model_name
+        );
+
+        if (matchingRef) {
+          const crossValidation = crossValidateWithDatabase(product, matchingRef);
+          allIssues.push(...crossValidation);
+          console.log(`  ✓ Cross-validated with database`);
+        }
+      }
+
+      // Apply corrections if suggested
+      if (Object.keys(validation.corrections).length > 0) {
+        console.log(`  🔧 Applying ${Object.keys(validation.corrections).length} correction(s)`);
+        this.applyCorrections(product, validation.corrections);
+      }
+
+      // Log validation result
+      if (validation.valid) {
+        console.log(`  ✅ Valid (confidence: ${validation.confidence}%)`);
+      } else {
+        console.log(`  ⚠️  Issues found: ${validation.issues.length}`);
+      }
+    }
+
+    // Step 3: Self-verification (AI reviews its own extraction)
+    console.log('🤖 Step 3: AI self-verification...');
+    const selfVerification = await this.selfVerify(rawData, context.referenceData);
+
+    if (selfVerification.issues) {
+      allIssues.push(...selfVerification.issues);
+    }
+
+    // Calculate overall metrics
+    const duration = Date.now() - startTime;
+    const stats = this.client.getStats();
+
+    const overallConfidence = validations.length > 0
+      ? validations.reduce((sum, v) => sum + v.confidence, 0) / validations.length
+      : 0;
+
+    const errorCount = allIssues.filter((i) => i.severity === 'error').length;
+    const warningCount = allIssues.filter((i) => i.severity === 'warning').length;
+
+    // Generate summary
+    let summary = `Extracted ${rawData.products.length} product(s) in ${(duration / 1000).toFixed(1)}s. `;
+    if (errorCount === 0 && warningCount === 0) {
+      summary += 'All data validated successfully.';
+    } else {
+      summary += `Found ${errorCount} error(s) and ${warningCount} warning(s).`;
+    }
+
+    // Check strict validation
+    if (context.strictValidation && errorCount > 0) {
+      throw new Error(
+        `Strict validation failed: ${errorCount} error(s) found. Review and correct before importing.`
+      );
+    }
+
+    return {
+      products: rawData.products,
+      validations,
+      metadata: {
+        pagesProcessed: imageBase64List.length,
+        tableDetected: rawData.table_detected || false,
+        multiProduct: rawData.multi_product || false,
+        extractionDuration: duration,
+        cost: stats.totalCost,
+        overallConfidence,
+      },
+      allIssues,
+      summary,
+    };
+  }
+
+  /**
+   * Extract raw data from images using enhanced prompt
+   */
+  private async extractRawData(
+    images: string[],
+    context: PromptContext
+  ): Promise<any> {
+    // Create enhanced prompt
+    const prompt = getExtractionPrompt(context);
+
+    // Use modified client with custom prompt
+    const result = await this.extractWithCustomPrompt(images, prompt);
+
+    return result;
+  }
+
+  /**
+   * Extract with custom prompt (override default)
+   */
+  private async extractWithCustomPrompt(
+    images: string[],
+    customPrompt: string
+  ): Promise<any> {
+    // We'll need to make a direct API call since we're overriding the prompt
+    // This is a simplified version - in production, you'd extend the DeepSeekVisionClient
+
+    const results: any[] = [];
+
+    for (const image of images) {
+      const payload = {
+        model: 'deepseek-vl2',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: customPrompt,
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/png;base64,${image}`,
+                },
+              },
+            ],
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 4000,  // Increased for multi-product extraction
+      };
+
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`DeepSeek API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0].message.content;
+
+      // Parse JSON from response
+      const extracted = this.parseJSON(content);
+      if (extracted) {
+        results.push(extracted);
+      }
+    }
+
+    // Merge results from multiple pages
+    return this.mergeResults(results);
+  }
+
+  /**
+   * Parse JSON from AI response (handles markdown code blocks)
+   */
+  private parseJSON(content: string): any {
+    let jsonContent = content.trim();
+
+    // Extract JSON from markdown code blocks
+    if (jsonContent.includes('```json')) {
+      const match = jsonContent.match(/```json\s*([\s\S]*?)\s*```/);
+      if (match) jsonContent = match[1];
+    } else if (jsonContent.includes('```')) {
+      const match = jsonContent.match(/```\s*([\s\S]*?)\s*```/);
+      if (match) jsonContent = match[1];
+    }
+
+    try {
+      return JSON.parse(jsonContent);
+    } catch (error) {
+      console.error('Failed to parse JSON:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Merge extraction results from multiple pages
+   */
+  private mergeResults(results: any[]): any {
+    if (results.length === 0) return null;
+    if (results.length === 1) return results[0];
+
+    // Merge products from all pages
+    const allProducts: any[] = [];
+    let tableDetected = false;
+    let multiProduct = false;
+
+    results.forEach((result) => {
+      if (result.products) {
+        allProducts.push(...result.products);
+      }
+      if (result.table_detected) tableDetected = true;
+      if (result.multi_product) multiProduct = true;
+    });
+
+    // Deduplicate products by model name
+    const uniqueProducts = Array.from(
+      new Map(allProducts.map((p) => [p.model_name, p])).values()
+    );
+
+    return {
+      products: uniqueProducts,
+      table_detected: tableDetected,
+      multi_product: multiProduct,
+    };
+  }
+
+  /**
+   * AI self-verification of extracted data
+   */
+  private async selfVerify(
+    extractedData: any,
+    referenceData?: any[]
+  ): Promise<{ issues?: ValidationIssue[] }> {
+    // Create validation prompt
+    const validationPrompt = createValidationPrompt(
+      extractedData,
+      referenceData ? referenceData[0] : undefined
+    );
+
+    try {
+      // Use a simpler text-only request for validation
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',  // Use chat model for text-only
+          messages: [
+            {
+              role: 'user',
+              content: validationPrompt,
+            },
+          ],
+          temperature: 0.1,
+          max_tokens: 2000,
+        }),
+      });
+
+      if (!response.ok) {
+        console.warn('Self-verification failed:', response.status);
+        return {};
+      }
+
+      const data = await response.json();
+      const content = data.choices[0].message.content;
+      const result = this.parseJSON(content);
+
+      if (result && result.issues) {
+        console.log(`  🤖 AI found ${result.issues.length} additional issue(s)`);
+        return { issues: result.issues };
+      }
+    } catch (error) {
+      console.warn('Self-verification error:', error);
+    }
+
+    return {};
+  }
+
+  /**
+   * Apply corrections to product data
+   */
+  private applyCorrections(product: any, corrections: Record<string, any>): void {
+    Object.entries(corrections).forEach(([path, value]) => {
+      const keys = path.split('.');
+      let current = product;
+
+      // Navigate to nested object
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!current[keys[i]]) current[keys[i]] = {};
+        current = current[keys[i]];
+      }
+
+      // Apply correction
+      current[keys[keys.length - 1]] = value;
+    });
+  }
+
+  /**
+   * Get extraction statistics
+   */
+  getStats() {
+    return this.client.getStats();
+  }
+
+  /**
+   * Reset statistics
+   */
+  resetStats() {
+    this.client.resetStats();
+  }
+}

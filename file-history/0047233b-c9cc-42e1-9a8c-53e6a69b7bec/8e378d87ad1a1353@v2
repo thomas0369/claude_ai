@@ -1,0 +1,231 @@
+# 🚀 QUICK START - Elliott Wave Live Signals
+
+## ✅ READY TO USE - Alle Tests bestanden!
+
+---
+
+## 3 Schritte zum Starten
+
+### 1️⃣ Server starten
+
+```bash
+.venv/bin/python run_server.py
+```
+
+**Du siehst:**
+```
+============================================================
+Elliott Wave Live Signals - Web Server
+============================================================
+
+✅ Flask app imported successfully
+✅ Routes registered: 7
+
+Starting server on http://127.0.0.1:5000
+Press Ctrl+C to stop
+```
+
+---
+
+### 2️⃣ Browser öffnen
+
+```
+http://127.0.0.1:5000
+```
+
+---
+
+### 3️⃣ Scannen!
+
+**Für schnellen Test (ohne Claude):**
+1. ❌ Deaktiviere "Use Claude CLI"
+2. ✅ Aktiviere "Use Cache"
+3. Klick "Start Scan"
+4. **Ergebnisse in ~10 Sekunden**
+
+**Für vollständige AI-Analyse (mit Claude):**
+1. ✅ Aktiviere "Use Claude CLI"
+2. ✅ Aktiviere "Use Cache"
+3. Klick "Start Scan"
+4. **Ergebnisse in ~30-40 Sekunden**
+5. High-Score Signale (≥85) werden von Claude analysiert
+
+---
+
+## Was passiert beim Scan?
+
+```
+┌──────────────────────────────────────────┐
+│  USER klickt "Start Scan"               │
+└──────────────────────────────────────────┘
+                 ↓
+┌──────────────────────────────────────────┐
+│  BACKEND lädt Daten                      │
+│  ├─ Cache check                          │
+│  ├─ Screener laufen lassen               │
+│  └─ Score berechnen (194-Punkte System)  │
+└──────────────────────────────────────────┘
+                 ↓
+┌──────────────────────────────────────────┐
+│  FILTER: Score >= 75?                    │
+│  ├─ Ja → Weiter                          │
+│  └─ Nein → Ignorieren                    │
+└──────────────────────────────────────────┘
+                 ↓
+┌──────────────────────────────────────────┐
+│  HIGH-SCORE? (≥85 und Claude aktiviert)  │
+│  ├─ Ja → Claude CLI fragen               │
+│  │         ├─ Prompt generieren           │
+│  │         ├─ echo "prompt" | claude      │
+│  │         ├─ JSON parsen                 │
+│  │         └─ Enhanced Score berechnen    │
+│  └─ Nein → Nur Screener-Score            │
+└──────────────────────────────────────────┘
+                 ↓
+┌──────────────────────────────────────────┐
+│  FRONTEND zeigt Ergebnisse               │
+│  ├─ Signal-Karten mit Score              │
+│  ├─ Claude-Badge bei AI-Analyse          │
+│  └─ Vollständige Justification           │
+└──────────────────────────────────────────┘
+```
+
+---
+
+## Beispiel-Ergebnis
+
+Nach dem Scan siehst du:
+
+```
+╔═══════════════════════════════════════════════════╗
+║  🧠 EUR/USD - LONG                               ║
+║  Claude Analyzed                                 ║
+║                                                  ║
+║  Enhanced Score: 135 / 194                       ║
+║  (Base: 125 + Claude Bonus: +10)                ║
+║                                                  ║
+║  ✨ Claude's Analysis:                           ║
+║  "Wave 3 of larger degree Wave 5 confirmed      ║
+║   at 0.618 Fibonacci retracement with EMA       ║
+║   confluence across all timeframes."            ║
+║                                                  ║
+║  Confidence: 87%                                 ║
+║  Wave Count: Wave 3 of Wave 5                   ║
+║  Direction: LONG                                 ║
+╚═══════════════════════════════════════════════════╝
+```
+
+---
+
+## Features
+
+### ✅ Cache-System
+- **5 Minuten TTL**
+- Erste Scan: ~10-12s
+- Nachfolgende Scans: <1s
+
+### ✅ Claude CLI Integration
+- **Lokal ohne API**
+- Nur für High-Score Signale (≥85)
+- Enhanced Scoring:
+  - High Confidence (>0.8): +10 Punkte
+  - Medium Confidence (0.6-0.8): +5 Punkte
+  - Concerns: -5 Punkte
+
+### ✅ Signal-Anzeige
+- Score mit Breakdown
+- Richtung (LONG/SHORT)
+- Claude-Badge bei AI-Analyse
+- Vollständige Justification
+- Trade Parameters
+
+---
+
+## Test-Ergebnisse
+
+Siehe **TEST_RESULTS.md** für vollständige Tests:
+
+- ✅ Server Start: ERFOLGREICH
+- ✅ Health Check: ERFOLGREICH
+- ✅ HTML Auslieferung: ERFOLGREICH
+- ✅ Scan Endpoint: ERFOLGREICH
+- ✅ Cache: ERFOLGREICH
+- ✅ CORS: ERFOLGREICH
+
+**Status:** 🟢 **ALLE TESTS BESTANDEN**
+
+---
+
+## Tipps
+
+### 🚀 Schneller Scannen
+```
+✓ Aktiviere "Use Cache"
+✗ Deaktiviere "Use Claude CLI" (für Quick-Checks)
+```
+
+### 🧠 Vollständige Analyse
+```
+✓ Aktiviere "Use Claude CLI"
+✓ Aktiviere "Use Cache"
+```
+
+### 🔧 Troubleshooting
+
+**Port belegt?**
+```bash
+.venv/bin/python src/web_backend.py --port 5001
+# Dann öffne: http://127.0.0.1:5001
+```
+
+**Server läuft nicht?**
+```bash
+# Prüfe:
+lsof -i :5000
+
+# Starte neu:
+.venv/bin/python run_server.py
+```
+
+**Zu langsam?**
+- Aktiviere Cache
+- Deaktiviere Claude CLI
+- Reduziere Assets in config.py
+
+---
+
+## Dokumentation
+
+- 📖 **WEB_UI_README.md** - Vollständige Anleitung
+- 📊 **TEST_RESULTS.md** - Alle Test-Ergebnisse
+- 🏁 **START_SERVER.md** - Server-Start Optionen
+- 🚀 **QUICK_START.md** - Diese Datei
+
+---
+
+## Claude CLI Setup (Optional)
+
+Wenn du Claude CLI nutzen möchtest:
+
+```bash
+# Teste ob verfügbar:
+echo "Hello" | claude
+
+# Wenn ja: ✅ "Use Claude CLI" aktivieren
+# Wenn nein: ❌ Deaktiviere Option oder installiere Claude Code
+```
+
+---
+
+## Support
+
+Bei Fragen oder Problemen:
+
+1. **Prüfe Server-Logs** im Terminal
+2. **Browser Console** öffnen (F12)
+3. **Test Endpoints** mit curl
+4. **Siehe Dokumentation** in README-Dateien
+
+---
+
+**🎉 Viel Erfolg beim Trading!**

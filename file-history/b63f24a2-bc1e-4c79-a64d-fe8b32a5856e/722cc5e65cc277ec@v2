@@ -1,0 +1,349 @@
+#!/usr/bin/env tsx
+/**
+ * Test script for Zod runtime validation of ZEREZ types
+ *
+ * This script tests:
+ * 1. Valid ZEREZUnit data passes validation
+ * 2. Invalid data is caught with clear error messages
+ * 3. Missing required fields are detected
+ * 4. Type mismatches are caught (e.g., string instead of number)
+ *
+ * Run with: npx tsx scripts/test_zod_validation.ts
+ */
+
+import { validateZEREZUnits, validateZEREZUnit } from '@/lib/zerez-types';
+
+// Test colors for console output
+const GREEN = '\x1b[32m';
+const RED = '\x1b[31m';
+const BLUE = '\x1b[34m';
+const RESET = '\x1b[0m';
+
+function log(message: string, color: string = RESET) {
+  console.log(`${color}${message}${RESET}`);
+}
+
+function testValidData() {
+  log('\n=== Test 1: Valid ZEREZ Unit Data ===', BLUE);
+
+  const validUnit = {
+    id: '123e4567-e89b-12d3-a456-426614174000',
+    unitCode: 'TEST-001',
+    modelName: 'Test Model',
+    certificateNumber: 'CERT-123',
+    maxActivePower: 100.5,
+    maxActivePowerRange: 110.0,
+    minActivePowerRange: 90.0,
+    maxApparentPowerRange: 120.0,
+    minApparentPowerRange: 80.0,
+    ratedVoltage: 400.0,
+    ratedCurrent: 250.0,
+    primaryEnergySource: 'Photovoltaik',
+    category: 'Erzeugungseinheiten',
+    unitTypeId: 'type-uuid',
+    certificateId: 'cert-uuid',
+    certificateIssueDate: '2024-01-15',
+    certificateAuthorityId: 'authority-uuid',
+    certificateHolderId: 'holder-uuid',
+    manufacturerId: 'manufacturer-uuid',
+    manufacturerName: 'Test Manufacturer GmbH',
+    certificateValidityStatusName: 'Gültig',
+    certificateNormIssueDateDescriptions: 'VDE-AR-N 4105:2018-11',
+    isVerified: true,
+    isImported: false,
+    // is4105 removed - replaced by certificateNorms filter
+    createdAt: '2024-01-01T00:00:00Z',
+    modifiedAt: '2024-01-15T10:30:00Z',
+    validityStartDate: '2024-01-01',
+    validityEndDate: '2029-01-01',
+    selected: false
+  };
+
+  const result = validateZEREZUnits({ units: [validUnit] });
+
+  if (result.success) {
+    log('✅ PASS: Valid data accepted', GREEN);
+    log(`   Validated ${result.data?.length} unit(s)`);
+  } else {
+    log('❌ FAIL: Valid data rejected', RED);
+    console.error('   Error:', result.error);
+    console.error('   Details:', result.details);
+    return false;
+  }
+
+  return true;
+}
+
+function testMissingRequiredField() {
+  log('\n=== Test 2: Missing Required Field (id) ===', BLUE);
+
+  const invalidUnit = {
+    // Missing 'id' - required field
+    modelName: 'Test Model',
+    isVerified: true,
+    isImported: false
+    // is4105 removed - replaced by certificateNorms filter
+  };
+
+  const result = validateZEREZUnit(invalidUnit);
+
+  if (!result.success) {
+    log('✅ PASS: Missing required field detected', GREEN);
+    log(`   Error: ${result.error}`);
+    log(`   Field: ${result.details?.[0]?.path.join('.')}`);
+    log(`   Issue: ${result.details?.[0]?.message}`);
+  } else {
+    log('❌ FAIL: Missing required field not detected', RED);
+    return false;
+  }
+
+  return true;
+}
+
+function testTypeMismatch() {
+  log('\n=== Test 3: Type Mismatch (number as string) ===', BLUE);
+
+  const invalidUnit = {
+    id: '123e4567-e89b-12d3-a456-426614174000',
+    modelName: 'Test Model',
+    maxActivePower: '100.5', // Should be number, not string
+    isVerified: true,
+    isImported: false
+    // is4105 removed - replaced by certificateNorms filter
+  };
+
+  const result = validateZEREZUnit(invalidUnit);
+
+  if (!result.success) {
+    log('✅ PASS: Type mismatch detected', GREEN);
+    log(`   Error: ${result.error}`);
+    log(`   Field: ${result.details?.[0]?.path.join('.')}`);
+    log(`   Issue: ${result.details?.[0]?.message}`);
+    log(`   Code: ${result.details?.[0]?.code}`);
+  } else {
+    log('❌ FAIL: Type mismatch not detected', RED);
+    return false;
+  }
+
+  return true;
+}
+
+function testInvalidBoolean() {
+  log('\n=== Test 4: Invalid Boolean Value ===', BLUE);
+
+  const invalidUnit = {
+    id: '123e4567-e89b-12d3-a456-426614174000',
+    modelName: 'Test Model',
+    isVerified: 'yes', // Should be boolean, not string
+    isImported: false
+    // is4105 removed - replaced by certificateNorms filter
+  };
+
+  const result = validateZEREZUnit(invalidUnit);
+
+  if (!result.success) {
+    log('✅ PASS: Invalid boolean detected', GREEN);
+    log(`   Error: ${result.error}`);
+    log(`   Field: ${result.details?.[0]?.path.join('.')}`);
+    log(`   Expected: boolean, Received: ${typeof invalidUnit.isVerified}`);
+  } else {
+    log('❌ FAIL: Invalid boolean not detected', RED);
+    return false;
+  }
+
+  return true;
+}
+
+function testNullableFields() {
+  log('\n=== Test 5: Nullable Optional Fields ===', BLUE);
+
+  const validMinimalUnit = {
+    id: '123e4567-e89b-12d3-a456-426614174000',
+    // All optional fields omitted or null
+    unitCode: null,
+    modelName: null,
+    certificateNumber: null,
+    maxActivePower: null,
+    ratedVoltage: null,
+    manufacturerId: null,
+    manufacturerName: null,
+    certificateNormIssueDateDescriptions: null,
+    isVerified: false,
+    isImported: false
+    // is4105 removed - replaced by certificateNorms filter
+  };
+
+  const result = validateZEREZUnit(validMinimalUnit);
+
+  if (result.success) {
+    log('✅ PASS: Nullable fields accepted', GREEN);
+    log('   Minimal unit with null values validated successfully');
+  } else {
+    log('❌ FAIL: Nullable fields rejected', RED);
+    console.error('   Error:', result.error);
+    console.error('   Details:', result.details);
+    return false;
+  }
+
+  return true;
+}
+
+function testMultipleUnits() {
+  log('\n=== Test 6: Multiple Units Validation ===', BLUE);
+
+  const units = [
+    {
+      id: 'unit-1',
+      modelName: 'Model A',
+      manufacturerName: 'Company A',
+      isVerified: true,
+      isImported: false
+      // is4105 removed - replaced by certificateNorms filter
+    },
+    {
+      id: 'unit-2',
+      modelName: 'Model B',
+      manufacturerName: 'Company B',
+      maxActivePower: 50.0,
+      isVerified: true,
+      isImported: true
+      // is4105 removed - replaced by certificateNorms filter
+    },
+    {
+      id: 'unit-3',
+      modelName: 'Model C',
+      manufacturerName: null, // Null is valid
+      isVerified: false,
+      isImported: false
+      // is4105 removed - replaced by certificateNorms filter
+    }
+  ];
+
+  const result = validateZEREZUnits({ units });
+
+  if (result.success) {
+    log('✅ PASS: Multiple units validated', GREEN);
+    log(`   Validated ${result.data?.length} units`);
+  } else {
+    log('❌ FAIL: Multiple units validation failed', RED);
+    console.error('   Error:', result.error);
+    console.error('   Details:', result.details);
+    return false;
+  }
+
+  return true;
+}
+
+function testPartiallyInvalidArray() {
+  log('\n=== Test 7: Array with One Invalid Unit ===', BLUE);
+
+  const units = [
+    {
+      id: 'unit-1',
+      modelName: 'Model A',
+      isVerified: true,
+      isImported: false
+      // is4105 removed - replaced by certificateNorms filter
+    },
+    {
+      id: 'unit-2',
+      modelName: 'Model B',
+      maxActivePower: 'invalid', // Type error
+      isVerified: true,
+      isImported: false
+      // is4105 removed - replaced by certificateNorms filter
+    }
+  ];
+
+  const result = validateZEREZUnits({ units });
+
+  if (!result.success) {
+    log('✅ PASS: Invalid unit in array detected', GREEN);
+    log(`   Error: ${result.error}`);
+    if (result.details && result.details.length > 0) {
+      const issue = result.details[0];
+      log(`   Unit index: ${String(issue.path[1])}`);
+      log(`   Field: ${issue.path.slice(2).map(String).join('.')}`);
+      log(`   Issue: ${issue.message}`);
+    }
+  } else {
+    log('❌ FAIL: Invalid unit not detected', RED);
+    return false;
+  }
+
+  return true;
+}
+
+function testEmptyArray() {
+  log('\n=== Test 8: Empty Units Array ===', BLUE);
+
+  const result = validateZEREZUnits({ units: [] });
+
+  if (result.success) {
+    log('✅ PASS: Empty array accepted', GREEN);
+    log(`   Validated ${result.data?.length} units (empty is valid)`);
+  } else {
+    log('❌ FAIL: Empty array rejected', RED);
+    console.error('   Error:', result.error);
+    return false;
+  }
+
+  return true;
+}
+
+// Run all tests
+async function runTests() {
+  log('🧪 ZOD RUNTIME VALIDATION TEST SUITE', BLUE);
+  log('Testing Python-TypeScript type safety at API boundary\n');
+
+  const tests = [
+    { name: 'Valid Data', fn: testValidData },
+    { name: 'Missing Required Field', fn: testMissingRequiredField },
+    { name: 'Type Mismatch', fn: testTypeMismatch },
+    { name: 'Invalid Boolean', fn: testInvalidBoolean },
+    { name: 'Nullable Fields', fn: testNullableFields },
+    { name: 'Multiple Units', fn: testMultipleUnits },
+    { name: 'Partially Invalid Array', fn: testPartiallyInvalidArray },
+    { name: 'Empty Array', fn: testEmptyArray }
+  ];
+
+  let passed = 0;
+  let failed = 0;
+
+  for (const test of tests) {
+    try {
+      const result = test.fn();
+      if (result) {
+        passed++;
+      } else {
+        failed++;
+      }
+    } catch (error) {
+      log(`❌ Test "${test.name}" threw error:`, RED);
+      console.error(error);
+      failed++;
+    }
+  }
+
+  log('\n' + '='.repeat(60), BLUE);
+  log('📊 TEST RESULTS', BLUE);
+  log('='.repeat(60), BLUE);
+  log(`Total tests: ${tests.length}`);
+  log(`${GREEN}✅ Passed: ${passed}${RESET}`);
+  log(`${failed > 0 ? RED : GREEN}${failed > 0 ? '❌' : '✅'} Failed: ${failed}${RESET}`);
+
+  if (failed === 0) {
+    log('\n🎉 All tests passed! Zod validation is working correctly.', GREEN);
+    log('✅ Python-TypeScript type safety is enforced at the API boundary.', GREEN);
+  } else {
+    log(`\n⚠️  ${failed} test(s) failed. Please review the errors above.`, RED);
+    process.exit(1);
+  }
+}
+
+// Run tests
+runTests().catch(error => {
+  log('Fatal error running tests:', RED);
+  console.error(error);
+  process.exit(1);
+});

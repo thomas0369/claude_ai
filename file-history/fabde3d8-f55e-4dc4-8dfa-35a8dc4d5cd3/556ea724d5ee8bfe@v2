@@ -1,0 +1,303 @@
+'use client';
+
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import Link from 'next/link';
+
+// AG Grid initialization is handled by PivotTablePro component
+// No global side-effect import needed
+
+import { enhancedDataLoader } from '@/lib/dataLoader-enhanced';
+import { ExportManager } from '@/lib/export';
+import SimpleDataTable from '@/components/SimpleDataTable';
+import CertificationTimeline from '@/components/CertificationTimeline';
+import CompetitiveMatrix from '@/components/CompetitiveMatrix';
+import PerformanceHeatmap from '@/components/PerformanceHeatmap';
+import PowerDensityFilters, { type FilterType } from '@/components/PowerDensityFilters';
+import { ChartErrorBoundary } from '@/components/ChartErrorBoundary';
+import type { EnhancedProductData } from '@/lib/types-enhanced';
+import {
+  BarChart3,
+  TrendingUp,
+  Target,
+  Flame,
+  Download,
+  Loader2,
+  LayoutDashboard,
+  Database,
+} from 'lucide-react';
+
+export default function DashboardPage() {
+  const [products, setProducts] = useState<EnhancedProductData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'pivot' | 'timeline' | 'matrix' | 'heatmap'>('pivot');
+  const [activeFilter, setActiveFilter] = useState<FilterType>(null);
+  const [filteredProducts, setFilteredProducts] = useState<EnhancedProductData[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { products: enrichedProducts } = await enhancedDataLoader.loadAllData();
+        setProducts(enrichedProducts);
+        setFilteredProducts(enrichedProducts); // Initialize filtered products
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  /**
+   * Handle filter change from PowerDensityFilters
+   */
+  const handleFilterChange = (filter: FilterType, filtered: EnhancedProductData[]) => {
+    setActiveFilter(filter);
+    setFilteredProducts(filtered);
+  };
+
+  // Memoize export handler to prevent recreation on every render
+  const handleExport = useCallback(async (format: 'csv' | 'xlsx' | 'pdf' | 'pptx') => {
+    if (format === 'csv') {
+      ExportManager.exportToCSV(products);
+    } else if (format === 'xlsx') {
+      ExportManager.exportToExcel(products);
+    } else if (format === 'pdf') {
+      await ExportManager.exportToPDF(products, {
+        format: 'pdf',
+        includeCharts: true,
+        includeSummary: true,
+      });
+    } else if (format === 'pptx') {
+      await ExportManager.exportToPowerPoint(products);
+    }
+  }, [products]);
+
+  // Calculate KPIs with strict null safety - Memoized for performance
+  // Only include products with valid, non-zero metrics
+  const stats = useMemo(() => {
+    const productsWithPowerDensity = products.filter(
+      p => p.power_density !== null && p.power_density !== undefined && p.power_density > 0
+    );
+    const productsWithPowerWeight = products.filter(
+      p => p.power_to_weight !== null && p.power_to_weight !== undefined && p.power_to_weight > 0
+    );
+    const highEfficiencyProducts = products.filter(p => {
+      const eff = p.efficiency?.peak_percent || p.efficiency?.euro_percent || 0;
+      return eff > 97.5;
+    });
+
+    return {
+      totalProducts: products.length,
+      manufacturers: new Set(products.map(p => p.identification.manufacturer)).size,
+      avgEfficiency: (
+        products.reduce((sum, p) => sum + (p.efficiency?.peak_percent || 0), 0) / products.length
+      ).toFixed(2),
+      totalVariants: products.reduce(
+        (sum, p) => sum + (p.identification.zerez_variant_count || 0),
+        0
+      ),
+      topEfficiency: products
+        .sort((a, b) => (b.efficiency?.peak_percent || 0) - (a.efficiency?.peak_percent || 0))[0]
+        ?.efficiency?.peak_percent?.toFixed(2) || 'N/A',
+      marketLeaders: products.filter(p => p.competitive.market_position === 'leader').length,
+      // Power Density Stats - using non-null assertions since filtered above
+      avgPowerDensity: productsWithPowerDensity.length > 0
+        ? (productsWithPowerDensity.reduce((sum, p) => sum + p.power_density!, 0) / productsWithPowerDensity.length).toFixed(1)
+        : 'N/A',
+      topPowerDensity: productsWithPowerDensity.length > 0
+        ? Math.max(...productsWithPowerDensity.map(p => p.power_density!)).toFixed(1)
+        : 'N/A',
+      avgPowerWeight: productsWithPowerWeight.length > 0
+        ? (productsWithPowerWeight.reduce((sum, p) => sum + p.power_to_weight!, 0) / productsWithPowerWeight.length).toFixed(2)
+        : 'N/A',
+      highEfficiencyCount: highEfficiencyProducts.length,
+    };
+  }, [products]); // Memoize based on products array
+
+  // Memoize tabs array - static content, no dependencies needed
+  const tabs = useMemo(() => [
+    { id: 'pivot', label: 'Product Analysis', icon: BarChart3, component: SimpleDataTable },
+    { id: 'timeline', label: 'Timeline', icon: TrendingUp, component: CertificationTimeline },
+    { id: 'matrix', label: 'Competitive Matrix', icon: Target, component: CompetitiveMatrix },
+    { id: 'heatmap', label: 'Performance Heatmap', icon: Flame, component: PerformanceHeatmap },
+  ] as const, []); // No dependencies - static array
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="animate-spin h-16 w-16 text-blue-600 mx-auto mb-4" />
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            Loading and enriching data with AI insights...
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+            Analyzing competitive intelligence and generating benchmarks
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Header */}
+      <header className="bg-white dark:bg-gray-800 shadow-lg border-b-4 border-blue-600">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <LayoutDashboard className="text-blue-600" size={32} />
+                C&I BESS Competition Analytics Platform
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                World-Class Enterprise Intelligence & Benchmarking System
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Link
+                href="/import/zerez"
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors"
+                aria-label="Import from ZEREZ Database"
+              >
+                <Database size={18} aria-hidden="true" />
+                <span>ZEREZ Import</span>
+              </Link>
+              <button
+                onClick={() => handleExport('xlsx')}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                aria-label="Export all data to Excel format"
+              >
+                <Download size={18} aria-hidden="true" />
+                <span>Excel Export</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* KPI Dashboard */}
+      <div className="container mx-auto px-6 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          {/* Row 1: General Stats */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-blue-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Total Products</p>
+            <p className="text-3xl font-bold text-blue-600">{stats.totalProducts}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-green-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Manufacturers</p>
+            <p className="text-3xl font-bold text-green-600">{stats.manufacturers}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-purple-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Avg Efficiency</p>
+            <p className="text-3xl font-bold text-purple-600">{stats.avgEfficiency}%</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-orange-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">ZEREZ Variants</p>
+            <p className="text-3xl font-bold text-orange-600">{stats.totalVariants}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-red-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Top Efficiency</p>
+            <p className="text-3xl font-bold text-red-600">{stats.topEfficiency}%</p>
+          </div>
+
+          {/* Row 2: Power Density Stats */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-indigo-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Market Leaders</p>
+            <p className="text-3xl font-bold text-indigo-600">{stats.marketLeaders}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-cyan-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Avg Power Density</p>
+            <p className="text-2xl font-bold text-cyan-600">{stats.avgPowerDensity} <span className="text-sm">kW/m³</span></p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-teal-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Top Power Density</p>
+            <p className="text-2xl font-bold text-teal-600">{stats.topPowerDensity} <span className="text-sm">kW/m³</span></p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-pink-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Avg Power/Weight</p>
+            <p className="text-2xl font-bold text-pink-600">{stats.avgPowerWeight} <span className="text-sm">kW/kg</span></p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-amber-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">High Efficiency (&gt;97.5%)</p>
+            <p className="text-3xl font-bold text-amber-600">{stats.highEfficiencyCount}</p>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg mb-6">
+          <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+            {tabs.map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-6 py-4 font-medium transition-all whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  <Icon size={20} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Content Area - Wrapped with Error Boundaries */}
+        <div className="space-y-6">
+          {activeTab === 'pivot' && (
+            <>
+              {/* Power Density Quick Filters */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                <PowerDensityFilters
+                  products={products}
+                  activeFilter={activeFilter}
+                  onFilterChange={handleFilterChange}
+                />
+              </div>
+
+              {/* Product Analysis Table */}
+              <ChartErrorBoundary componentName="Product Analysis Table">
+                <SimpleDataTable data={filteredProducts} />
+              </ChartErrorBoundary>
+            </>
+          )}
+          {activeTab === 'timeline' && (
+            <ChartErrorBoundary componentName="Certification Timeline">
+              <CertificationTimeline data={products} />
+            </ChartErrorBoundary>
+          )}
+          {activeTab === 'matrix' && (
+            <ChartErrorBoundary componentName="Competitive Matrix">
+              <CompetitiveMatrix data={products} />
+            </ChartErrorBoundary>
+          )}
+          {activeTab === 'heatmap' && (
+            <ChartErrorBoundary componentName="Performance Heatmap">
+              <PerformanceHeatmap data={products} />
+            </ChartErrorBoundary>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-12">
+        <div className="container mx-auto px-6 py-6">
+          <div className="text-center text-gray-600 dark:text-gray-400">
+            <p className="text-sm">
+              C&I BESS Competition Analytics Platform v2.0 | Powered by Apache ECharts, AG Grid Enterprise & AI
+            </p>
+            <p className="text-xs mt-2">
+              {stats.totalProducts} products analyzed | {stats.totalVariants} ZEREZ certifications tracked
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

@@ -1,0 +1,482 @@
+# Elliott Wave Live Signals - Web UI mit Claude CLI Integration
+
+## Überblick
+
+Eine moderne Web-Oberfläche für Elliott Wave Trading Signale mit:
+- **Multi-Provider Daten** (TradingView, Yahoo Finance, CoinPaprika)
+- **Cache-Mechanismus** (5 Minuten TTL für schnellere Scans)
+- **Claude CLI Integration** (Lokale AI-Analyse für hochqualifizierte Signale)
+- **Enhanced Scoring** (Basis-Score + Claude's Einschätzung)
+- **Real-time Scanning** mit automatischem Refresh
+
+---
+
+## Architektur
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    FRONTEND (React)                         │
+│   elliott_wave_live_signals_backend.jsx                    │
+│                                                             │
+│   - UI mit Scan-Button                                     │
+│   - Filter (Kategorie, Min Score, Claude On/Off)           │
+│   - Signal-Karten mit Score + Claude-Analyse               │
+│   - Detail-Modal mit vollständiger Analyse                 │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         │ HTTP REST API
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   BACKEND (Flask)                           │
+│   web_backend.py                                            │
+│                                                             │
+│   /api/scan [POST]                                         │
+│   ├── Cache prüfen                                         │
+│   ├── Wenn nicht im Cache: Screener laufen lassen         │
+│   ├── Score >= 85? → Claude CLI fragen                    │
+│   ├── Enhanced Score berechnen                            │
+│   └── Ergebnisse zurückgeben                              │
+│                                                             │
+│   /api/analyze/<symbol> [POST]                            │
+│   └── Einzelnes Asset mit Claude analysieren               │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                  SCREENER + CLAUDE                          │
+│                                                             │
+│   Screener                                                  │
+│   ├── Multi-Timeframe Daten (M15, H1, H4, Daily)          │
+│   ├── 21+ Fibonacci-optimierte Indikatoren                │
+│   ├── 194-Punkte Bewertungssystem                         │
+│   └── Score + Breakdown                                    │
+│                                                             │
+│   Claude CLI (nur für Score >= 85)                         │
+│   ├── Prompt Builder (Nof1-Stil)                          │
+│   ├── subprocess.run(["claude"])                           │
+│   ├── JSON Response parsen                                 │
+│   └── Confidence, Wave Count, Justification                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Installation
+
+### 1. Python Dependencies
+
+```bash
+cd /mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot
+
+# Installiere Flask + CORS
+.venv/bin/pip install flask flask-cors
+
+# Andere Dependencies sollten bereits vorhanden sein
+.venv/bin/pip install pandas numpy yfinance tradingview-scraper ccxt
+```
+
+### 2. Claude CLI
+
+Stelle sicher, dass `claude` verfügbar ist:
+
+```bash
+# Test
+echo "Hello" | claude
+```
+
+### 3. Frontend (Optional - für Entwicklung)
+
+Wenn du die React-UI lokal entwickeln möchtest:
+
+```bash
+# In einem separaten Terminal
+cd src/frontend
+npm install
+npm start
+```
+
+Oder nutze die statische HTML-Version (wird automatisch vom Backend bereitgestellt).
+
+---
+
+## Nutzung
+
+### Schritt 1: Backend starten
+
+```bash
+.venv/bin/python src/web_backend.py --host 127.0.0.1 --port 5000
+```
+
+Ausgabe:
+```
+INFO:__main__:Starting Flask backend on 127.0.0.1:5000
+ * Running on http://127.0.0.1:5000
+```
+
+### Schritt 2: Frontend öffnen
+
+Öffne deinen Browser und gehe zu:
+```
+http://localhost:5000
+```
+
+(Oder nutze die React-App, wenn du sie separat startest)
+
+### Schritt 3: Scan starten
+
+1. **Klicke auf "Start Scan"**
+   - Backend scannt alle konfigurierten Assets
+   - Cache wird genutzt (falls vorhanden)
+   - Signale mit Score >= 75 werden angezeigt
+
+2. **Claude-Integration aktivieren**
+   - Checkbox "Use Claude CLI" aktivieren
+   - Bei Signalen mit Score >= 85 wird Claude CLI automatisch aufgerufen
+   - Claude's Analyse wird in die Bewertung einbezogen
+
+3. **Ergebnisse ansehen**
+   - Signale sind sortiert nach Enhanced Score (oder Basis-Score)
+   - Signale mit Claude-Analyse zeigen ein "Claude Analyzed" Badge
+   - Klicke auf ein Signal für Details
+
+---
+
+## Workflow-Beispiel
+
+### Ohne Claude (Schneller Scan)
+
+```
+1. User klickt "Start Scan"
+                ↓
+2. Backend prüft Cache
+   ├── Hit: Nutze gecachte Daten (sofort)
+   └── Miss: Screener laufen lassen (2-5s pro Asset)
+                ↓
+3. Nur Signale mit Score >= 75 werden zurückgegeben
+                ↓
+4. Frontend zeigt Signale an
+```
+
+**Dauer:** ~5-10 Sekunden für 8 Assets (mit Cache: <1s)
+
+---
+
+### Mit Claude (Gründliche Analyse)
+
+```
+1. User klickt "Start Scan" + aktiviert "Use Claude CLI"
+                ↓
+2. Backend scannt alle Assets
+   - Score < 75: Ignorieren
+   - Score 75-84: Nur Screener-Ergebnis
+   - Score >= 85: Claude CLI aufrufen
+                ↓
+3. Für High-Score Signale (>= 85):
+   ├── Nof1-Stil Prompt generieren
+   ├── Claude CLI aufrufen (subprocess)
+   ├── JSON Response parsen
+   └── Enhanced Score berechnen
+                ↓
+4. Enhanced Score = Basis-Score + Claude-Bonus
+   - High confidence (>0.8) + buy/sell: +10 Punkte
+   - Medium confidence (0.6-0.8): +5 Punkte
+   - Concerns vorhanden: -5 Punkte
+                ↓
+5. Frontend zeigt Signale mit Claude-Badge an
+```
+
+**Dauer:** ~20-40 Sekunden für 8 Assets (Claude braucht ~5-10s pro Analyse)
+
+---
+
+## API Endpoints
+
+### POST /api/scan
+
+Scannt alle konfigurierten Assets.
+
+**Request Body:**
+```json
+{
+  "symbols": ["EUR/USD", "BTC/USD"],  // Optional
+  "min_score": 75,                    // Optional
+  "use_claude": true,                 // Optional, default: false
+  "use_cache": true                   // Optional, default: true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "signals": [
+    {
+      "symbol": "EUR/USD",
+      "category": "Forex Majors",
+      "score": 125,
+      "enhanced_score": 135,  // Wenn Claude verwendet wurde
+      "direction": "long",
+      "current_price": 1.0850,
+      "stop_loss": 1.0817,
+      "take_profit": 1.1119,
+      "leverage": 8,
+      "score_breakdown": { ... },
+      "claude_analysis": {  // Nur wenn use_claude=true und score>=85
+        "signal": "buy",
+        "confidence": 0.87,
+        "justification": "Wave 3 confirmed...",
+        "wave_count": "Wave 3 of Wave 5",
+        "concerns": "ADX weakening..."
+      }
+    }
+  ],
+  "scan_info": {
+    "total_scanned": 8,
+    "qualified_signals": 3,
+    "duration_seconds": 25.3,
+    "timestamp": "2025-03-11T14:30:00Z",
+    "used_claude": true
+  }
+}
+```
+
+### POST /api/analyze/<symbol>
+
+Analysiert ein einzelnes Asset mit Claude.
+
+**Response:**
+```json
+{
+  "success": true,
+  "symbol": "EUR/USD",
+  "original_score": 125,
+  "enhanced_score": 135,
+  "claude_analysis": { ... }
+}
+```
+
+### POST /api/cache/clear
+
+Löscht den Cache.
+
+---
+
+## Cache-Mechanismus
+
+Der Cache speichert:
+- **Screening-Ergebnisse** (Score, Breakdown, Indikatoren)
+- **TTL:** 5 Minuten
+- **Storage:** In-Memory (verloren beim Backend-Neustart)
+
+**Vorteile:**
+- Schnellere Re-Scans (wenn innerhalb 5 Minuten)
+- Reduzierte Belastung der Datenanbieter
+- Niedrigere Latenz für UI
+
+**Cache-Invalidierung:**
+- Automatisch nach 5 Minuten
+- Manuell via `/api/cache/clear`
+- Bei Backend-Neustart
+
+---
+
+## Enhanced Scoring Logik
+
+```python
+Enhanced Score = Basis-Score + Claude-Bonus
+
+Claude-Bonus:
+├── High Confidence (>0.8) + Buy/Sell Signal: +10 Punkte
+├── Medium Confidence (0.6-0.8) + Buy/Sell Signal: +5 Punkte
+├── Low Confidence (<0.6) oder Hold: +0 Punkte
+└── Concerns vorhanden (>20 Zeichen): -5 Punkte
+
+Maximum: 194 Punkte (theoretisches Maximum des Screeners)
+```
+
+**Beispiel:**
+
+| Signal | Basis-Score | Confidence | Signal | Concerns | Bonus | **Enhanced** |
+|--------|-------------|------------|--------|----------|-------|--------------|
+| EUR/USD | 125 | 0.87 | buy | Keine | +10 | **135** |
+| GBP/USD | 85 | 0.72 | sell | Keine | +5 | **90** |
+| BTC/USD | 95 | 0.65 | buy | "ADX weakening" | +5 -5 = 0 | **95** |
+| XAU/USD | 78 | 0.55 | hold | Keine | 0 | **78** |
+
+---
+
+## UI-Features
+
+### 1. Stats Overview
+
+Zeigt:
+- Qualified Signals (Anzahl der Signale >= Min Score)
+- Top Score (Höchster Enhanced Score)
+- Scan Duration (in Sekunden)
+- Analysis Mode (Claude AI oder Screener Only)
+
+### 2. Filter
+
+- **Kategorie:** Forex Majors, Commodities, Crypto
+- **Min Score:** 70-95 (Schieberegler)
+- **Use Claude CLI:** An/Aus
+- **Cache Data:** An/Aus
+- **Auto-refresh:** Alle 5 Minuten automatisch scannen
+
+### 3. Signal-Karten
+
+Jede Karte zeigt:
+- **Symbol + Kategorie**
+- **Richtung** (LONG/SHORT Badge)
+- **Score** (Enhanced wenn Claude verwendet)
+- **Claude Badge** (falls analysiert)
+- **Rank Badge** (Top 3 bekommen Gold/Silber/Bronze)
+- **Claude's Justification** (Preview)
+
+### 4. Detail-Modal
+
+Öffnet sich beim Klick auf eine Signal-Karte:
+- **Claude CLI Analysis** (falls vorhanden)
+  - Signal, Confidence, Wave Count
+  - Vollständige Justification
+  - Concerns
+- **Score Breakdown** (alle 12 Kategorien mit Balkendiagramm)
+- **Trade Parameters** (Entry, Stop, Target, Leverage)
+
+---
+
+## Troubleshooting
+
+### Backend startet nicht
+
+**Problem:** `ModuleNotFoundError: No module named 'flask'`
+
+**Lösung:**
+```bash
+.venv/bin/pip install flask flask-cors
+```
+
+---
+
+### CORS-Fehler im Browser
+
+**Problem:** `Access-Control-Allow-Origin` Fehler
+
+**Lösung:** Flask-CORS ist bereits aktiviert. Stelle sicher, dass Backend läuft.
+
+---
+
+### Claude CLI nicht gefunden
+
+**Problem:** `Claude CLI not found`
+
+**Lösung:**
+```bash
+# Test
+echo "Hello" | claude
+
+# Wenn nicht gefunden, installiere Claude Code
+# Oder deaktiviere "Use Claude CLI" in der UI
+```
+
+---
+
+### Scan dauert zu lange
+
+**Problem:** Scan mit Claude dauert >1 Minute
+
+**Gründe:**
+- Claude CLI braucht ~5-10s pro Signal
+- Viele High-Score Signale (>= 85)
+
+**Lösungen:**
+1. Deaktiviere "Use Claude CLI" für schnellere Scans
+2. Erhöhe "Min Score" auf 85+ (weniger Signale)
+3. Nutze Cache (aktiviert "Cache Data")
+
+---
+
+### Keine Signale gefunden
+
+**Problem:** "No Qualified Signals"
+
+**Ursachen:**
+- Marktbedingungen: Kein Setup >= 75 Punkte
+- Datenanbieter-Probleme
+
+**Lösungen:**
+1. Senke "Min Score" auf 70
+2. Überprüfe Logs im Backend-Terminal
+3. Teste einzelne Assets manuell:
+   ```bash
+   .venv/bin/python src/screener.py
+   ```
+
+---
+
+## Performance-Tipps
+
+### 1. Cache nutzen
+
+```
+✅ Aktiviere "Cache Data" in UI
+```
+- Erste Scan: ~10s
+- Nachfolgende Scans (innerhalb 5 Min): <1s
+
+### 2. Selektive Claude-Nutzung
+
+```
+✅ Aktiviere "Use Claude CLI" nur für wichtige Scans
+```
+- Screener-Only: ~5-10s
+- Mit Claude: ~20-40s
+
+### 3. Auto-Refresh intelligent nutzen
+
+```
+✅ Deaktiviere Auto-Refresh während Entwicklung
+```
+- Spart Claude CLI Aufrufe
+- Verhindert Rate-Limiting
+
+---
+
+## Weiterentwicklung
+
+### Geplante Features
+
+1. **WebSocket-Integration** - Real-time Updates ohne Polling
+2. **Persistent Cache** - Redis oder SQLite für Cache-Persistenz
+3. **Trade Execution** - Direkte Order-Platzierung aus UI
+4. **Historical Analysis** - Vergangene Signale und Performance
+5. **Alert System** - Email/Push Notifications bei High-Score Signalen
+
+### Contributing
+
+Möchtest du Features hinzufügen?
+
+1. Fork das Repo
+2. Erstelle einen Feature-Branch
+3. Implementiere das Feature
+4. Teste mit `pytest`
+5. Erstelle einen Pull Request
+
+---
+
+## Zusammenfassung
+
+Die Web-UI bietet einen **modernen, interaktiven Workflow** für Elliott Wave Trading:
+
+1. ✅ **Schnelle Scans** mit Cache-Support
+2. ✅ **Claude CLI Integration** für AI-gestützte Analyse
+3. ✅ **Enhanced Scoring** kombiniert Screener + Claude
+4. ✅ **Intuitive UI** mit Filtern und Detail-Ansichten
+5. ✅ **Lokale Ausführung** - Keine Cloud-APIs nötig
+
+**Start:**
+```bash
+.venv/bin/python src/web_backend.py
+# Öffne http://localhost:5000 im Browser
+# Klicke "Start Scan" → Fertig!
+```

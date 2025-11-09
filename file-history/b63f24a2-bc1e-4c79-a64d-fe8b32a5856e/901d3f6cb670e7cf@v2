@@ -1,0 +1,106 @@
+// Test script to validate detailed ZEREZ data
+// Usage: node test-detailed-data.js
+
+const KNOWN_UNIT_ID = '6314260b-364a-4d53-368d-08dd4b5a9353'; // Sungrow ASN-12TL-G2
+
+async function testDetailedData() {
+  try {
+    console.log('Testing /api/zerez/fetch-detailed endpoint...\n');
+
+    const response = await fetch('http://localhost:3000/api/zerez/fetch-detailed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ unitIds: [KNOWN_UNIT_ID] })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`✓ API Response received`);
+    console.log(`  Total: ${data.total}`);
+    console.log(`  Fetched: ${data.fetched}`);
+    console.log(`  Failed: ${data.failed}\n`);
+
+    if (data.units.length === 0) {
+      throw new Error('No units returned');
+    }
+
+    const unit = data.units[0];
+
+    // Check critical fields
+    const criticalFields = {
+      'Model Name': unit.modelName,
+      'Manufacturer': unit.manufacturerName,
+      'Max Active Power': unit.maxActivePower,
+      'Rated Active Power': unit.ratedActivePower,
+      'Rated Voltage': unit.ratedVoltage,
+      'Rated Current': unit.ratedCurrent,
+      'Short Circuit Peak Current': unit.shortCircuitPeakCurrent,
+      'System Flicker Coefficient CY30': unit.systemFlickerCoefficientCY30,
+      'System Flicker Coefficient CY50': unit.systemFlickerCoefficientCY50,
+      'Fast Voltage Change Turn On': unit.fastVoltageChangeTurnOnAtRatedConditions,
+    };
+
+    console.log('Critical Fields Check:');
+    console.log('─'.repeat(60));
+
+    let missingCount = 0;
+    for (const [label, value] of Object.entries(criticalFields)) {
+      const status = value !== null && value !== undefined ? '✓' : '✗ MISSING';
+      const displayValue = value !== null && value !== undefined ? value : 'null';
+      console.log(`${status} ${label}: ${displayValue}`);
+      if (value === null || value === undefined) missingCount++;
+    }
+
+    console.log('─'.repeat(60));
+
+    // Count total fields with data
+    const totalFields = Object.keys(unit).length;
+    const fieldsWithData = Object.values(unit).filter(v => v !== null && v !== undefined).length;
+
+    console.log(`\nFields Summary:`);
+    console.log(`  Total fields: ${totalFields}`);
+    console.log(`  Fields with data: ${fieldsWithData}`);
+    console.log(`  Null/undefined fields: ${totalFields - fieldsWithData}`);
+
+    // German technical fields validation
+    const germanTechFields = [
+      'ratedActivePower',          // Bemessungswirkleistung
+      'ratedApparentPower',        // Bemessungsscheinleistung
+      'ratedVoltage',              // Bemessungsspannung
+      'ratedCurrent',              // Bemessungsstrom
+      'shortCircuitPeakCurrent',   // Stoßkurzschlussstrom
+      'initialShortCircuitAlternatingCurrent', // Anfangs-Kurzschlusswechselstrom
+    ];
+
+    console.log(`\nGerman Technical Fields:`);
+    germanTechFields.forEach(field => {
+      const value = unit[field];
+      const status = value !== null && value !== undefined ? '✓' : '✗';
+      console.log(`${status} ${field}: ${value ?? 'null'}`);
+    });
+
+    console.log('\n' + '='.repeat(60));
+    if (missingCount === 0) {
+      console.log('✓ ALL CRITICAL FIELDS PRESENT');
+    } else {
+      console.log(`⚠ ${missingCount} critical fields missing`);
+    }
+    console.log('='.repeat(60));
+
+    // Show full unit data for inspection
+    console.log('\nFull Unit Data (first 10 fields):');
+    Object.entries(unit).slice(0, 10).forEach(([key, value]) => {
+      console.log(`  ${key}: ${JSON.stringify(value)}`);
+    });
+    console.log('  ...');
+
+  } catch (error) {
+    console.error('❌ Test failed:', error.message);
+    process.exit(1);
+  }
+}
+
+testDetailedData();

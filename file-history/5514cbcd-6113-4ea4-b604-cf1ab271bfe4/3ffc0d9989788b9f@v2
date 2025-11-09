@@ -1,0 +1,47 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+.env
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Playwright Test Artifacts
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Screenshots (keep organized by gitignoring generated ones)
+/test-results/screenshots/
+
+# PDF Import System
+# PDFs should be committed to Git, but staging data should not
+public/data/staging/          # Temporary unverified data (DO NOT COMMIT)
+!public/data/pdfs/            # PDFs SHOULD be committed to Git

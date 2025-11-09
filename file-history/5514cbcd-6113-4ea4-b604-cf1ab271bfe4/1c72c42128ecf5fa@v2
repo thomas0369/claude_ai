@@ -1,0 +1,145 @@
+/**
+ * PDF Extraction API Route
+ * =========================
+ *
+ * Next.js API route for extracting data from PDF datasheets using DeepSeek Vision API
+ *
+ * POST /api/pdf/extract
+ * Body: { images: string[] } - Array of base64-encoded images
+ *
+ * Returns: ExtractionResult
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { DeepSeekVisionClient } from '@/lib/deepseek/client';
+import type { ExtractionResult } from '@/lib/deepseek/types';
+import { z } from 'zod';
+
+// Request schema validation
+const ExtractRequestSchema = z.object({
+  images: z.array(z.string()).min(1).max(10), // 1-10 images
+  aggregate: z.boolean().optional().default(true),
+});
+
+type ExtractRequest = z.infer<typeof ExtractRequestSchema>;
+
+export const runtime = 'nodejs'; // Use Node.js runtime for better compatibility
+
+// Increase timeout for PDF processing (default is 10s on hobby plan)
+export const maxDuration = 60; // 60 seconds max
+
+export async function POST(request: NextRequest) {
+  try {
+    // Parse and validate request body
+    const body = await request.json();
+    const validatedData = ExtractRequestSchema.parse(body);
+
+    const { images, aggregate } = validatedData;
+
+    // Check for API key
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error: 'DeepSeek API key not configured',
+          message:
+            'Please set DEEPSEEK_API_KEY environment variable in Vercel settings',
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log(`Processing ${images.length} image(s) with DeepSeek Vision API`);
+
+    // Initialize DeepSeek client with safety limits
+    const client = new DeepSeekVisionClient({
+      apiKey,
+      maxCostUsd: 0.05, // Safety limit: $0.05 per request
+      maxRequestsPerMinute: 60,
+      timeout: 90000, // 90 second timeout per API call
+      retries: 3,
+    });
+
+    // Extract data from images
+    const startTime = Date.now();
+    const result = await client.extractFromImages(images, aggregate);
+    const duration = Date.now() - startTime;
+
+    if (!result) {
+      return NextResponse.json(
+        {
+          error: 'Extraction failed',
+          message: 'DeepSeek API did not return valid data',
+        },
+        { status: 500 }
+      );
+    }
+
+    // Get usage statistics
+    const stats = client.getStats();
+
+    console.log(
+      `Extraction completed in ${(duration / 1000).toFixed(1)}s, ` +
+        `cost: $${stats.totalCost.toFixed(4)}`
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+      metadata: {
+        pagesProcessed: images.length,
+        durationMs: duration,
+        cost: stats.totalCost,
+        requestCount: stats.requestCount,
+      },
+    });
+  } catch (error) {
+    console.error('PDF extraction error:', error);
+
+    // Handle validation errors
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: 'Invalid request',
+          message: error.errors[0].message,
+          details: error.errors,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Handle DeepSeek API errors
+    if (error instanceof Error) {
+      return NextResponse.json(
+        {
+          error: error.name,
+          message: error.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: 'Unknown error',
+        message: String(error),
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * GET endpoint to check API status
+ */
+export async function GET() {
+  const apiKeyConfigured = !!process.env.DEEPSEEK_API_KEY;
+
+  return NextResponse.json({
+    status: 'operational',
+    apiKeyConfigured,
+    maxImageCount: 10,
+    maxDuration: 60,
+    version: '1.0.0',
+  });
+}

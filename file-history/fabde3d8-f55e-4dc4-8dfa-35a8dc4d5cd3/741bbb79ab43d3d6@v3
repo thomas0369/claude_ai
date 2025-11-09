@@ -1,0 +1,287 @@
+/**
+ * E2E Tests for Edit Workflow
+ *
+ * Tests the complete edit workflow including:
+ * - Dashboard loading
+ * - Permission system (ZEREZ locked, PDF editable)
+ * - Inline editing UI
+ * - Server-side validation
+ * - Optimistic updates
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Dashboard Edit Workflow', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:3000/dashboard');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('dashboard loads without errors', async ({ page }) => {
+    // Verify page title
+    await expect(page).toHaveTitle(/C&I BESS/);
+
+    // Verify table is present
+    const table = page.locator('table');
+    await expect(table).toBeVisible();
+
+    // Verify at least one row exists (ZEREZ products)
+    const rows = page.locator('tbody tr');
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+  });
+
+  test('data source column displays badges correctly', async ({ page }) => {
+    // Wait for table to load
+    await page.waitForSelector('tbody tr');
+
+    // Find Data Source column header
+    const headers = page.locator('thead th');
+    const dataSourceHeader = headers.filter({ hasText: 'Data Source' });
+    await expect(dataSourceHeader).toBeVisible();
+
+    // Check for ZEREZ badges (all current products are ZEREZ)
+    const zerezBadges = page.locator('text=ZEREZ');
+    const badgeCount = await zerezBadges.count();
+    expect(badgeCount).toBeGreaterThan(0);
+
+    // Verify badge styling - the badge is inside a <td> with inline styles
+    // Need to find the actual cell, not just the text
+    const dataSourceCells = page.locator('tbody tr td').filter({ hasText: 'ZEREZ' });
+    const firstCell = dataSourceCells.first();
+    const bgColor = await firstCell.evaluate(el => window.getComputedStyle(el).backgroundColor);
+    // Should be #fee2e2 (red-100) = rgb(254, 226, 226)
+    expect(bgColor).toMatch(/rgb\(254, 226, 226\)|rgba\(254, 226, 226/);
+  });
+
+  test('efficiency cells are editable visually', async ({ page }) => {
+    // Find efficiency column
+    await page.waitForSelector('tbody tr');
+
+    // Get first efficiency cell - EditableCell renders inside <td>
+    // Look for the div with cursor-pointer class inside efficiency cells
+    const efficiencyCell = page.locator('tbody tr:first-child td').filter({ has: page.locator('[title]') }).first();
+
+    // Hover to see edit indicator
+    await efficiencyCell.hover();
+
+    // Check for cursor pointer on the inner div
+    const innerDiv = efficiencyCell.locator('div').first();
+    const cellStyle = await innerDiv.evaluate(el => window.getComputedStyle(el).cursor);
+    expect(cellStyle).toMatch(/pointer|not-allowed/); // pointer for PDF, not-allowed for ZEREZ
+  });
+
+  test('double-click on ZEREZ efficiency shows permission error', async ({ page }) => {
+    await page.waitForSelector('tbody tr');
+
+    // Find first efficiency cell (should be ZEREZ product)
+    // EditableCell renders a div inside the td
+    const efficiencyCell = page.locator('tbody tr:first-child td').filter({ has: page.locator('[title]') }).first();
+    const editableDiv = efficiencyCell.locator('div').first();
+
+    // Double-click to trigger edit mode
+    await editableDiv.dblclick();
+
+    // Wait for error toast - react-hot-toast creates divs with specific structure
+    // Look for any element containing the error message
+    const errorToast = page.locator('[role="status"]').or(page.locator('text=/cannot.*edit/i'));
+    await expect(errorToast.first()).toBeVisible({ timeout: 3000 });
+
+    // Verify error message contains key words
+    const toastText = await errorToast.first().textContent();
+    expect(toastText).toMatch(/cannot|read-only|ZEREZ/i);
+  });
+
+  test('EditableCell component renders correctly', async ({ page }) => {
+    await page.waitForSelector('tbody tr');
+
+    // Find efficiency cell - EditableCell renders with title attribute
+    const editableCell = page.locator('tbody tr:first-child td div[title]').first();
+    await expect(editableCell).toBeVisible();
+
+    // Get current value
+    const currentValue = await editableCell.textContent();
+    expect(currentValue).toMatch(/\d+\.\d+/); // May or may not have % symbol
+
+    // Verify title attribute exists (tooltip)
+    const title = await editableCell.getAttribute('title');
+    expect(title).toBeTruthy();
+    expect(title).toMatch(/ZEREZ|cannot|Efficiency/i);
+  });
+
+  test('API returns 403 for ZEREZ product edit attempt', async ({ request }) => {
+    // Use known ZEREZ product ID from database (all current products are ZEREZ)
+    const productId = 'b612d664-3457-43b3-c2cb-08dd211206b9';
+
+    // Attempt to edit via API
+    const response = await request.post('http://localhost:3000/api/products/edit', {
+      data: {
+        productId,
+        field: 'efficiency.peak_percent',
+        newValue: 99.5
+      }
+    });
+
+    // Verify 403 Forbidden response
+    expect(response.status()).toBe(403);
+
+    const body = await response.json();
+    expect(body.error).toMatch(/FORBIDDEN|forbidden/i);
+    // Message should mention ZEREZ or that data cannot be edited
+    const message = body.message || body.details?.reason || '';
+    expect(message).toMatch(/ZEREZ|cannot.*edit|read-only/i);
+  });
+
+  test('API validates field names', async ({ page, request }) => {
+    const response = await request.post('http://localhost:3000/api/products/edit', {
+      data: {
+        productId: 'test-id',
+        field: 'invalid.field.name',
+        newValue: 123
+      }
+    });
+
+    expect(response.status()).toBe(400);
+
+    const body = await response.json();
+    expect(body.error).toMatch(/Invalid|validation/i);
+  });
+
+  test('API validates field values', async ({ request }) => {
+    // Attempt to set efficiency > 100% with a real product ID
+    const productId = 'b612d664-3457-43b3-c2cb-08dd211206b9';
+
+    const response = await request.post('http://localhost:3000/api/products/edit', {
+      data: {
+        productId,
+        field: 'efficiency.peak_percent',
+        newValue: 150 // Invalid - exceeds 100%
+      }
+    });
+
+    // Should fail - either 403 (ZEREZ blocked) or 400 (validation error)
+    expect(response.status()).toBeGreaterThanOrEqual(400);
+
+    const body = await response.json();
+    // Error message should mention either ZEREZ blocking or validation failure
+    const errorText = JSON.stringify(body).toLowerCase();
+    expect(errorText).toMatch(/zerez|forbidden|100%|exceed|invalid|validation/i);
+  });
+});
+
+test.describe('PDF Product Editing (Future)', () => {
+  test.skip('PDF product efficiency cell is editable', async ({ page }) => {
+    // This test will pass once a PDF product is imported
+    await page.goto('http://localhost:3000/dashboard');
+
+    // Find PDF product row (badge shows "PDF")
+    const pdfRow = page.locator('tbody tr').filter({ hasText: 'PDF' }).first();
+    await expect(pdfRow).toBeVisible();
+
+    // Find efficiency cell
+    const efficiencyCell = pdfRow.locator('td').filter({ hasText: /\d+\.\d+%/ }).first();
+
+    // Double-click to enter edit mode
+    await efficiencyCell.dblclick();
+
+    // Verify input appears
+    const input = page.locator('input[type="number"]');
+    await expect(input).toBeVisible();
+    await expect(input).toBeFocused();
+  });
+
+  test.skip('editing PDF product efficiency saves correctly', async ({ page }) => {
+    await page.goto('http://localhost:3000/dashboard');
+
+    // Find PDF product
+    const pdfRow = page.locator('tbody tr').filter({ hasText: 'PDF' }).first();
+    const efficiencyCell = pdfRow.locator('td').filter({ hasText: /\d+\.\d+%/ }).first();
+
+    // Get original value
+    const originalValue = await efficiencyCell.textContent();
+
+    // Enter edit mode
+    await efficiencyCell.dblclick();
+    const input = page.locator('input[type="number"]');
+
+    // Change value
+    await input.fill('96.5');
+    await input.press('Enter');
+
+    // Wait for save (either page reload or optimistic update)
+    await page.waitForTimeout(1000);
+
+    // Verify new value appears
+    const updatedValue = await efficiencyCell.textContent();
+    expect(updatedValue).toContain('96.5');
+    expect(updatedValue).not.toBe(originalValue);
+
+    // Verify success toast
+    const successToast = page.locator('text=/success|updated/i');
+    await expect(successToast).toBeVisible();
+  });
+
+  test.skip('edit validation prevents invalid values', async ({ page }) => {
+    await page.goto('http://localhost:3000/dashboard');
+
+    const pdfRow = page.locator('tbody tr').filter({ hasText: 'PDF' }).first();
+    const efficiencyCell = pdfRow.locator('td').filter({ hasText: /\d+\.\d+%/ }).first();
+
+    await efficiencyCell.dblclick();
+    const input = page.locator('input[type="number"]');
+
+    // Try to enter invalid value (>100%)
+    await input.fill('150');
+    await input.press('Enter');
+
+    // Should show error toast
+    const errorToast = page.locator('text=/100%|exceed|invalid/i');
+    await expect(errorToast).toBeVisible();
+
+    // Cell should not update
+    await page.waitForTimeout(500);
+    const cellValue = await efficiencyCell.textContent();
+    expect(cellValue).not.toContain('150');
+  });
+});
+
+test.describe('Performance & UX', () => {
+  test('dashboard loads in under 3 seconds', async ({ page }) => {
+    const startTime = Date.now();
+
+    await page.goto('http://localhost:3000/dashboard');
+    await page.waitForLoadState('networkidle');
+
+    const loadTime = Date.now() - startTime;
+    expect(loadTime).toBeLessThan(3000);
+  });
+
+  test('table renders all products', async ({ page }) => {
+    await page.goto('http://localhost:3000/dashboard');
+    await page.waitForSelector('tbody tr');
+
+    const rows = page.locator('tbody tr');
+    const count = await rows.count();
+
+    // Should have 59 products (actual count from database)
+    // Note: Shows 25 per page by default, so this checks first page only
+    expect(count).toBeGreaterThan(0);
+    expect(count).toBeLessThanOrEqual(25); // Default page size
+  });
+
+  test('no console errors on page load', async ({ page }) => {
+    const consoleErrors: string[] = [];
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto('http://localhost:3000/dashboard');
+    await page.waitForLoadState('networkidle');
+
+    // Should have no console errors
+    expect(consoleErrors).toHaveLength(0);
+  });
+});

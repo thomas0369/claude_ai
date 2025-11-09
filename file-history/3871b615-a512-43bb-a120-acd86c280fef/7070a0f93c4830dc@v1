@@ -1,0 +1,18 @@
+{
+  "name": "Block Puzzle Hero",
+  "short_name": "Block Puzzle",
+  "description": "A modern block puzzle game with tiered monetization",
+  "start_url": "/block-puzzle-hero/",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/block-puzzle-hero/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

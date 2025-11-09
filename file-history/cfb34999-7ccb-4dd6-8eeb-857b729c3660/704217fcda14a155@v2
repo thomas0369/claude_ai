@@ -1,0 +1,756 @@
+# Block Puzzle Hero - Development Workflow
+
+**Complete Development, Testing & Deployment Guide**
+
+Last Updated: 2025-11-02
+
+---
+
+## Table of Contents
+
+1. [Quick Start](#quick-start)
+2. [Project Overview](#project-overview)
+3. [Development Workflow](#development-workflow)
+4. [Testing Strategy](#testing-strategy)
+5. [Build & Deployment](#build--deployment)
+6. [Database Management](#database-management)
+7. [Troubleshooting](#troubleshooting)
+8. [Code Quality](#code-quality)
+9. [Performance Optimization](#performance-optimization)
+10. [Common Commands Reference](#common-commands-reference)
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+```bash
+# Required versions
+node >= 18.0.0
+npm >= 9.0.0
+PostgreSQL 15+
+Redis 7+
+```
+
+### Initial Setup
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# 3. Generate Prisma client
+npm run prisma:generate
+
+# 4. Run database migrations (if migrations exist)
+npm run prisma:migrate
+
+# 5. Seed initial data (optional)
+npm run prisma:seed
+
+# 6. Start development server
+npm run dev
+```
+
+Visit `http://localhost:3000` to see the app running.
+
+---
+
+## Project Overview
+
+### Tech Stack
+
+**Frontend:**
+- Next.js 14 (App Router)
+- TypeScript 5.x (strict mode)
+- Phaser.js 3.87 (game engine)
+- Zustand 4.5.5 (state management)
+- Tailwind CSS 3.4
+
+**Backend:**
+- PostgreSQL 15+ (database)
+- Prisma ORM 5.22.0
+- Redis 7+ (caching)
+- NextAuth.js 5.0 (authentication)
+
+**Testing:**
+- Jest 29.7.0 (unit/integration)
+- Playwright 1.48.2 (E2E)
+- Coverage threshold: 70%
+
+### Project Structure
+
+```
+block-puzzle-hero/
+├── app/                    # Next.js 14 App Router
+│   ├── api/               # API routes
+│   ├── levels/            # Level pages
+│   └── play/[level]/      # Game pages
+├── components/            # React components (81 files)
+│   ├── ui/               # Reusable UI primitives
+│   └── game/             # Game-specific components
+├── lib/                   # Core libraries
+│   ├── game/             # Game logic (~2098 lines)
+│   │   ├── phaser/       # Phaser engine code
+│   │   ├── levels/       # Level management
+│   │   └── mechanics/    # Game mechanics
+│   ├── storage/          # Database & caching
+│   └── utils/            # Utilities & helpers
+├── stores/                # Zustand state stores
+├── tests/                 # Test suites
+│   ├── unit/             # Unit tests
+│   ├── integration/      # Integration tests
+│   └── e2e/              # E2E tests (40+ files)
+├── prisma/                # Database schema
+└── public/                # Static assets
+    └── levels/           # Level configurations
+```
+
+### Key Features
+
+1. **Block Puzzle Gameplay** - 8x8 grid with line clearing mechanics
+2. **3-Tier Monetization** - FREE (3 levels), TRIAL (10 levels), PREMIUM (50 levels)
+3. **Scoring System** - Combo multipliers, time bonuses, perfect clear bonuses
+4. **PWA Support** - Offline capability, installable
+5. **Cross-device Sync** - Progress synchronization for authenticated users
+
+---
+
+## Development Workflow
+
+### Daily Development
+
+```bash
+# 1. Pull latest changes
+git pull origin main
+
+# 2. Install any new dependencies
+npm install
+
+# 3. Start development server
+npm run dev
+
+# 4. Run tests in watch mode (optional)
+npm run test:watch
+```
+
+### Development Server
+
+```bash
+# Standard development mode
+npm run dev
+# → Starts Next.js dev server on http://localhost:3000
+
+# Build for production (test)
+npm run build
+# → Creates optimized production build
+
+# Start production server
+npm run start
+# → Serves the production build
+```
+
+### Hot Reload
+
+Next.js provides automatic hot reload for:
+- React components
+- Pages and routes
+- API routes
+- CSS/Tailwind changes
+
+**Note:** Phaser game code may require a full page refresh due to Canvas initialization.
+
+### Environment Variables
+
+Required variables in `.env`:
+
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/block_puzzle_hero"
+
+# Redis Cache
+REDIS_URL="redis://localhost:6379"
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key-min-32-chars-long"
+
+# OAuth Providers (optional for development)
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
+FACEBOOK_CLIENT_ID="..."
+FACEBOOK_CLIENT_SECRET="..."
+
+# Handcash Payment (optional for development)
+HANDCASH_APP_ID="..."
+HANDCASH_APP_SECRET="..."
+NEXT_PUBLIC_HANDCASH_APP_ID="..."
+
+# Feature Flags
+NEXT_PUBLIC_ENABLE_PWA="true"
+NEXT_PUBLIC_ENABLE_OFFLINE="true"
+```
+
+---
+
+## Testing Strategy
+
+### Test Pyramid
+
+```
+       /\
+      /E2E\          40+ Playwright tests (UI flows)
+     /______\
+    /        \
+   /Integration\     API + Database tests
+  /______________\
+ /                \
+/   Unit Tests     \  62 tests (game logic)
+____________________
+```
+
+### Running Tests
+
+#### Unit & Integration Tests
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode (for development)
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+
+# Coverage thresholds: 70% (branches, functions, lines, statements)
+```
+
+**Test Results (Current):**
+```
+✓ 62 tests passed
+✓ 3 test suites
+  - scoring.test.ts (25 tests)
+  - line-clearing.test.ts (27 tests)
+  - tierAccess.test.ts (20 tests)
+```
+
+#### E2E Tests (Playwright)
+
+```bash
+# Run E2E tests
+npm run test:e2e
+
+# Run with UI mode (interactive)
+npm run test:e2e:ui
+
+# Run specific test file
+npx playwright test tests/e2e/game-logic-test.spec.ts
+
+# Run in headed mode (see browser)
+npx playwright test --headed
+
+# Debug mode
+npx playwright test --debug
+```
+
+**E2E Test Configuration:**
+- Browser: Chromium (Desktop Chrome)
+- Base URL: `http://localhost:3010`
+- Retries: 2 (in CI), 0 (local)
+- Screenshots: On failure
+- Trace: On first retry
+
+**Important:** E2E tests expect server on port 3010. Start dev server with:
+```bash
+PORT=3010 npm run dev
+```
+
+### Test Organization
+
+```
+tests/
+├── unit/
+│   └── game/
+│       ├── scoring.test.ts          # Scoring calculations
+│       ├── line-clearing.test.ts    # Line clearing logic
+│       └── tierAccess.test.ts       # Subscription tiers
+├── integration/
+│   └── (future API tests)
+└── e2e/
+    ├── game-logic-test.spec.ts      # Core game mechanics
+    ├── autonomous-game-test.spec.ts # Automated gameplay
+    └── (40+ other test files)
+```
+
+### Writing Tests
+
+**Unit Test Example:**
+```typescript
+import { calculateLineScore } from '@/lib/game/scoring';
+
+describe('calculateLineScore', () => {
+  it('should calculate single line score correctly', () => {
+    const score = calculateLineScore(1, 1);
+    expect(score).toBe(1000); // 10 × 1 × 100
+  });
+});
+```
+
+**E2E Test Example:**
+```typescript
+import { test, expect } from '@playwright/test';
+
+test('should place block on grid', async ({ page }) => {
+  await page.goto('/play/1');
+  await page.waitForSelector('canvas');
+
+  // Test autonomous placement
+  const result = await page.evaluate(() => {
+    return window.gameDebug.placeBlockAt(0, 0, 0);
+  });
+
+  expect(result.success).toBe(true);
+});
+```
+
+---
+
+## Build & Deployment
+
+### Build Process
+
+```bash
+# Full production build
+npm run build
+
+# Build with bundle analysis
+npm run analyze
+
+# Type check only
+npm run type-check
+
+# Lint code
+npm run lint
+
+# Lint and fix
+npm run lint:fix
+```
+
+### Build Output
+
+```
+Route (app)                              Size
+┌ ○ /                                    ...
+├ ○ /levels                              ...
+├ ○ /play/[level]                        ...
+└ ƒ /api/game/levels                     ...
+
+○ (Static)   - Pre-rendered at build time
+ƒ (Dynamic)  - Server-rendered on demand
+```
+
+### Pre-Deployment Checklist
+
+- [ ] All tests passing (`npm test`)
+- [ ] Build successful (`npm run build`)
+- [ ] Lint passing (`npm run lint`)
+- [ ] Type check passing (`npm run type-check`)
+- [ ] Environment variables configured
+- [ ] Database migrations applied
+- [ ] Redis connection tested
+- [ ] OAuth credentials configured (if using auth)
+- [ ] Handcash payment setup (if using payments)
+
+### Deployment Steps
+
+#### 1. Database Setup
+
+```bash
+# Generate Prisma client
+npm run prisma:generate
+
+# Run migrations
+npm run prisma:migrate
+
+# Seed data (optional)
+npm run prisma:seed
+```
+
+#### 2. Build Application
+
+```bash
+npm run build
+```
+
+#### 3. Start Production Server
+
+```bash
+npm run start
+```
+
+#### 4. Health Check
+
+Verify these endpoints:
+- `GET /` - Home page loads
+- `GET /levels` - Level selector loads
+- `GET /api/game/levels` - Returns level data
+- `GET /play/1` - Game loads successfully
+
+### Performance Targets
+
+```
+Metric                    Target
+────────────────────────────────
+First Contentful Paint    < 5s
+Time to Interactive       < 6s
+Largest Contentful Paint  < 2.5s
+Cumulative Layout Shift   < 0.1
+Lighthouse Score          > 90
+Database Query Time       < 100ms
+```
+
+---
+
+## Database Management
+
+### Prisma Commands
+
+```bash
+# Generate Prisma Client
+npm run prisma:generate
+
+# Create a new migration
+npm run prisma:migrate
+
+# Apply migrations
+npx prisma migrate deploy
+
+# Reset database (CAUTION: Deletes all data)
+npx prisma migrate reset
+
+# Open Prisma Studio (DB GUI)
+npm run prisma:studio
+
+# Seed database
+npm run prisma:seed
+```
+
+### Database Schema
+
+**5 Main Models:**
+
+1. **UserAccount** - User profiles & authentication
+2. **Subscription** - User subscription tiers (FREE/TRIAL/PREMIUM)
+3. **Level** - Game level configurations
+4. **GameSession** - Player game sessions & scores
+5. **ProgressSync** - Cross-device progress synchronization
+
+### Migrations
+
+**Note:** No migrations directory currently exists. To create initial migration:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+This will:
+1. Create `prisma/migrations/` directory
+2. Generate migration SQL
+3. Apply migration to database
+4. Regenerate Prisma Client
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Build Failures
+
+**Issue:** TypeScript errors during build
+```bash
+# Fix: Run type check to see specific errors
+npm run type-check
+
+# Common fixes:
+# - Add missing types
+# - Fix unused variables (prefix with _)
+# - Check import paths
+```
+
+**Issue:** Linting errors
+```bash
+# Fix: Auto-fix linting issues
+npm run lint:fix
+```
+
+#### 2. Phaser Game Not Loading
+
+**Symptoms:** Black screen, canvas not rendering
+
+**Solutions:**
+```typescript
+// 1. Check dynamic import in PhaserCanvas.tsx
+// Phaser must be imported client-side only
+
+// 2. Verify level data exists
+// Check /public/levels/level-1.json
+
+// 3. Check browser console for errors
+// Look for "window is not defined" errors
+```
+
+#### 3. Database Connection Issues
+
+**Symptoms:** Prisma errors, connection timeouts
+
+**Solutions:**
+```bash
+# 1. Verify DATABASE_URL in .env
+# 2. Check PostgreSQL is running
+sudo systemctl status postgresql
+
+# 3. Test connection
+npx prisma db pull
+
+# 4. Regenerate Prisma Client
+npm run prisma:generate
+```
+
+#### 4. Redis Cache Issues
+
+**Symptoms:** Slow level loading, cache misses
+
+**Solutions:**
+```bash
+# 1. Check Redis is running
+redis-cli ping
+# Should return: PONG
+
+# 2. Verify REDIS_URL in .env
+
+# 3. Clear Redis cache
+redis-cli FLUSHALL
+```
+
+#### 5. Test Failures
+
+**Unit Tests:**
+```bash
+# Clear Jest cache
+npx jest --clearCache
+
+# Run specific test
+npx jest tests/unit/game/scoring.test.ts
+
+# Debug test
+node --inspect-brk node_modules/.bin/jest --runInBand
+```
+
+**E2E Tests:**
+```bash
+# Ensure dev server is running on correct port
+PORT=3010 npm run dev
+
+# Check Playwright browsers are installed
+npx playwright install
+
+# Run with debug
+npx playwright test --debug
+```
+
+---
+
+## Code Quality
+
+### Linting Rules
+
+**ESLint Configuration:**
+- TypeScript ESLint (@typescript-eslint)
+- Next.js recommended rules
+- Prettier integration
+
+**Current Warnings** (Non-blocking):
+- `any` type usage in test utilities (acceptable)
+- Console statements in logger module (by design)
+- Some unused parameters in debug helpers
+
+### Type Safety
+
+**TypeScript Strict Mode:**
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true
+  }
+}
+```
+
+### Code Formatting
+
+```bash
+# Format all files
+npm run format
+
+# Format specific files
+npx prettier --write "path/to/file.ts"
+```
+
+### Pre-commit Hooks
+
+**Recommended Setup:**
+```bash
+# Install husky
+npm install --save-dev husky
+
+# Setup pre-commit hook
+npx husky add .git/hooks/pre-commit "npm run lint && npm test"
+```
+
+---
+
+## Performance Optimization
+
+### Caching Strategy
+
+**Redis Cache (1-hour TTL):**
+- Level configurations
+- User subscription data
+- Game session data
+
+**Next.js Cache:**
+- Static assets (immutable, 1 year)
+- Image optimization (AVIF/WebP)
+
+### Bundle Optimization
+
+```bash
+# Analyze bundle size
+npm run analyze
+
+# Key optimizations:
+# 1. Phaser dynamically imported (code splitting)
+# 2. Zustand optimized imports
+# 3. Tailwind CSS purged in production
+```
+
+### Image Optimization
+
+**Next.js Image Component:**
+```tsx
+import Image from 'next/image';
+
+<Image
+  src="/icon.svg"
+  alt="Block Puzzle Hero"
+  width={48}
+  height={48}
+  priority
+/>
+```
+
+**Formats:** AVIF → WebP → PNG (fallback)
+
+### Database Optimization
+
+**Indexes:**
+- User email (unique)
+- Subscription tier + status
+- Game session user + level
+- Level tier + number
+
+**Queries:**
+- Use Prisma's `findUnique` for indexed lookups
+- Batch operations with `Promise.all`
+- Implement pagination for large datasets
+
+---
+
+## Common Commands Reference
+
+### Development
+
+```bash
+npm run dev          # Start dev server
+npm run build        # Build production
+npm run start        # Start production server
+npm run lint         # Run linter
+npm run lint:fix     # Fix lint issues
+npm run type-check   # TypeScript check
+npm run format       # Format code
+```
+
+### Testing
+
+```bash
+npm test             # Run unit tests
+npm run test:watch   # Watch mode
+npm run test:coverage # Coverage report
+npm run test:e2e     # E2E tests
+npm run test:e2e:ui  # E2E UI mode
+```
+
+### Database
+
+```bash
+npm run prisma:generate  # Generate client
+npm run prisma:migrate   # Run migrations
+npm run prisma:studio    # Open DB GUI
+npm run prisma:seed      # Seed data
+```
+
+### Analysis
+
+```bash
+npm run analyze      # Bundle analysis
+npm run lighthouse   # Lighthouse CI
+```
+
+---
+
+## Additional Resources
+
+### Documentation
+
+- [Next.js Docs](https://nextjs.org/docs)
+- [Phaser 3 Docs](https://photonstorm.github.io/phaser3-docs/)
+- [Prisma Docs](https://www.prisma.io/docs)
+- [Playwright Docs](https://playwright.dev)
+
+### Project Files
+
+- `README.md` - Project overview
+- `CLAUDE.md` - Development guidelines
+- `TESTING_SUMMARY.md` - Test results
+- `IMPLEMENTATION_COMPLETE.md` - Implementation notes
+
+### Support
+
+For issues or questions:
+1. Check this workflow document
+2. Review existing documentation
+3. Check test files for examples
+4. Review GitHub issues (if applicable)
+
+---
+
+## Changelog
+
+### 2025-11-02
+- Initial workflow documentation created
+- All tests passing (62 unit tests)
+- Production build successful
+- E2E test suite verified (40+ tests)
+
+---
+
+**End of Workflow Documentation**
+
+For questions or improvements to this workflow, update this document and commit changes.

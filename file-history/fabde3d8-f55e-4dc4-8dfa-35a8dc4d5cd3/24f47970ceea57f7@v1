@@ -1,0 +1,722 @@
+'use client';
+
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Download, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Eye, EyeOff, CheckSquare, Square, MinusSquare, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import type { EnhancedProductData } from '@/lib/types-enhanced';
+import { exportToExcel, CSVExporter } from '@/lib/export-utils';
+import {
+  MARKET_POSITION_STYLES,
+  getEfficiencyStyle,
+  getRecommendationStyle,
+  formatConfidenceLevel,
+  formatValidationStatus,
+  type MarketPosition,
+} from '@/lib/ui-constants';
+
+interface SimpleDataTableProps {
+  data: EnhancedProductData[];
+  title?: string;
+}
+
+type SortDirection = 'asc' | 'desc' | null;
+type SortField = string;
+
+interface ColumnDef {
+  field: string;
+  header: string;
+  accessor: (item: EnhancedProductData) => string | number | null | undefined;
+  sortable?: boolean;
+  formatter?: (value: unknown) => string;
+  cellStyle?: (value: unknown) => React.CSSProperties | undefined;
+}
+
+export default function SimpleDataTable({ data, title = 'Product Analysis' }: SimpleDataTableProps) {
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set());
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [showColumnToggle, setShowColumnToggle] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const columnToggleRef = useRef<HTMLDivElement>(null);
+
+  // Column groups for organized display in column toggle
+  const COLUMN_GROUPS: Record<string, string[]> = {
+    'Core Info': ['manufacturer', 'model', 'zerez_id', 'market_position'],
+    'Power Density Analysis': ['power', 'weight', 'volume_m3', 'power_to_weight', 'power_density'],
+    'Efficiency': ['efficiency', 'euro_efficiency', 'efficiency_percentile'],
+    'Physical Specs': ['dimensions', 'ip_rating', 'cooling'],
+    'Electrical': ['max_dc_voltage_v', 'mppt_count', 'thd_percent'],
+    'Environmental': ['temp_range'],
+    'Competitive Intelligence': ['innovation_score', 'market_share', 'recommendation'],
+    'Data Quality': ['zerez_variant_count', 'pdf_source', 'confidence_level', 'validation_status'],
+  };
+
+  // Initialize visible columns to show key metrics + power density analysis by default
+  useEffect(() => {
+    const allColumns = new Set([
+      'manufacturer', 'model', 'zerez_id', 'market_position', 'power',
+      'efficiency', 'weight', 'power_to_weight', 'power_density',
+      'dimensions', 'efficiency_percentile', 'innovation_score',
+      'market_share', 'recommendation'
+    ]);
+    setVisibleColumns(allColumns);
+  }, []); // Run once on mount
+
+  // Column definitions
+  const columns: ColumnDef[] = useMemo(
+    () => [
+      {
+        field: 'manufacturer',
+        header: 'Manufacturer',
+        accessor: (item) => item.identification.manufacturer,
+        sortable: true,
+      },
+      {
+        field: 'model',
+        header: 'Model',
+        accessor: (item) => item.identification.model,
+        sortable: true,
+      },
+      {
+        field: 'market_position',
+        header: 'Market Position',
+        accessor: (item) => item.competitive.market_position,
+        sortable: true,
+        formatter: (value) => value ? String(value).charAt(0).toUpperCase() + String(value).slice(1) : 'N/A',
+        cellStyle: (value) => MARKET_POSITION_STYLES[value as MarketPosition],
+      },
+      {
+        field: 'power',
+        header: 'Power (kW)',
+        accessor: (item) => item.power.rated_power_kw,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(2) : 'N/A'),
+      },
+      {
+        field: 'efficiency',
+        header: 'Efficiency (%)',
+        accessor: (item) => item.efficiency.peak_percent,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(2) : 'N/A'),
+        cellStyle: (value) => getEfficiencyStyle(value),
+      },
+      {
+        field: 'weight',
+        header: 'Weight (kg)',
+        accessor: (item) => item.physical.weight_kg,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(0) : 'N/A'),
+      },
+      {
+        field: 'efficiency_percentile',
+        header: 'Efficiency Percentile',
+        accessor: (item) => item.benchmarks.efficiency_percentile,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(1) : 'N/A'),
+      },
+      {
+        field: 'innovation_score',
+        header: 'Innovation Score',
+        accessor: (item) => item.competitive.innovation_score,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(1) : 'N/A'),
+      },
+      {
+        field: 'market_share',
+        header: 'Market Share (%)',
+        accessor: (item) => item.competitive.market_share_estimate_percent,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(2) : 'N/A'),
+      },
+      {
+        field: 'recommendation',
+        header: 'Recommendation',
+        accessor: (item) => item.insights.recommendation_score,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(1) : 'N/A'),
+        cellStyle: (value) => getRecommendationStyle(value),
+      },
+      // ZEREZ Identification
+      {
+        field: 'zerez_id',
+        header: 'ZEREZ ID',
+        accessor: (item) => item.identification.zerez_id,
+        sortable: true,
+      },
+      {
+        field: 'zerez_variant_count',
+        header: 'Variants',
+        accessor: (item) => item.identification.zerez_variant_count,
+        sortable: true,
+        formatter: (value) => (value ? value.toString() : 'N/A'),
+      },
+      // Power Density Analysis - Uses pre-calculated values from data enrichment
+      {
+        field: 'volume_m3',
+        header: 'Volume (m³)',
+        accessor: (item) => item.volume_m3,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(3) : 'N/A'),
+      },
+      {
+        field: 'power_to_weight',
+        header: 'Power/Weight (kW/kg)',
+        accessor: (item) => item.power_to_weight,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(3) : 'N/A'),
+      },
+      {
+        field: 'power_density',
+        header: 'Power Density (kW/m³)',
+        accessor: (item) => item.power_density,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(0) : 'N/A'),
+      },
+      // Physical Dimensions
+      {
+        field: 'dimensions',
+        header: 'Dimensions (W×H×D mm)',
+        accessor: (item) => {
+          const { width_mm, height_mm, depth_mm } = item.physical;
+          if (width_mm && height_mm && depth_mm) {
+            return `${width_mm}×${height_mm}×${depth_mm}`;
+          }
+          return null;
+        },
+        sortable: false,
+      },
+      {
+        field: 'ip_rating',
+        header: 'IP Rating',
+        accessor: (item) => item.physical.ip_rating,
+        sortable: true,
+        formatter: (value) => (value ? `IP${value}` : 'N/A'),
+      },
+      {
+        field: 'cooling',
+        header: 'Cooling',
+        accessor: (item) => item.physical.cooling,
+        sortable: true,
+      },
+      // Electrical Specifications
+      {
+        field: 'max_dc_voltage_v',
+        header: 'Max DC Voltage (V)',
+        accessor: (item) => item.electrical.max_dc_voltage_v,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(0) : 'N/A'),
+      },
+      {
+        field: 'mppt_count',
+        header: 'MPPT Count',
+        accessor: (item) => item.electrical.mppt_count,
+        sortable: true,
+        formatter: (value) => (value ? value.toString() : 'N/A'),
+      },
+      {
+        field: 'thd_percent',
+        header: 'THD (%)',
+        accessor: (item) => item.electrical.thd_percent,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(1) : 'N/A'),
+      },
+      // Environmental
+      {
+        field: 'temp_range',
+        header: 'Temp Range (°C)',
+        accessor: (item) => {
+          const { temp_min_c, temp_max_c } = item.environmental;
+          if (temp_min_c !== undefined && temp_max_c !== undefined) {
+            return `${temp_min_c} to ${temp_max_c}`;
+          }
+          return null;
+        },
+        sortable: false,
+      },
+      // Additional Efficiency
+      {
+        field: 'euro_efficiency',
+        header: 'EURO Efficiency (%)',
+        accessor: (item) => item.efficiency.euro_percent,
+        sortable: true,
+        formatter: (value) => (value ? value.toFixed(2) : 'N/A'),
+      },
+      // Data Source Info
+      {
+        field: 'pdf_source',
+        header: 'PDF Source',
+        accessor: (item) => item.data_source.pdf_filename,
+        sortable: true,
+      },
+      {
+        field: 'confidence_level',
+        header: 'Data Confidence',
+        accessor: (item) => item.data_source.confidence_level,
+        sortable: true,
+        formatter: (value) => formatConfidenceLevel(value),
+      },
+      {
+        field: 'validation_status',
+        header: 'Validation',
+        accessor: (item) => item.data_source.validation_status,
+        sortable: true,
+        formatter: (value) => formatValidationStatus(value),
+      },
+    ],
+    []
+  );
+
+  // Sorting logic
+  const sortedData = useMemo(() => {
+    if (!sortField || !sortDirection) return data;
+
+    const column = columns.find((col) => col.field === sortField);
+    if (!column) return data;
+
+    return [...data].sort((a, b) => {
+      const aVal = column.accessor(a);
+      const bVal = column.accessor(b);
+
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return sortDirection === 'asc' ? 1 : -1;
+      if (bVal == null) return sortDirection === 'asc' ? -1 : 1;
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      return 0;
+    });
+  }, [data, sortField, sortDirection, columns]);
+
+  // Filtering logic
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return sortedData;
+
+    const lowerSearch = searchTerm.toLowerCase();
+    return sortedData.filter((item) =>
+      columns.some((col) => {
+        const value = col.accessor(item);
+        return value?.toString().toLowerCase().includes(lowerSearch);
+      })
+    );
+  }, [sortedData, searchTerm, columns]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredData.slice(startIndex, startIndex + pageSize);
+  }, [filteredData, currentPage, pageSize]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortField, sortDirection]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (columnToggleRef.current && !columnToggleRef.current.contains(event.target as Node)) {
+        setShowColumnToggle(false);
+      }
+    };
+
+    if (showColumnToggle) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showColumnToggle]);
+
+  // Visible columns filter
+  const visibleColumnsData = useMemo(() => {
+    return columns.filter((col) => visibleColumns.has(col.field));
+  }, [columns, visibleColumns]);
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Cycle through: asc -> desc -> null
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortDirection(null);
+        setSortField(null);
+      }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const toggleColumnVisibility = (field: string) => {
+    const newVisible = new Set(visibleColumns);
+    if (newVisible.has(field)) {
+      newVisible.delete(field);
+    } else {
+      newVisible.add(field);
+    }
+    setVisibleColumns(newVisible);
+  };
+
+  const toggleRowSelection = (id: string) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRows.size === filteredData.length) {
+      // Deselect all
+      setSelectedRows(new Set());
+    } else {
+      // Select all filtered results (not just current page)
+      const allIds = new Set(filteredData.map((item) => item.identification.zerez_id));
+      setSelectedRows(allIds);
+    }
+  };
+
+  const exportToCSV = () => {
+    try {
+      const dataToExport = selectedRows.size > 0
+        ? filteredData.filter(item => selectedRows.has(item.identification.zerez_id))
+        : filteredData;
+
+      if (dataToExport.length === 0) {
+        toast.error('No data to export. Try adjusting your filters.');
+        return;
+      }
+
+      // Use centralized CSVExporter utility for RFC 4180 compliance
+      CSVExporter.exportWithColumns(
+        dataToExport,
+        visibleColumnsData,
+        'product-analysis'
+      );
+
+      toast.success(`Exported ${dataToExport.length} rows to CSV`);
+    } catch (error) {
+      console.error('CSV export failed:', error);
+      toast.error('CSV export failed. Please try again.');
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const dataToExport = selectedRows.size > 0
+        ? filteredData.filter(item => selectedRows.has(item.identification.zerez_id))
+        : filteredData;
+
+      if (dataToExport.length === 0) {
+        toast.error('No data to export. Try adjusting your filters.');
+        return;
+      }
+
+      const exportData = dataToExport.map((item) => {
+        const row: Record<string, unknown> = {};
+        visibleColumnsData.forEach((col) => {
+          const value = col.accessor(item);
+          row[col.header] = col.formatter ? col.formatter(value) : value ?? 'N/A';
+        });
+        return row;
+      });
+
+      await exportToExcel(exportData, `product-analysis-${new Date().getTime()}.xlsx`);
+      toast.success(`Exported ${dataToExport.length} rows to Excel`);
+    } catch (error) {
+      console.error('Excel export failed:', error);
+      toast.error('Excel export unavailable. Try CSV export instead.');
+
+      // Graceful degradation: suggest CSV as fallback
+      setTimeout(() => {
+        if (window.confirm('Would you like to export as CSV instead?')) {
+          exportToCSV();
+        }
+      }, 500);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) return <ChevronsUpDown size={14} className="text-gray-400" />;
+    if (sortDirection === 'asc') return <ChevronUp size={14} className="text-blue-600" />;
+    if (sortDirection === 'desc') return <ChevronDown size={14} className="text-blue-600" />;
+    return <ChevronsUpDown size={14} className="text-gray-400" />;
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {filteredData.length} of {data.length} products
+              {selectedRows.size > 0 && ` • ${selectedRows.size} selected`}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <div className="relative" ref={columnToggleRef}>
+              <button
+                onClick={() => setShowColumnToggle(!showColumnToggle)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
+              >
+                {showColumnToggle ? <EyeOff size={18} /> : <Eye size={18} />}
+                Columns
+              </button>
+              {showColumnToggle && (
+                <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-700 rounded-md shadow-lg border border-gray-200 dark:border-gray-600 z-10 max-h-96 overflow-y-auto">
+                  <div className="p-2">
+                    {Object.entries(COLUMN_GROUPS).map(([groupName, fieldNames]) => (
+                      <div key={groupName} className="mb-3 last:mb-0">
+                        <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          {groupName}
+                        </div>
+                        {columns
+                          .filter((col) => fieldNames.includes(col.field))
+                          .map((col) => (
+                            <label
+                              key={col.field}
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={visibleColumns.has(col.field)}
+                                onChange={() => toggleColumnVisibility(col.field)}
+                                className="rounded"
+                              />
+                              <span className="text-sm text-gray-900 dark:text-white">{col.header}</span>
+                            </label>
+                          ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={exportToCSV}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+              title={selectedRows.size > 0 ? `Export ${selectedRows.size} selected rows` : 'Export all visible data'}
+            >
+              <Download size={18} />
+              CSV
+            </button>
+            <button
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+              title={selectedRows.size > 0 ? `Export ${selectedRows.size} selected rows` : 'Export all visible data'}
+            >
+              {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+              Excel
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-4 mb-4">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search all columns..."
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          >
+            <option value={10}>10 per page</option>
+            <option value={25}>25 per page</option>
+            <option value={50}>50 per page</option>
+            <option value={100}>100 per page</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50 dark:bg-gray-900">
+            <tr>
+              <th className="px-4 py-3 text-left">
+                <button
+                  onClick={toggleSelectAll}
+                  className="text-gray-700 dark:text-gray-300 hover:text-blue-600"
+                  title={
+                    selectedRows.size === filteredData.length
+                      ? 'Deselect all'
+                      : selectedRows.size > 0
+                      ? `Select all ${filteredData.length} filtered results`
+                      : `Select all ${filteredData.length} results`
+                  }
+                >
+                  {selectedRows.size === filteredData.length ? (
+                    <CheckSquare size={18} />
+                  ) : selectedRows.size > 0 ? (
+                    <MinusSquare size={18} />
+                  ) : (
+                    <Square size={18} />
+                  )}
+                </button>
+              </th>
+              {visibleColumnsData.map((col) => (
+                <th
+                  key={col.field}
+                  onClick={() => col.sortable && handleSort(col.field)}
+                  className={`px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider ${
+                    col.sortable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {col.header}
+                    {col.sortable && getSortIcon(col.field)}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {paginatedData.map((item, idx) => {
+              const rowId = item.identification.zerez_id;
+              const isSelected = selectedRows.has(rowId);
+
+              return (
+                <tr
+                  key={`${rowId}-${idx}`}
+                  className={`transition-colors ${
+                    isSelected
+                      ? 'bg-blue-50 dark:bg-blue-900/20'
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => toggleRowSelection(rowId)}
+                      className="text-gray-700 dark:text-gray-300 hover:text-blue-600"
+                    >
+                      {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                    </button>
+                  </td>
+                  {visibleColumnsData.map((col) => {
+                    const value = col.accessor(item);
+                    const formatted = col.formatter ? col.formatter(value) : value;
+                    const cellStyle = col.cellStyle ? col.cellStyle(value) : undefined;
+
+                    return (
+                      <td key={col.field} className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" style={cellStyle}>
+                        {formatted ?? 'N/A'}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {filteredData.length === 0 && (
+        <div className="p-12 text-center text-gray-500 dark:text-gray-400">
+          <p className="text-lg">No products found matching your search.</p>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {filteredData.length > 0 && totalPages > 1 && (
+        <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Showing {(currentPage - 1) * pageSize + 1} to{' '}
+            {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} results
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              First
+            </button>
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1"
+            >
+              <ChevronLeft size={16} />
+              Prev
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-1 rounded-md border ${
+                      currentPage === pageNum
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    } transition-colors`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1"
+            >
+              Next
+              <ChevronRight size={16} />
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              Last
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 rounded-b-lg">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Click column headers to sort • Use search to filter results • Select rows to export specific data
+        </p>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,238 @@
+/**
+ * Visual Respawn Test - Screenshot Analysis
+ *
+ * This test captures screenshots at each critical point to visually verify
+ * if blocks are respawning correctly and remain interactive.
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Visual Block Respawn Analysis', () => {
+
+  test('Capture screenshots of block respawn behavior', async ({ page }) => {
+    console.log('\n📸 VISUAL RESPAWN TEST - SCREENSHOT ANALYSIS\n');
+    console.log('=' .repeat(80));
+
+    test.setTimeout(120000);
+
+    // Navigate to game
+    await page.goto('/play/1', { waitUntil: 'networkidle', timeout: 60000 });
+    await page.locator('canvas').waitFor({ state: 'visible', timeout: 30000 });
+    await page.waitForFunction(() => {
+      return typeof (window as any).game !== 'undefined' &&
+             typeof (window as any).gameDebug !== 'undefined';
+    }, { timeout: 40000 });
+    await page.waitForTimeout(8000);
+
+    console.log('✓ Game loaded\n');
+
+    // === STEP 1: Initial State ===
+    console.log('📸 STEP 1: Capturing initial state (3 blocks spawned)');
+    await page.screenshot({
+      path: 'test-results/visual-01-initial-blocks.png',
+      fullPage: true
+    });
+
+    const initialBlocks = await page.evaluate(() => {
+      const blocks = (window as any).gameDebug.getAvailableBlocks();
+      return blocks.map((b: any) => ({
+        id: b.id,
+        position: b.position,
+        width: b.width,
+        height: b.height
+      }));
+    });
+
+    console.log('Initial blocks:', initialBlocks);
+    console.log(`Count: ${initialBlocks.length}\n`);
+
+    // === STEP 2: Place First Block ===
+    console.log('📸 STEP 2: Placing first block at (0, 0)');
+
+    const result1 = await page.evaluate(() => {
+      return (window as any).gameDebug.simulateDrag(0, 0, 0);
+    });
+
+    console.log('Result:', result1);
+    await page.waitForTimeout(1000);
+
+    await page.screenshot({
+      path: 'test-results/visual-02-after-first-block.png',
+      fullPage: true
+    });
+
+    const afterFirst = await page.evaluate(() => {
+      const blocks = (window as any).gameDebug.getAvailableBlocks();
+      const grid = (window as any).gameDebug.getGridVisualization();
+      return {
+        blockCount: blocks.length,
+        blocks: blocks.map((b: any) => ({ id: b.id, pos: b.position })),
+        grid
+      };
+    });
+
+    console.log(`Blocks remaining: ${afterFirst.blockCount}`);
+    console.log('Grid state:', afterFirst.grid);
+    console.log();
+
+    // === STEP 3: Place Second Block ===
+    console.log('📸 STEP 3: Placing second block at (0, 4)');
+
+    const result2 = await page.evaluate(() => {
+      return (window as any).gameDebug.simulateDrag(0, 0, 4);
+    });
+
+    console.log('Result:', result2);
+    await page.waitForTimeout(1000);
+
+    await page.screenshot({
+      path: 'test-results/visual-03-after-second-block.png',
+      fullPage: true
+    });
+
+    const afterSecond = await page.evaluate(() => {
+      const blocks = (window as any).gameDebug.getAvailableBlocks();
+      return {
+        blockCount: blocks.length,
+        blocks: blocks.map((b: any) => ({ id: b.id, pos: b.position }))
+      };
+    });
+
+    console.log(`Blocks remaining: ${afterSecond.blockCount}`);
+    console.log();
+
+    // === STEP 4: Place Third Block (triggers respawn) ===
+    console.log('📸 STEP 4: Placing third block at (2, 0) - should trigger respawn');
+
+    const result3 = await page.evaluate(() => {
+      return (window as any).gameDebug.simulateDrag(0, 2, 0);
+    });
+
+    console.log('Result:', result3);
+    await page.waitForTimeout(2000); // Give time for respawn
+
+    await page.screenshot({
+      path: 'test-results/visual-04-after-third-block-respawn.png',
+      fullPage: true
+    });
+
+    const afterRespawn = await page.evaluate(() => {
+      const blocks = (window as any).gameDebug.getAvailableBlocks();
+      const grid = (window as any).gameDebug.getGridVisualization();
+      return {
+        blockCount: blocks.length,
+        blocks: blocks.map((b: any) => ({
+          id: b.id,
+          position: b.position,
+          width: b.width,
+          height: b.height
+        })),
+        grid
+      };
+    });
+
+    console.log(`Blocks after respawn: ${afterRespawn.blockCount}`);
+    console.log('Respawned blocks:', afterRespawn.blocks);
+    console.log('Grid state:', afterRespawn.grid);
+    console.log();
+
+    // === STEP 5: Zoom in on blocks area ===
+    console.log('📸 STEP 5: Close-up of respawned blocks area');
+
+    // Capture just the blocks area (bottom of screen)
+    await page.screenshot({
+      path: 'test-results/visual-05-blocks-closeup.png',
+      fullPage: false,
+      clip: {
+        x: 0,
+        y: 400,
+        width: 800,
+        height: 200
+      }
+    });
+
+    // === STEP 6: Try to use a respawned block ===
+    console.log('📸 STEP 6: Attempting to place a respawned block at (3, 0)');
+
+    const result4 = await page.evaluate(() => {
+      return (window as any).gameDebug.simulateDrag(0, 3, 0);
+    });
+
+    console.log('Result:', result4);
+
+    if (result4.success) {
+      console.log('✅ SUCCESS: Respawned block is functional!');
+    } else {
+      console.log('❌ FAILED: Respawned block did not place');
+      console.log('   Message:', result4.message);
+    }
+
+    await page.waitForTimeout(1000);
+
+    await page.screenshot({
+      path: 'test-results/visual-06-after-respawned-block-attempt.png',
+      fullPage: true
+    });
+
+    // === STEP 7: Get detailed block state ===
+    const detailedState = await page.evaluate(() => {
+      const scene = (window as any).game.scene.scenes[0];
+      const blockPool = scene.blockPool;
+      const activeBlocks = Array.from(blockPool.activeBlocks);
+
+      return {
+        poolSize: blockPool.pool.length,
+        activeCount: blockPool.activeBlocks.size,
+        activeBlocks: activeBlocks.map((block: any) => ({
+          id: block.blockData?.id,
+          x: block.x,
+          y: block.y,
+          active: block.active,
+          visible: block.visible,
+          hasInput: !!block.input,
+          isDraggable: block.input?.draggable,
+          depth: block.depth,
+          scale: block.scale
+        }))
+      };
+    });
+
+    console.log('\n📊 DETAILED BLOCK STATE:');
+    console.log('Pool size:', detailedState.poolSize);
+    console.log('Active blocks:', detailedState.activeCount);
+    console.log('Block details:', JSON.stringify(detailedState.activeBlocks, null, 2));
+
+    // === ANALYSIS ===
+    console.log('\n' + '='.repeat(80));
+    console.log('📋 VISUAL ANALYSIS SUMMARY');
+    console.log('='.repeat(80));
+    console.log(`Initial blocks: ${initialBlocks.length}`);
+    console.log(`After 3 placements: ${afterRespawn.blockCount} blocks`);
+    console.log(`Respawn occurred: ${afterRespawn.blockCount === 3 ? 'YES ✅' : 'NO ❌'}`);
+    console.log(`Respawned block functional: ${result4.success ? 'YES ✅' : 'NO ❌'}`);
+
+    if (afterRespawn.blockCount === 3 && detailedState.activeBlocks.length === 3) {
+      const allDraggable = detailedState.activeBlocks.every((b: any) => b.hasInput && b.isDraggable);
+      console.log(`All blocks have input: ${allDraggable ? 'YES ✅' : 'NO ❌'}`);
+
+      if (!allDraggable) {
+        console.log('\n⚠️  BUG DETECTED: Respawned blocks missing input/draggable properties');
+        detailedState.activeBlocks.forEach((b: any, i: number) => {
+          console.log(`  Block ${i} (${b.id}): hasInput=${b.hasInput}, isDraggable=${b.isDraggable}`);
+        });
+      }
+    }
+
+    console.log('\n📁 Screenshots saved:');
+    console.log('  - visual-01-initial-blocks.png');
+    console.log('  - visual-02-after-first-block.png');
+    console.log('  - visual-03-after-second-block.png');
+    console.log('  - visual-04-after-third-block-respawn.png');
+    console.log('  - visual-05-blocks-closeup.png');
+    console.log('  - visual-06-after-respawned-block-attempt.png');
+    console.log('\n' + '='.repeat(80));
+
+    // Verify respawn occurred
+    expect(afterRespawn.blockCount).toBe(3);
+  });
+});

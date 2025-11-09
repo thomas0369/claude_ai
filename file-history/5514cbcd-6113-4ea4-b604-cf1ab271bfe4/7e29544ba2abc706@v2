@@ -1,0 +1,26 @@
+/**
+ * DeepSeek Vision API Module
+ * ===========================
+ *
+ * Main exports for DeepSeek integration
+ */
+
+export { DeepSeekVisionClient } from './client';
+export type {
+  DeepSeekConfig,
+  ExtractionResult,
+  Power,
+  Efficiency,
+  Voltage,
+  Physical,
+  Environmental,
+  Battery,
+  ExtractionStats,
+} from './types';
+export {
+  DeepSeekAPIError,
+  DeepSeekRateLimitError,
+  DeepSeekCostLimitError,
+  DEEPSEEK_PRICING,
+  DEFAULT_CONFIG,
+} from './types';

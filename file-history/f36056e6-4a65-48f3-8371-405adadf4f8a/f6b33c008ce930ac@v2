@@ -1,0 +1,775 @@
+# Elliott Wave Trading Bot v3.0 - Export & Reporting Guide
+
+**Last Updated:** January 4, 2025
+**Status:** ✅ **FULLY OPERATIONAL**
+
+---
+
+## 📋 Table of Contents
+
+1. [Overview](#overview)
+2. [Features](#features)
+3. [Quick Start](#quick-start)
+4. [PDF Reports](#pdf-reports)
+5. [CSV Exports](#csv-exports)
+6. [Email Notifications](#email-notifications)
+7. [API Reference](#api-reference)
+8. [Configuration](#configuration)
+9. [Examples](#examples)
+10. [Troubleshooting](#troubleshooting)
+
+---
+
+## 🎯 Overview
+
+The Export & Reporting system provides comprehensive tools for exporting trading signals and performance data in multiple formats, including automated email notifications for high-value signals.
+
+### Key Capabilities
+
+- **PDF Reports**: Professional signal and performance reports
+- **CSV Exports**: Data exports for analysis in Excel/Python
+- **Email Notifications**: Automated alerts for new signals
+- **File Management**: List, download, and cleanup export files
+- **RESTful API**: Complete programmatic control
+
+---
+
+## 🌟 Features
+
+### 1. PDF Report Generation
+
+Generate professional PDF reports for:
+- Individual trading signals with complete metadata
+- Performance summaries with statistics
+- A/B testing results (Claude vs Screener)
+
+**Benefits:**
+- Professional presentation for sharing with team/clients
+- Complete signal documentation for compliance
+- Historical performance tracking
+
+### 2. CSV Data Export
+
+Export signals and performance data to CSV for:
+- Analysis in Excel/Google Sheets
+- Import into trading journals
+- Statistical analysis in Python/R
+- Data warehousing
+
+**Includes:**
+- All signal fields (entry, SL, TP, scores, etc.)
+- Performance metrics
+- A/B testing data
+
+### 3. Email Notifications
+
+Automated email notifications featuring:
+- Instant alerts for new high-score signals
+- PDF reports attached
+- Scheduled performance summaries
+- Customizable recipient lists
+
+**Use Cases:**
+- Real-time trading alerts
+- Daily/weekly performance summaries
+- Team notifications
+- Client reporting
+
+---
+
+## 🚀 Quick Start
+
+### Setup
+
+1. **Install Dependencies** (already included):
+   ```bash
+   pip install reportlab  # PDF generation
+   ```
+
+2. **Configure Email** (optional, in `.env`):
+   ```env
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your_email@gmail.com
+   SMTP_PASSWORD=your_app_password
+   ```
+
+3. **Create Exports Directory**:
+   ```bash
+   mkdir -p exports
+   ```
+
+### Basic Usage
+
+```python
+from export_manager import ExportManager
+
+# Initialize
+manager = ExportManager(
+    output_dir="exports",
+    smtp_host="smtp.gmail.com",
+    smtp_port=587,
+    smtp_user="your@email.com",
+    smtp_password="your_password"
+)
+
+# Generate PDF report
+pdf_path = manager.generate_signal_report_pdf(signal_data)
+
+# Export to CSV
+csv_path = manager.export_signals_to_csv(signals_list)
+
+# Send email notification
+manager.send_signal_notification("trader@example.com", signal_data)
+```
+
+---
+
+## 📄 PDF Reports
+
+### Signal Report PDF
+
+Generate detailed PDF report for a single trading signal.
+
+**Includes:**
+- Signal summary (symbol, direction, score, timeframe)
+- Trading parameters (entry, SL, TP, leverage)
+- Score breakdown by component
+- Claude AI validation results (if available)
+- Professional disclaimer
+
+**Example:**
+```python
+signal_data = {
+    'symbol': 'EUR/USD',
+    'direction': 'LONG',
+    'score': 145,
+    'timeframe': '1h',
+    'current_price': 1.1000,
+    'entry_price': 1.1000,
+    'stop_loss': 1.0950,
+    'take_profit': 1.1100,
+    'leverage': 10,
+    'score_breakdown': {
+        'elliott_wave': 75,
+        'ict_components': 70
+    },
+    'claude_validated': True,
+    'enhanced_score': 155,
+    'claude_confidence': 85,
+    'claude_justification': 'Strong impulse wave structure...'
+}
+
+pdf_path = manager.generate_signal_report_pdf(signal_data)
+print(f"Report generated: {pdf_path}")
+```
+
+### Performance Report PDF
+
+Generate comprehensive performance report with statistics and recent signals.
+
+**Includes:**
+- Performance summary (win rate, PnL, total signals)
+- A/B testing comparison (Claude vs Screener)
+- Recent signals table
+- Multi-page format with proper pagination
+
+**Example:**
+```python
+# Get performance data
+performance = {
+    'total_signals': 47,
+    'win_rate': 65.6,
+    'avg_pnl_percentage': 12.4,
+    'total_wins': 21,
+    'total_losses': 11,
+    'ab_testing': {...}
+}
+
+# Get recent signals
+signals = [...]  # List of signal dicts
+
+# Generate report
+pdf_path = manager.generate_performance_report_pdf(
+    performance_data=performance,
+    signals=signals
+)
+```
+
+---
+
+## 📊 CSV Exports
+
+### Signal Export CSV
+
+Export trading signals to CSV file with all metadata.
+
+**Columns Included:**
+- signal_id
+- timestamp
+- symbol
+- direction
+- timeframe
+- score
+- enhanced_score
+- current_price
+- entry_price
+- stop_loss
+- take_profit
+- leverage
+- status
+- actual_exit_price
+- pnl_percentage
+- claude_validated
+- claude_confidence
+- data_quality_score
+
+**Example:**
+```python
+# Export recent signals
+signals = signal_history.get_signals(limit=100, days=30)
+csv_path = manager.export_signals_to_csv(signals)
+```
+
+**Sample CSV Output:**
+```csv
+signal_id,timestamp,symbol,direction,score,enhanced_score,pnl_percentage,...
+EUR/USD_20250104_143050,2025-01-04T14:30:50Z,EUR/USD,LONG,145,155,18.5,...
+GBP/USD_20250104_150230,2025-01-04T15:02:30Z,GBP/USD,SHORT,132,142,12.3,...
+```
+
+### Performance Export CSV
+
+Export performance metrics to CSV.
+
+**Includes:**
+- All performance statistics
+- Win/loss breakdown
+- Average metrics
+- Symbol-specific data
+
+---
+
+## 📧 Email Notifications
+
+### Signal Notifications
+
+Send instant email alerts for new trading signals.
+
+**Features:**
+- Professional email template
+- PDF report attached
+- Signal summary in email body
+- Customizable recipient
+
+**Example:**
+```python
+# Send notification for new signal
+sent = manager.send_signal_notification(
+    to_email="trader@example.com",
+    signal_data=signal_data,
+    attach_pdf=True  # Attach PDF report
+)
+
+if sent:
+    print("Notification sent successfully")
+```
+
+**Email Template:**
+```
+Subject: 🔔 New Trading Signal: EUR/USD (145/194)
+
+New Elliott Wave Trading Signal Detected!
+
+Symbol: EUR/USD
+Direction: LONG
+Score: 145/194
+Timeframe: 1h
+
+Entry Price: 1.10000
+Stop Loss: 1.09500
+Take Profit: 1.11000
+Recommended Leverage: 10x
+
+Generated: 2025-01-04 14:30 UTC
+
+[PDF Report Attached]
+```
+
+### Performance Reports via Email
+
+Send automated performance reports on schedule.
+
+**Example:**
+```python
+# Send weekly performance report
+performance = signal_history.get_performance_stats(days=7)
+signals = signal_history.get_signals(limit=20, days=7)
+
+sent = manager.send_performance_report(
+    to_email="team@trading.com",
+    performance_data=performance,
+    signals=signals,
+    period_days=7
+)
+```
+
+### Email Configuration
+
+**Gmail Setup:**
+1. Enable 2-Factor Authentication
+2. Generate App Password: https://myaccount.google.com/apppasswords
+3. Use App Password in `.env` file
+
+**Environment Variables:**
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_16_character_app_password
+```
+
+---
+
+## 🔌 API Reference
+
+### Export Endpoints
+
+#### 1. Generate Signal PDF
+
+```http
+POST /api/export/signal/pdf
+Content-Type: application/json
+
+{
+  "signal_data": {
+    "symbol": "EUR/USD",
+    "direction": "LONG",
+    "score": 145,
+    ...
+  },
+  "filename": "custom_report.pdf"  // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "filepath": "exports/signal_report_EUR_USD_20250104_143050.pdf",
+  "filename": "signal_report_EUR_USD_20250104_143050.pdf",
+  "message": "PDF report generated"
+}
+```
+
+#### 2. Generate Performance PDF
+
+```http
+POST /api/export/performance/pdf
+Content-Type: application/json
+
+{
+  "days": 30,
+  "symbol": "EUR/USD"  // Optional
+}
+```
+
+#### 3. Export Signals to CSV
+
+```http
+POST /api/export/signals/csv
+Content-Type: application/json
+
+{
+  "limit": 100,
+  "days": 30,
+  "symbol": "EUR/USD"  // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "filepath": "exports/signals_export_20250104_143050.csv",
+  "filename": "signals_export_20250104_143050.csv",
+  "count": 47,
+  "message": "Exported 47 signals to CSV"
+}
+```
+
+#### 4. Export Performance to CSV
+
+```http
+POST /api/export/performance/csv
+Content-Type: application/json
+
+{
+  "days": 30
+}
+```
+
+#### 5. Send Email Notification
+
+```http
+POST /api/export/notify
+Content-Type: application/json
+
+{
+  "to_email": "trader@example.com",
+  "signal_data": {...},
+  "attach_pdf": true
+}
+```
+
+#### 6. Email Performance Report
+
+```http
+POST /api/export/report/email
+Content-Type: application/json
+
+{
+  "to_email": "team@trading.com",
+  "days": 30
+}
+```
+
+#### 7. List Exports
+
+```http
+GET /api/export/list?type=pdf
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "exports": [
+    {
+      "filename": "signal_report_EUR_USD_20250104_143050.pdf",
+      "path": "exports/signal_report_EUR_USD_20250104_143050.pdf",
+      "size_bytes": 4523,
+      "created": "2025-01-04T14:30:50",
+      "type": "pdf"
+    },
+    ...
+  ],
+  "count": 12
+}
+```
+
+#### 8. Download Export
+
+```http
+GET /api/export/download/signal_report_EUR_USD_20250104_143050.pdf
+```
+
+**Response:** File download
+
+#### 9. Delete Export
+
+```http
+DELETE /api/export/delete/old_report.pdf
+```
+
+#### 10. Cleanup Old Exports
+
+```http
+POST /api/export/cleanup
+Content-Type: application/json
+
+{
+  "days": 30  // Delete files older than 30 days
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "deleted_count": 15,
+  "message": "Cleaned up 15 files older than 30 days"
+}
+```
+
+---
+
+## ⚙️ Configuration
+
+### ExportManager Initialization
+
+```python
+from export_manager import ExportManager
+
+manager = ExportManager(
+    output_dir="exports",              # Export files directory
+    smtp_host="smtp.gmail.com",        # SMTP server
+    smtp_port=587,                     # SMTP port (587 for TLS)
+    smtp_user="your@email.com",        # Email username
+    smtp_password="app_password",      # Email password/app password
+    from_email="your@email.com"        # Sender email (optional)
+)
+```
+
+### Email Providers
+
+**Gmail:**
+```python
+smtp_host="smtp.gmail.com"
+smtp_port=587
+```
+
+**Outlook:**
+```python
+smtp_host="smtp-mail.outlook.com"
+smtp_port=587
+```
+
+**Custom SMTP:**
+```python
+smtp_host="mail.yourdomain.com"
+smtp_port=587
+```
+
+---
+
+## 💡 Examples
+
+### Example 1: Generate and Email Signal Report
+
+```python
+from export_manager import ExportManager
+from signal_history import SignalHistoryManager
+
+# Initialize
+export_mgr = ExportManager(output_dir="exports", smtp_host="smtp.gmail.com", ...)
+signal_hist = SignalHistoryManager()
+
+# Get latest signal
+signals = signal_hist.get_signals(limit=1)
+if signals:
+    signal = signals[0]
+
+    # Generate PDF
+    pdf_path = export_mgr.generate_signal_report_pdf(signal)
+    print(f"PDF generated: {pdf_path}")
+
+    # Send email notification
+    sent = export_mgr.send_signal_notification(
+        to_email="trader@example.com",
+        signal_data=signal,
+        attach_pdf=True
+    )
+
+    if sent:
+        print("Email sent successfully")
+```
+
+### Example 2: Daily Performance Report
+
+```python
+from datetime import datetime
+
+# Get daily performance
+performance = signal_hist.get_performance_stats(days=1)
+signals = signal_hist.get_signals(limit=10, days=1)
+
+# Generate and email report
+if performance['total_signals'] > 0:
+    # Generate PDF
+    pdf_path = export_mgr.generate_performance_report_pdf(
+        performance_data=performance,
+        signals=signals
+    )
+
+    # Email to team
+    export_mgr.send_performance_report(
+        to_email="team@trading.com",
+        performance_data=performance,
+        signals=signals,
+        period_days=1
+    )
+
+    print(f"Daily report sent: {datetime.now()}")
+```
+
+### Example 3: Export All Signals to CSV
+
+```python
+# Export all signals from last 90 days
+signals = signal_hist.get_signals(limit=500, days=90)
+
+csv_path = export_mgr.export_signals_to_csv(signals)
+print(f"Exported {len(signals)} signals to {csv_path}")
+
+# Use with pandas for analysis
+import pandas as pd
+df = pd.read_csv(csv_path)
+print(df.describe())
+```
+
+### Example 4: Scheduled Weekly Report
+
+```python
+import schedule
+import time
+
+def weekly_report():
+    """Generate and email weekly performance report."""
+    performance = signal_hist.get_performance_stats(days=7)
+    signals = signal_hist.get_signals(limit=50, days=7)
+
+    export_mgr.send_performance_report(
+        to_email="management@trading.com",
+        performance_data=performance,
+        signals=signals,
+        period_days=7
+    )
+    print("Weekly report sent")
+
+# Schedule for every Monday at 9 AM
+schedule.every().monday.at("09:00").do(weekly_report)
+
+while True:
+    schedule.run_pending()
+    time.sleep(3600)  # Check every hour
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### PDF Generation Issues
+
+**Problem:** `ImportError: No module named 'reportlab'`
+
+**Solution:**
+```bash
+pip install reportlab
+```
+
+**Problem:** PDF generation fails with encoding error
+
+**Solution:** Ensure all text data is UTF-8 encoded:
+```python
+text = str(value).encode('utf-8', errors='ignore').decode('utf-8')
+```
+
+### Email Issues
+
+**Problem:** `SMTPAuthenticationError: Username and Password not accepted`
+
+**Solution:**
+- Use App Password instead of regular password (Gmail)
+- Enable "Less secure app access" (some providers)
+- Check SMTP credentials in `.env`
+
+**Problem:** Email not sending, no error
+
+**Solution:**
+```python
+# Check if email is configured
+if not export_mgr._email_configured():
+    print("Email not configured!")
+    print(f"SMTP Host: {export_mgr.smtp_host}")
+    print(f"SMTP User: {export_mgr.smtp_user}")
+```
+
+**Problem:** Gmail blocks login
+
+**Solution:**
+1. Enable 2FA: https://myaccount.google.com/security
+2. Generate App Password: https://myaccount.google.com/apppasswords
+3. Use App Password in `.env`
+
+### CSV Export Issues
+
+**Problem:** CSV file is empty
+
+**Solution:** Check if signals list has data:
+```python
+signals = signal_hist.get_signals(limit=100)
+print(f"Found {len(signals)} signals")
+
+if signals:
+    csv_path = export_mgr.export_signals_to_csv(signals)
+```
+
+**Problem:** CSV encoding issues in Excel
+
+**Solution:** Open CSV with UTF-8 encoding in Excel:
+1. Data → From Text/CSV
+2. File Origin: UTF-8
+3. Load
+
+---
+
+## 📚 Related Documentation
+
+- [SIGNAL_HISTORY_README.md](SIGNAL_HISTORY_README.md) - Signal history tracking
+- [PROJECT_STATUS.md](PROJECT_STATUS.md) - Project overview
+- [START_HERE.md](START_HERE.md) - Quick start guide
+
+---
+
+## 📊 Export Statistics
+
+### Typical File Sizes
+
+| Export Type | Typical Size | Max Recommended |
+|-------------|--------------|------------------|
+| Signal PDF | 3-5 KB | 50 KB |
+| Performance PDF | 10-20 KB | 100 KB |
+| Signals CSV (100 rows) | 10-15 KB | 1 MB |
+| Performance CSV | 1-2 KB | 10 KB |
+
+### Storage Management
+
+**Automatic Cleanup:**
+```python
+# Clean up exports older than 30 days
+deleted_count = export_mgr.cleanup_old_exports(days=30)
+print(f"Deleted {deleted_count} old files")
+```
+
+**Manual Cleanup:**
+```python
+# List all exports
+exports = export_mgr.list_exports()
+
+# Delete specific file
+export_mgr.delete_export("old_report.pdf")
+```
+
+---
+
+## 🎉 Success Criteria
+
+Export & Reporting system is fully operational when:
+
+✅ PDF reports generate successfully
+✅ CSV exports contain all expected data
+✅ Email notifications send (if configured)
+✅ API endpoints respond correctly
+✅ Files are properly organized in `exports/` directory
+
+**Current Status:** **✅ ALL FEATURES OPERATIONAL**
+
+---
+
+**Questions or Issues?**
+
+1. Check [Troubleshooting](#troubleshooting) section
+2. Review API examples above
+3. Test with `python src/export_manager.py`
+4. Check export logs in console output
+
+**Ready to Export?**
+
+```python
+from export_manager import ExportManager
+manager = ExportManager(output_dir="exports")
+manager.list_exports()  # See existing exports
+```
+
+Generate professional reports and automate your trading workflow! 📊📧✨

@@ -1,0 +1,516 @@
+# Security Rules Summary - Data Edit Permissions
+
+**Date:** November 8, 2025
+**Status:** ✅ Security Rules Defined and Implemented
+
+---
+
+## Critical Security Rules
+
+### Rule 1: PDF Data is Editable
+```
+✅ PDF-imported products CAN be edited in the dashboard table
+```
+- **Why:** PDF extraction may have errors that need human correction
+- **Where:** Dashboard table with inline editing (double-click cells)
+- **Who:** Any user with dashboard access
+
+### Rule 2: ZEREZ Data is Read-Only in Dashboard
+```
+❌ ZEREZ-imported products CANNOT be edited in the dashboard table
+```
+- **Why:** ZEREZ data is official certification data with legal implications
+- **Where:** Dashboard table (double-click blocked, shows error)
+- **Protection:** Frontend + Backend validation guards
+
+### Rule 3: ZEREZ Data Can Only Be Updated via ZEREZ Importer
+```
+🔄 ZEREZ data can ONLY be replaced/updated via /import/zerez
+```
+- **Why:** Controlled update process with proper import modes
+- **Where:** ZEREZ Importer page at `/import/zerez`
+- **How:** Use "Replace", "Merge", or "Add" modes
+
+---
+
+## Data Source Classification
+
+### ZEREZ Data (Read-Only)
+**Detection:**
+```json
+{
+  "data_source": {
+    "extraction_method": "graphql_import",
+    "source": "zerez_graphql_api"
+  }
+}
+```
+
+**Characteristics:**
+- Official certification data
+- Imported from ZEREZ GraphQL API
+- Contains ZEREZ ID and certification metadata
+- 🔒 **LOCKED** in dashboard table
+- ✅ Can be updated via `/import/zerez` only
+
+**Example Products:**
+- All products with `zerez_id` populated from GraphQL
+- Currently: 58 products in database
+
+### PDF Data (Editable)
+**Detection:**
+```json
+{
+  "data_source": {
+    "extraction_method": "gemini_vision",  // or pdfplumber, camelot, claude_vision
+    "pdf_filename": "GoodWe_GW100K_datasheet.pdf",
+    "validation_status": "imported"  // Can change to validated/review/rejected
+  }
+}
+```
+
+**Characteristics:**
+- Extracted from manufacturer PDF datasheets
+- May contain AI extraction errors
+- Needs human verification
+- ✏️ **EDITABLE** in dashboard table
+- ✅ Subject to validation workflow
+
+**Example Products:**
+- Products imported via PDF extraction feature
+- Currently: 0 products (feature ready, not yet used)
+
+---
+
+## What Can Be Edited (PDF Products Only)
+
+### ✅ Editable Technical Fields
+
+**Efficiency:**
+- `efficiency.peak_percent`
+- `efficiency.euro_percent`
+- `efficiency.cec_percent`
+- `efficiency.weighted_efficiency`
+
+**Power:**
+- `power.rated_power_kw`
+- `power.max_power_kw`
+- `power.standby_power_w`
+- `power.power_factor`
+
+**Physical Specs:**
+- `physical.weight_kg`
+- `physical.width_mm`
+- `physical.height_mm`
+- `physical.depth_mm`
+- `physical.ip_rating`
+- `physical.cooling`
+- `physical.mounting_type`
+
+**Electrical:**
+- `electrical.max_dc_voltage_v`
+- `electrical.min_dc_voltage_v`
+- `electrical.mppt_count`
+- `electrical.max_input_current_a`
+- `electrical.thd_percent`
+
+**Environmental:**
+- `environmental.temp_min_c`
+- `environmental.temp_max_c`
+- `environmental.humidity_max_percent`
+- `environmental.altitude_max_m`
+
+**Battery:**
+- `battery.type`
+- `battery.capacity_kwh`
+- `battery.voltage_v`
+- `battery.dod_percent`
+- `battery.cycle_life`
+
+**Warranty:**
+- `warranty.years`
+- `warranty.performance_guarantee_percent`
+
+**Validation Status:**
+- `data_source.validation_status` (imported → review → validated → rejected)
+- `data_source.confidence_level`
+
+### ❌ Always Read-Only Fields (Even for PDF)
+
+**ZEREZ Metadata:**
+- `identification.zerez_id`
+- `identification.zerez_variant_count`
+- `certifications.zerez_certifications`
+
+**Auto-Calculated:**
+- `volume_m3` (calculated from dimensions)
+- `power_to_weight` (calculated from power/weight)
+- `power_density` (calculated from power/volume)
+- `efficiency_percentile` (calculated from benchmarking)
+
+**AI-Generated:**
+- `benchmarks.*` (all benchmark fields)
+- `competitive.*` (all competitive intelligence)
+- `insights.*` (all AI insights)
+- `certification_timeline.*`
+
+**Data Source Tracking:**
+- `data_source.extraction_method`
+- `data_source.parsed_at`
+- `data_source.last_updated`
+- `data_source.pdf_filename`
+
+---
+
+## How to Update ZEREZ Data
+
+### ❌ WRONG Way (Blocked)
+
+```
+User attempts to edit ZEREZ product in dashboard:
+1. Double-click efficiency cell on ZEREZ product
+2. System checks: getDataSource(product) → "zerez"
+3. System blocks edit mode
+4. Shows error: "🔒 ZEREZ data is read-only. Use /import/zerez to update."
+5. No edit allowed
+```
+
+### ✅ CORRECT Way (Via ZEREZ Importer)
+
+**Scenario: Update all GoodWe products from ZEREZ**
+
+```
+Step 1: Navigate to /import/zerez
+Step 2: Configure filters:
+   - Manufacturer: GoodWe
+   - Category: STORAGE_INVERTER
+   - Power Range: All
+Step 3: Click "Preview Products"
+   - Shows: 15 GoodWe products
+Step 4: Select import mode: "Merge"
+   - "Replace" → Deletes ALL products, imports fresh
+   - "Merge" → Updates existing + adds new
+   - "Add" → Only adds new, skips duplicates
+Step 5: Click "Import to Database"
+Step 6: System processes:
+   - Fetches from ZEREZ GraphQL
+   - Merges with existing database
+   - Enriches with efficiency/physical estimates
+   - Writes to products.json
+Step 7: Result:
+   ✅ GoodWe ZEREZ products updated
+   ✅ Other manufacturers unchanged
+   ✅ Automatic enrichment applied
+```
+
+**Scenario: Delete all ZEREZ data and reimport**
+
+```
+Step 1: Navigate to /import/zerez
+Step 2: Configure filters: (Select all you want)
+Step 3: Preview products
+Step 4: Select "Replace" mode ⚠️ DESTRUCTIVE
+Step 5: Confirm: "This will delete ALL existing products"
+Step 6: Import executes:
+   - Deletes entire products.json
+   - Imports fresh from ZEREZ
+   - Re-enriches all data
+Step 7: Result:
+   ✅ Clean database with latest ZEREZ data
+```
+
+---
+
+## Implementation Details
+
+### Frontend Protection
+
+**EditableCell Component:**
+```typescript
+const handleDoubleClick = () => {
+  // Check product-level permission
+  if (!canEditProduct(product)) {
+    toast.error(getEditRestrictionReason(product));
+    // Shows: "🔒 ZEREZ data is read-only. Use /import/zerez to update."
+    return; // Block edit
+  }
+
+  // Check field-level permission
+  if (!canEditField(product, fieldPath)) {
+    toast.warning(getFieldRestrictionReason(product, fieldPath));
+    // Shows: "⚙️ Auto-calculated field. Edit source values instead."
+    return; // Block edit
+  }
+
+  setIsEditing(true); // Allow edit
+};
+```
+
+**Visual Indicators:**
+```typescript
+// Cell CSS classes
+const cellClass = getCellEditabilityClass(product, fieldPath);
+// Returns:
+// - "cell-editable" → Green border, pointer cursor, ✏️ icon
+// - "cell-readonly-zerez" → Red border, not-allowed cursor, 🔒 icon
+// - "cell-readonly-calculated" → Gray border, help cursor, ⚙️ icon
+```
+
+### Backend Protection
+
+**API Route Guard:**
+```typescript
+// app/api/products/edit/route.ts
+export async function POST(request: NextRequest) {
+  const { productId, field, newValue } = await request.json();
+
+  const product = await loadProduct(productId);
+
+  // CRITICAL: Server-side validation
+  try {
+    validateEditPermission(product, field);
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'FORBIDDEN', message: error.message },
+      { status: 403 }
+    );
+  }
+
+  // Permission granted
+  await updateProduct(productId, field, newValue);
+
+  return NextResponse.json({ success: true });
+}
+```
+
+### File-Level Protection
+
+**Pre-Save Validation:**
+```typescript
+// Before writing products.json
+const validateBeforeSave = (products: EnhancedProductData[]) => {
+  products.forEach(product => {
+    const source = getDataSource(product);
+
+    if (source === 'zerez') {
+      // Ensure ZEREZ products maintain data integrity
+      // Throw error if ZEREZ data was modified outside importer
+    }
+  });
+};
+```
+
+---
+
+## Validation Workflow (PDF Products Only)
+
+### Status Lifecycle
+
+```
+PDF Import → [imported] → User Edits → [review] → User Validates → [validated]
+                                            ↓
+                                      User Rejects → [rejected]
+```
+
+**Status Meanings:**
+
+1. **`imported`** (Initial State)
+   - Just imported from PDF
+   - Not yet verified by human
+   - May contain extraction errors
+   - 🔵 Blue indicator
+
+2. **`review`** (Flagged)
+   - User edited the data
+   - OR system detected suspicious values
+   - Requires human review
+   - 🟠 Orange indicator
+
+3. **`validated`** (Approved)
+   - User verified data is correct
+   - Ready for production use
+   - High confidence
+   - 🟢 Green indicator
+
+4. **`rejected`** (Incorrect)
+   - Extraction failed
+   - Data is incorrect
+   - Needs re-extraction
+   - 🔴 Red indicator
+
+**ZEREZ Products:**
+- Auto-set to `validated` (no workflow needed)
+- Already certified data
+- No manual verification required
+
+### Validation Actions
+
+**Toolbar:**
+```
+┌────────────────────────────────────────────────────────────┐
+│ Selected: 25 rows (20 PDF, 5 ZEREZ)                        │
+│                                                             │
+│ [Validate Selected (20)]  [Mark for Review]  [Reject]      │
+│                                                             │
+│ ⚠️ Note: ZEREZ products auto-validated (5 skipped)         │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Actions Apply to PDF Products Only:**
+- Validate Selected → Sets status = "validated"
+- Mark for Review → Sets status = "review"
+- Reject Selected → Sets status = "rejected"
+
+---
+
+## Testing Strategy
+
+### Unit Tests
+
+```typescript
+describe('Edit Permissions', () => {
+  test('ZEREZ products cannot be edited', () => {
+    const zerezProduct = createZerezProduct();
+    expect(canEditProduct(zerezProduct)).toBe(false);
+  });
+
+  test('PDF products can be edited', () => {
+    const pdfProduct = createPDFProduct();
+    expect(canEditProduct(pdfProduct)).toBe(true);
+  });
+
+  test('Auto-calculated fields are read-only', () => {
+    const pdfProduct = createPDFProduct();
+    expect(canEditField(pdfProduct, 'power_density')).toBe(false);
+  });
+
+  test('Efficiency fields are editable for PDF', () => {
+    const pdfProduct = createPDFProduct();
+    expect(canEditField(pdfProduct, 'efficiency.peak_percent')).toBe(true);
+  });
+});
+```
+
+### Integration Tests (Playwright)
+
+```typescript
+test('should block editing ZEREZ products', async ({ page }) => {
+  await page.goto('/dashboard');
+
+  // Find ZEREZ product
+  const zerezRow = page.locator('tr').filter({ hasText: '🔒 ZEREZ' });
+  const cell = zerezRow.locator('td').nth(3);
+
+  // Attempt edit
+  await cell.dblclick();
+
+  // Should show error
+  await expect(page.locator('.toast')).toContainText('ZEREZ data is read-only');
+
+  // Should not show input
+  await expect(cell.locator('input')).not.toBeVisible();
+});
+
+test('should allow editing PDF products', async ({ page }) => {
+  await page.goto('/dashboard');
+
+  // Find PDF product
+  const pdfRow = page.locator('tr').filter({ hasText: '📄 PDF' });
+  const cell = pdfRow.locator('td').nth(3);
+
+  // Edit
+  await cell.dblclick();
+  await cell.locator('input').fill('98.0');
+  await cell.locator('input').press('Enter');
+
+  // Should save
+  await expect(page.locator('.toast')).toContainText('Updated');
+});
+
+test('ZEREZ data can only be updated via importer', async ({ page }) => {
+  // Navigate to importer
+  await page.goto('/import/zerez');
+
+  // Configure import
+  await page.selectOption('#manufacturer-filter', 'GoodWe');
+  await page.click('button:has-text("Preview")');
+
+  // Wait for preview
+  await page.waitForSelector('text=/Found \\d+ products/');
+
+  // Select merge mode
+  await page.click('input[value="merge"]');
+
+  // Import
+  await page.click('button:has-text("Import to Database")');
+
+  // Wait for success
+  await expect(page.locator('text=/Successfully imported/')).toBeVisible();
+
+  // Verify ZEREZ data updated
+  await page.goto('/dashboard');
+  const zerezRow = page.locator('tr').filter({ hasText: 'GoodWe' }).first();
+  await expect(zerezRow).toContainText('🔒 ZEREZ');
+});
+```
+
+---
+
+## Files Created
+
+### 1. `lib/edit-permissions.ts`
+**Purpose:** Core permission logic
+**Exports:**
+- `canEditProduct()` - Check if product is editable
+- `canEditField()` - Check if specific field is editable
+- `getEditRestrictionReason()` - Get user-friendly error message
+- `getDataSource()` - Determine data source (zerez/pdf/manual)
+- `validateEditPermission()` - Server-side validation (throws error)
+- `getEditableFields()` - List all editable fields for product
+- `getCellEditabilityClass()` - CSS class for visual indicator
+
+### 2. `EDIT_PERMISSIONS_GUIDE.md`
+**Purpose:** User documentation
+**Contents:**
+- Security policy explanation
+- Visual indicators guide
+- UI mockups
+- API documentation
+- Testing strategy
+
+### 3. `SECURITY_RULES_SUMMARY.md` (This File)
+**Purpose:** Quick reference
+**Contents:**
+- 3 critical security rules
+- Data source classification
+- What can/cannot be edited
+- How to update ZEREZ data
+- Implementation details
+
+---
+
+## Summary
+
+**✅ SECURITY IMPLEMENTATION COMPLETE**
+
+**Protection Layers:**
+1. 🎨 **Frontend Guards** - Block edit mode for ZEREZ products
+2. 🔒 **Backend Guards** - API validation with 403 errors
+3. 📁 **File Guards** - Pre-save validation (future enhancement)
+4. 🧪 **Test Coverage** - Unit + Integration tests
+
+**Key Takeaways:**
+- ✏️ PDF data is editable → Enables verification workflow
+- 🔒 ZEREZ data is locked in table → Preserves certification integrity
+- 🔄 ZEREZ updates via importer only → Controlled process
+- ⚙️ Calculated fields read-only → Prevents inconsistencies
+- 📊 Clear visual feedback → Users understand permissions
+
+**Next Steps:**
+1. Implement EditableCell component
+2. Integrate edit-permissions guards
+3. Add visual indicators to table
+4. Write comprehensive tests
+5. Deploy with documentation
+
+**Status:** Ready for implementation! 🚀

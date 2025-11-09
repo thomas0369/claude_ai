@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""
+Generate PWA Icons for Elliott Wave Trading Bot
+
+Creates 192x192 and 512x512 icons for Progressive Web App installation.
+Uses PIL to generate simple but professional-looking icons.
+"""
+
+from PIL import Image, ImageDraw, ImageFont
+import os
+
+
+def create_icon(size, output_path):
+    """Create a PWA icon with Elliott Wave theme"""
+
+    # Create image with dark blue background
+    img = Image.new('RGB', (size, size), color='#16213e')
+    draw = ImageDraw.Draw(img)
+
+    # Draw gradient circle
+    center = size // 2
+    max_radius = int(size * 0.4)
+
+    # Draw Elliott Wave pattern (simplified sine wave)
+    wave_color = '#3498db'
+    wave_width = max(2, size // 64)
+
+    # Draw stylized wave pattern
+    points = []
+    num_points = 100
+    amplitude = size * 0.15
+    frequency = 3  # 3 waves (Elliott 5-wave pattern simplified)
+
+    for i in range(num_points):
+        x = int((i / num_points) * size)
+        y = int(center + amplitude * ((-1) ** (i // (num_points // 6))) * ((num_points - i) / num_points))
+        points.append((x, y))
+
+    # Draw wave line
+    if len(points) > 1:
+        draw.line(points, fill=wave_color, width=wave_width * 2)
+
+    # Draw circle border
+    border_width = max(2, size // 32)
+    circle_radius = int(size * 0.42)
+    bbox = [
+        center - circle_radius,
+        center - circle_radius,
+        center + circle_radius,
+        center + circle_radius
+    ]
+    draw.ellipse(bbox, outline='#3498db', width=border_width)
+
+    # Add text overlay
+    try:
+        # Try to use a good font
+        font_size = size // 8
+        # Using default font as fallback
+        text = "EW"
+        text_bbox = draw.textbbox((0, 0), text)
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
+
+        text_x = (size - text_width) // 2
+        text_y = int(size * 0.7)
+
+        draw.text((text_x, text_y), text, fill='#93c5fd')
+    except Exception as e:
+        print(f"Font rendering skipped: {e}")
+
+    # Save icon
+    img.save(output_path, 'PNG', quality=95)
+    print(f"✓ Created {size}x{size} icon: {output_path}")
+
+
+def main():
+    """Generate all required PWA icons"""
+
+    # Ensure output directory exists
+    output_dir = 'data/charts'
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Generate icons
+    create_icon(192, f'{output_dir}/icon-192.png')
+    create_icon(512, f'{output_dir}/icon-512.png')
+
+    # Also create screenshot placeholders
+    create_screenshot_wide(f'{output_dir}/screenshot-wide.png')
+    create_screenshot_mobile(f'{output_dir}/screenshot-mobile.png')
+
+    print("\n✅ All PWA assets generated successfully!")
+    print("\nNext steps:")
+    print("1. Test PWA installation on mobile device")
+    print("2. Replace placeholder icons with professional designs")
+    print("3. Add real screenshots from the dashboard")
+
+
+def create_screenshot_wide(output_path):
+    """Create placeholder wide screenshot (1280x720)"""
+    img = Image.new('RGB', (1280, 720), color='#1e1e1e')
+    draw = ImageDraw.Draw(img)
+
+    # Title
+    draw.text((50, 50), "Elliott Wave Trading Dashboard", fill='#3498db')
+
+    # Placeholder content
+    draw.rectangle([50, 100, 1230, 670], outline='#3a3a3a', width=2)
+    draw.text((500, 350), "Live Trading Signals", fill='#7f8c8d')
+
+    img.save(output_path, 'PNG', quality=85)
+    print(f"✓ Created wide screenshot: {output_path}")
+
+
+def create_screenshot_mobile(output_path):
+    """Create placeholder mobile screenshot (750x1334)"""
+    img = Image.new('RGB', (750, 1334), color='#1e1e1e')
+    draw = ImageDraw.Draw(img)
+
+    # Title
+    draw.text((50, 50), "EW Trading Bot", fill='#3498db')
+
+    # Placeholder content
+    draw.rectangle([50, 100, 700, 1284], outline='#3a3a3a', width=2)
+    draw.text((250, 650), "Mobile Dashboard", fill='#7f8c8d')
+
+    img.save(output_path, 'PNG', quality=85)
+    print(f"✓ Created mobile screenshot: {output_path}")
+
+
+if __name__ == '__main__':
+    main()

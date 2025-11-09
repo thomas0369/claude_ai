@@ -1,0 +1,329 @@
+/**
+ * Enhanced PDF Matcher
+ * =====================
+ *
+ * Multi-factor confidence scoring for PDF-product matching
+ *
+ * Based on Python implementation: scripts/zerez_pdf_matcher_enhanced.py
+ *
+ * Usage:
+ *   const matcher = new PDFMatcher({ minConfidence: 40 });
+ *   const result = await matcher.matchProduct(product, pdfIndex);
+ */
+
+import { compareTwoStrings } from 'string-similarity';
+import type { ExtractionResult } from '../deepseek/types';
+
+export interface MatchConfig {
+  /** Minimum confidence score (0-100) for matches */
+  minConfidence?: number;
+}
+
+export interface ProductToMatch {
+  modelName: string;
+  manufacturer?: string;
+  power?: {
+    rated_power_kw?: number;
+  };
+}
+
+export interface PDFIndexEntry {
+  pdfPath: string;
+  pdfName: string;
+  manufacturer: string;
+  jsonData?: ExtractionResult | null;
+}
+
+export interface MatchResult {
+  zerezProduct: string;
+  pdfMatch: string | null;
+  confidence: number;
+  details: {
+    modelSimilarity: number;
+    manufacturerMatch: boolean;
+    fieldCompleteness: number;
+    powerValid: boolean;
+    extractionMethod: string;
+    hasJsonData: boolean;
+  } | Record<string, never>;
+}
+
+export interface ConfidenceFactors {
+  modelSimilarity: number;
+  manufacturerMatch: boolean;
+  fieldCompleteness: number;
+  powerValid: boolean;
+  powerBoost: number;
+  extractionMethod: string;
+}
+
+export class PDFMatcher {
+  private readonly DEFAULT_MIN_CONFIDENCE = 40;
+  private minConfidence: number;
+
+  constructor(config: MatchConfig = {}) {
+    this.minConfidence = config.minConfidence ?? this.DEFAULT_MIN_CONFIDENCE;
+  }
+
+  /**
+   * Match a single product against PDF index
+   */
+  matchProduct(
+    product: ProductToMatch,
+    pdfIndex: PDFIndexEntry[]
+  ): MatchResult {
+    const modelName = product.modelName || '';
+    const normalizedModel = this.normalizeModelName(modelName);
+
+    let bestMatch: string | null = null;
+    let bestScore = 0;
+    let bestDetails: MatchResult['details'] = {};
+
+    // Search through all PDFs
+    for (const pdfEntry of pdfIndex) {
+      const pdfName = pdfEntry.pdfName.toLowerCase();
+      const jsonData = pdfEntry.jsonData;
+
+      // Calculate model similarity
+      let modelSimilarity = this.calculateSimilarity(normalizedModel, pdfName);
+
+      // Check against extracted model if available
+      if (jsonData?.model_name) {
+        const extractedSimilarity = this.calculateSimilarity(
+          normalizedModel,
+          this.normalizeModelName(jsonData.model_name)
+        );
+        modelSimilarity = Math.max(modelSimilarity, extractedSimilarity);
+      }
+
+      // Calculate field completeness
+      const fieldCompleteness = this.calculateFieldCompleteness(jsonData);
+
+      // Validate power rating
+      const [powerValid, powerBoost] = this.validatePowerRating(
+        product,
+        jsonData
+      );
+
+      // Determine manufacturer match
+      const manufacturerMatch =
+        product.manufacturer !== undefined &&
+        pdfEntry.manufacturer
+          .toLowerCase()
+          .includes(product.manufacturer.toLowerCase());
+
+      // Get extraction method
+      const extractionMethod = 'deepseek_vision_api'; // For newly extracted files
+
+      // Calculate comprehensive confidence
+      const confidence = this.calculateConfidence({
+        modelSimilarity,
+        manufacturerMatch,
+        fieldCompleteness,
+        powerValid,
+        powerBoost,
+        extractionMethod,
+      });
+
+      if (confidence > bestScore) {
+        bestScore = confidence;
+        bestMatch = pdfEntry.pdfPath;
+        bestDetails = {
+          modelSimilarity,
+          manufacturerMatch,
+          fieldCompleteness,
+          powerValid,
+          extractionMethod,
+          hasJsonData: !!jsonData,
+        };
+      }
+    }
+
+    // Apply minimum threshold
+    if (bestScore < this.minConfidence) {
+      bestMatch = null;
+      bestScore = 0;
+      bestDetails = {};
+    }
+
+    return {
+      zerezProduct: modelName,
+      pdfMatch: bestMatch,
+      confidence: bestScore,
+      details: bestDetails,
+    };
+  }
+
+  /**
+   * Match multiple products in batch
+   */
+  matchProducts(
+    products: ProductToMatch[],
+    pdfIndex: PDFIndexEntry[]
+  ): MatchResult[] {
+    return products.map((product) => this.matchProduct(product, pdfIndex));
+  }
+
+  /**
+   * Normalize model name for matching
+   */
+  private normalizeModelName(name: string): string {
+    if (!name) return '';
+
+    // Remove common prefixes/suffixes
+    name = name.replace(/^ZEREZ-/i, '');
+    name = name.replace(/^Model[:\s]+/i, '');
+
+    // Remove special characters but keep alphanumeric and hyphens
+    name = name.replace(/[^a-zA-Z0-9\s-]/g, '');
+
+    // Normalize whitespace and convert to lowercase
+    return name.split(/\s+/).join(' ').toLowerCase().trim();
+  }
+
+  /**
+   * Calculate string similarity (0.0 - 1.0)
+   */
+  private calculateSimilarity(str1: string, str2: string): number {
+    return compareTwoStrings(str1.toLowerCase(), str2.toLowerCase());
+  }
+
+  /**
+   * Calculate how complete the extracted data is (0.0 - 1.0)
+   */
+  private calculateFieldCompleteness(
+    jsonData: ExtractionResult | null | undefined
+  ): number {
+    if (!jsonData) return 0;
+
+    const criticalFields: Array<[keyof ExtractionResult, string]> = [
+      ['power', 'rated_power_kw'],
+      ['efficiency', 'peak_percent'],
+      ['physical', 'weight_kg'],
+      ['model_name', ''], // Direct property
+    ];
+
+    let filledCount = 0;
+
+    for (const [category, field] of criticalFields) {
+      if (field === '') {
+        // Direct property
+        if (jsonData[category] !== null && jsonData[category] !== undefined) {
+          filledCount++;
+        }
+      } else {
+        // Nested property
+        const categoryData = jsonData[category] as any;
+        if (
+          categoryData &&
+          categoryData[field] !== null &&
+          categoryData[field] !== undefined &&
+          categoryData[field] !== ''
+        ) {
+          filledCount++;
+        }
+      }
+    }
+
+    return filledCount / criticalFields.length;
+  }
+
+  /**
+   * Validate if power ratings are compatible
+   *
+   * @returns [isValid, confidenceBoost]
+   */
+  private validatePowerRating(
+    product: ProductToMatch,
+    jsonData: ExtractionResult | null | undefined
+  ): [boolean, number] {
+    if (!jsonData) return [true, 0];
+
+    const productPower = product.power?.rated_power_kw;
+    const pdfPower = jsonData.power?.rated_power_kw;
+
+    if (!productPower || !pdfPower) return [true, 0];
+
+    // Check if powers are within 10% of each other
+    const powerDiff = Math.abs(productPower - pdfPower);
+    const tolerance = productPower * 0.1;
+
+    if (powerDiff <= tolerance) {
+      // Powers match - high confidence boost
+      return [true, 0.3];
+    } else if (powerDiff <= productPower * 0.3) {
+      // Powers somewhat close - small boost
+      return [true, 0.1];
+    } else {
+      // Powers don't match - penalty
+      return [false, -0.2];
+    }
+  }
+
+  /**
+   * Calculate comprehensive confidence score (0-100)
+   *
+   * Scoring factors:
+   * - Model similarity: 0-50 points
+   * - Manufacturer match: 0-20 points
+   * - Field completeness: 0-15 points
+   * - Power validation: -20 to +30 points
+   * - Extraction method: 0-10 points
+   *
+   * Total: 0-125 points (normalized to 0-100)
+   */
+  private calculateConfidence(factors: ConfidenceFactors): number {
+    let score = 0;
+
+    // Model similarity (0-50 points)
+    score += factors.modelSimilarity * 50;
+
+    // Manufacturer match (20 points)
+    if (factors.manufacturerMatch) {
+      score += 20;
+    }
+
+    // Field completeness (15 points)
+    score += factors.fieldCompleteness * 15;
+
+    // Power validation boost/penalty
+    score += factors.powerBoost * 100;
+
+    // Extraction method quality (10 points)
+    if (factors.extractionMethod === 'deepseek_vision_api') {
+      score += 10;
+    } else if (factors.extractionMethod === 'pdf_text_extraction') {
+      score += 5;
+    }
+
+    // Normalize to 0-100
+    const normalized = Math.min(100, Math.max(0, (score / 125) * 100));
+
+    return Math.round(normalized);
+  }
+
+  /**
+   * Get matching statistics for a batch of results
+   */
+  static getMatchingStats(results: MatchResult[]): {
+    total: number;
+    matched: number;
+    matchRate: number;
+    avgConfidence: number;
+  } {
+    const matched = results.filter((r) => r.pdfMatch !== null);
+    const matchedCount = matched.length;
+
+    const avgConfidence =
+      matchedCount > 0
+        ? matched.reduce((sum, r) => sum + r.confidence, 0) / matchedCount
+        : 0;
+
+    return {
+      total: results.length,
+      matched: matchedCount,
+      matchRate: (matchedCount / results.length) * 100,
+      avgConfidence,
+    };
+  }
+}

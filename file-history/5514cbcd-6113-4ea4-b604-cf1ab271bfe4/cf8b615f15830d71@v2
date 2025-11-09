@@ -1,0 +1,214 @@
+/**
+ * PDF to Image Processor
+ * =======================
+ *
+ * Browser-based PDF to image conversion using pdf.js
+ * Compatible with Vercel serverless deployment
+ *
+ * Based on Python implementation: scripts/pdf_to_images.py
+ *
+ * Usage:
+ *   const processor = new PDFProcessor();
+ *   const images = await processor.convertToImages(pdfFile, 3);
+ */
+
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+}
+
+export interface PDFProcessorConfig {
+  /** Scale factor for rendering (higher = better quality, slower) */
+  scale?: number;
+  /** Maximum number of pages to process */
+  maxPages?: number;
+  /** Output format */
+  format?: 'png' | 'jpeg';
+  /** JPEG quality (0-1, only for JPEG format) */
+  quality?: number;
+}
+
+export interface PDFMetadata {
+  numPages: number;
+  title?: string;
+  author?: string;
+  creationDate?: string;
+}
+
+export class PDFProcessor {
+  private config: Required<PDFProcessorConfig>;
+
+  constructor(config: PDFProcessorConfig = {}) {
+    this.config = {
+      scale: config.scale ?? 2.0, // 2.0 = ~300 DPI equivalent
+      maxPages: config.maxPages ?? 3,
+      format: config.format ?? 'png',
+      quality: config.quality ?? 0.95,
+    };
+  }
+
+  /**
+   * Convert PDF file to base64-encoded images
+   *
+   * @param pdfFile - PDF file to process
+   * @param maxPages - Override max pages for this call
+   * @returns Array of base64-encoded images
+   */
+  async convertToImages(
+    pdfFile: File,
+    maxPages?: number
+  ): Promise<string[]> {
+    const pagesToProcess = maxPages ?? this.config.maxPages;
+
+    try {
+      // Read PDF file
+      const arrayBuffer = await pdfFile.arrayBuffer();
+
+      // Load PDF document
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+
+      const totalPages = Math.min(pdf.numPages, pagesToProcess);
+      const images: string[] = [];
+
+      console.log(
+        `Converting ${totalPages} page(s) from PDF: ${pdfFile.name}`
+      );
+
+      // Process each page
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const imageBase64 = await this.renderPageToImage(page, pageNum);
+
+        if (imageBase64) {
+          images.push(imageBase64);
+        }
+      }
+
+      console.log(`Successfully converted ${images.length} page(s)`);
+
+      return images;
+    } catch (error) {
+      console.error('PDF conversion failed:', error);
+      throw new Error(
+        `Failed to convert PDF to images: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Get PDF metadata without converting to images
+   */
+  async getMetadata(pdfFile: File): Promise<PDFMetadata> {
+    try {
+      const arrayBuffer = await pdfFile.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      const metadata = await pdf.getMetadata();
+
+      // Type assertion needed because @types/pdfjs-dist doesn't include these properties
+      const info = metadata.info as any;
+
+      return {
+        numPages: pdf.numPages,
+        title: info?.Title,
+        author: info?.Author,
+        creationDate: info?.CreationDate,
+      };
+    } catch (error) {
+      throw new Error(
+        `Failed to read PDF metadata: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Convert a single PDF page to base64-encoded image
+   */
+  private async renderPageToImage(
+    page: pdfjsLib.PDFPageProxy,
+    pageNum: number
+  ): Promise<string | null> {
+    try {
+      // Calculate viewport with scale
+      const viewport = page.getViewport({ scale: this.config.scale });
+
+      // Create canvas element
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+
+      if (!context) {
+        console.error('Failed to get canvas 2D context');
+        return null;
+      }
+
+      // Set canvas dimensions
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      // Render PDF page to canvas
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport,
+        canvas: canvas, // Required by RenderParameters interface
+      };
+
+      await page.render(renderContext).promise;
+
+      // Convert canvas to base64
+      const mimeType =
+        this.config.format === 'jpeg' ? 'image/jpeg' : 'image/png';
+      const dataUrl = canvas.toDataURL(mimeType, this.config.quality);
+
+      // Extract base64 data (remove data:image/png;base64, prefix)
+      const base64 = dataUrl.split(',')[1];
+
+      console.log(
+        `Rendered page ${pageNum}: ${canvas.width}x${canvas.height}px, ` +
+          `${(base64.length * 0.75 / 1024).toFixed(1)} KB`
+      );
+
+      return base64;
+    } catch (error) {
+      console.error(`Failed to render page ${pageNum}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Estimate memory usage for PDF conversion
+   *
+   * @param numPages - Number of pages to convert
+   * @returns Estimated memory in MB
+   */
+  estimateMemoryUsage(numPages: number): number {
+    // Rough estimate: ~5MB per page at scale 2.0
+    const mbPerPage = 5;
+    return numPages * mbPerPage;
+  }
+}
+
+/**
+ * Utility function to validate PDF file
+ */
+export function isPDFFile(file: File): boolean {
+  return (
+    file.type === 'application/pdf' ||
+    file.name.toLowerCase().endsWith('.pdf')
+  );
+}
+
+/**
+ * Utility function to get human-readable file size
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}

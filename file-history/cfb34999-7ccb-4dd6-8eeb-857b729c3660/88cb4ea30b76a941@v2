@@ -1,0 +1,196 @@
+/**
+ * Test Drag and Drop at Various Grid Positions
+ * Tests: top-left, top-right, bottom-left, bottom-right, center
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Drag and Drop Position Testing', () => {
+
+  test('Test block placement at various grid positions', async ({ page }) => {
+    console.log('\n🎯 POSITION TESTING - Drag and Drop at Different Locations\n');
+    console.log('='.repeat(80));
+
+    test.setTimeout(180000); // 3 minutes
+
+    await page.goto('/play/1', { waitUntil: 'networkidle', timeout: 60000 });
+    await page.locator('canvas').waitFor({ state: 'visible', timeout: 30000 });
+    await page.waitForFunction(() => typeof (window as any).game !== 'undefined', { timeout: 40000 });
+    await page.waitForTimeout(8000);
+
+    console.log('✅ Game loaded\n');
+
+    // Grid configuration (hardcoded from config.ts)
+    const gridConfig = {
+      gridRows: 8,
+      gridCols: 8,
+      gridOffsetX: 200,
+      gridOffsetY: 80,
+      cellSize: 40
+    };
+
+    console.log('📐 Grid Configuration:');
+    console.log(`   Rows: ${gridConfig.gridRows}, Cols: ${gridConfig.gridCols}`);
+    console.log(`   Offset: (${gridConfig.gridOffsetX}, ${gridConfig.gridOffsetY})`);
+    console.log(`   Cell Size: ${gridConfig.cellSize}px\n`);
+
+    // Define test positions: [row, col, description]
+    const testPositions = [
+      [0, 0, 'TOP-LEFT'],
+      [0, 7, 'TOP-RIGHT'],
+      [7, 0, 'BOTTOM-LEFT'],
+      [7, 7, 'BOTTOM-RIGHT'],
+      [4, 4, 'CENTER']
+    ];
+
+    console.log('🎯 Testing positions:');
+    testPositions.forEach(([row, col, desc]) => {
+      console.log(`   - ${desc}: (row=${row}, col=${col})`);
+    });
+    console.log('\n');
+
+    let testIndex = 0;
+
+    for (const [row, col, description] of testPositions) {
+      console.log('─'.repeat(80));
+      console.log(`\n📍 TEST ${testIndex + 1}/5: Placing block at ${description} (row=${row}, col=${col})\n`);
+
+      // Get block data before placement
+      const beforeState = await page.evaluate(() => {
+        const scene = (window as any).game.scene.scenes[0];
+        const blocks = Array.from(scene.blockPool.activeBlocks);
+        return {
+          count: blocks.length,
+          firstBlock: blocks[0] ? {
+            id: (blocks[0] as any).blockData?.id,
+            x: (blocks[0] as any).x,
+            y: (blocks[0] as any).y,
+            hasInput: !!(blocks[0] as any).input,
+            isDraggable: (blocks[0] as any).input?.draggable
+          } : null
+        };
+      });
+
+      if (beforeState.firstBlock) {
+        console.log(`   Block before drag: ${beforeState.firstBlock.id} at (${Math.round(beforeState.firstBlock.x)}, ${Math.round(beforeState.firstBlock.y)})`);
+        console.log(`   hasInput: ${beforeState.firstBlock.hasInput}, draggable: ${beforeState.firstBlock.isDraggable}`);
+      }
+
+      // Attempt placement
+      console.log(`\n   🎯 Attempting simulateDrag(0, ${row}, ${col})...`);
+
+      const result = await page.evaluate(({ r, c }) => {
+        try {
+          const placementResult = (window as any).gameDebug.simulateDrag(0, r, c);
+          return {
+            success: placementResult.success,
+            message: placementResult.message,
+            error: null
+          };
+        } catch (error: any) {
+          return { success: false, message: '', error: error.message };
+        }
+      }, { r: row, c: col });
+
+      if (result.error) {
+        console.log(`   ❌ ERROR: ${result.error}`);
+      } else if (result.success) {
+        console.log(`   ✅ Placement SUCCESSFUL at ${description}`);
+        console.log(`   Message: ${result.message}`);
+      } else {
+        console.log(`   ❌ Placement FAILED at ${description}`);
+        console.log(`   Message: ${result.message}`);
+      }
+
+      await page.waitForTimeout(1000);
+
+      // Check grid state after placement
+      const gridState = await page.evaluate(({ r, c }) => {
+        const scene = (window as any).game.scene.scenes[0];
+        const grid = scene.grid;
+
+        // Check if cell is occupied
+        const cellOccupied = grid[r] && grid[r][c] !== 0;
+
+        // Count total occupied cells
+        let occupiedCount = 0;
+        for (let i = 0; i < grid.length; i++) {
+          for (let j = 0; j < grid[i].length; j++) {
+            if (grid[i][j] !== 0) occupiedCount++;
+          }
+        }
+
+        return {
+          cellOccupied,
+          occupiedCount,
+          targetCell: grid[r] ? grid[r][c] : null
+        };
+      }, { r: row, c: col });
+
+      console.log(`\n   Grid State After Placement:`);
+      console.log(`   - Target cell (${row}, ${col}) occupied: ${gridState.cellOccupied}`);
+      console.log(`   - Total occupied cells: ${gridState.occupiedCount}`);
+
+      // Verify block count
+      const afterState = await page.evaluate(() => {
+        const scene = (window as any).game.scene.scenes[0];
+        const blocks = Array.from(scene.blockPool.activeBlocks);
+        return {
+          count: blocks.length,
+          blocks: blocks.map((b: any) => ({
+            id: b.blockData?.id,
+            x: Math.round(b.x),
+            y: Math.round(b.y),
+            hasInput: !!b.input
+          }))
+        };
+      });
+
+      console.log(`\n   Active blocks after: ${afterState.count}`);
+      if (afterState.count === 3) {
+        console.log(`   ✅ Expected 3 blocks (respawned)`);
+      } else {
+        console.log(`   ⚠️ Unexpected block count: ${afterState.count}`);
+      }
+
+      if (result.success && gridState.cellOccupied) {
+        console.log(`\n   ✅ ${description} TEST PASSED\n`);
+      } else {
+        console.log(`\n   ❌ ${description} TEST FAILED`);
+        console.log(`   Expected: Placement successful + cell occupied`);
+        console.log(`   Got: success=${result.success}, cellOccupied=${gridState.cellOccupied}\n`);
+      }
+
+      testIndex++;
+    }
+
+    console.log('='.repeat(80));
+    console.log('\n📊 FINAL SUMMARY\n');
+
+    // Get final grid state
+    const finalGrid = await page.evaluate(() => {
+      const scene = (window as any).game.scene.scenes[0];
+      const grid = scene.grid;
+
+      let occupiedCells: Array<{row: number, col: number, value: string}> = [];
+      for (let i = 0; i < grid.length; i++) {
+        for (let j = 0; j < grid[i].length; j++) {
+          if (grid[i][j] !== 0) {
+            occupiedCells.push({ row: i, col: j, value: grid[i][j] });
+          }
+        }
+      }
+
+      return occupiedCells;
+    });
+
+    console.log(`Total cells occupied: ${finalGrid.length}`);
+    console.log('Occupied cells:');
+    finalGrid.forEach(cell => {
+      console.log(`   - (${cell.row}, ${cell.col}): ${cell.value}`);
+    });
+
+    console.log('\n='.repeat(80));
+    console.log('✅ POSITION TEST COMPLETE\n');
+  });
+});

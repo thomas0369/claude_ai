@@ -1,0 +1,371 @@
+/**
+ * Demo Scene
+ *
+ * Main game scene that demonstrates:
+ * - Grid rendering
+ * - Block spawning from pool
+ * - Drag and drop validation
+ * - Placement detection
+ * - Performance monitoring
+ */
+
+import * as Phaser from 'phaser';
+import { DemoBlock, BlockData } from '../entities/DemoBlock';
+import { DemoBlockPool } from '../pools/DemoBlockPool';
+import {
+  GRID_SIZE,
+  CELL_SIZE,
+  GRID_OFFSET_X,
+  GRID_OFFSET_Y,
+  SPAWN_Y,
+  BLOCK_SHAPES,
+  BLOCK_COLORS,
+} from '../config';
+
+export class DemoScene extends Phaser.Scene {
+  private grid: number[][] = [];
+  private gridGraphics!: Phaser.GameObjects.Graphics;
+  private blockPool!: DemoBlockPool;
+  private fpsText!: Phaser.GameObjects.Text;
+  private infoText!: Phaser.GameObjects.Text;
+  private score: number = 0;
+  private scoreText!: Phaser.GameObjects.Text;
+
+  constructor() {
+    super({ key: 'DemoScene' });
+  }
+
+  create(): void {
+    console.log('🎮 Demo Scene created');
+
+    // Initialize grid (8x8 filled with 0)
+    this.grid = Array(GRID_SIZE)
+      .fill(0)
+      .map(() => Array(GRID_SIZE).fill(0));
+
+    // Create grid graphics
+    this.gridGraphics = this.add.graphics();
+    this.drawGrid();
+
+    // Initialize block pool
+    this.blockPool = new DemoBlockPool(this, 10);
+
+    // Create UI text
+    this.createUI();
+
+    // Spawn initial blocks
+    this.spawnBlocks();
+  }
+
+  private createUI(): void {
+    // FPS counter
+    this.fpsText = this.add.text(10, 10, 'FPS: 60', {
+      fontSize: '16px',
+      color: '#00ff00',
+      fontFamily: 'monospace',
+    });
+    this.fpsText.setDepth(2000);
+
+    // Info text
+    this.infoText = this.add.text(10, 35, 'Drag blocks to the grid', {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+    });
+    this.infoText.setDepth(2000);
+
+    // Score text
+    this.scoreText = this.add.text(10, 60, 'Score: 0', {
+      fontSize: '20px',
+      color: '#FFD700',
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+    });
+    this.scoreText.setDepth(2000);
+
+    // Instructions
+    const instructions = this.add.text(
+      400,
+      550,
+      'Drag the colored blocks onto the grid. Complete rows or columns to score!',
+      {
+        fontSize: '14px',
+        color: '#aaaaaa',
+        fontFamily: 'Arial',
+        align: 'center',
+      }
+    );
+    instructions.setOrigin(0.5);
+    instructions.setDepth(2000);
+  }
+
+  private drawGrid(): void {
+    this.gridGraphics.clear();
+
+    // Grid background
+    this.gridGraphics.fillStyle(0x0f3460, 0.5);
+    this.gridGraphics.fillRect(
+      GRID_OFFSET_X,
+      GRID_OFFSET_Y,
+      GRID_SIZE * CELL_SIZE,
+      GRID_SIZE * CELL_SIZE
+    );
+
+    // Grid lines
+    this.gridGraphics.lineStyle(1, 0x16213e, 1);
+
+    for (let row = 0; row <= GRID_SIZE; row++) {
+      const y = GRID_OFFSET_Y + row * CELL_SIZE;
+      this.gridGraphics.lineBetween(
+        GRID_OFFSET_X,
+        y,
+        GRID_OFFSET_X + GRID_SIZE * CELL_SIZE,
+        y
+      );
+    }
+
+    for (let col = 0; col <= GRID_SIZE; col++) {
+      const x = GRID_OFFSET_X + col * CELL_SIZE;
+      this.gridGraphics.lineBetween(
+        x,
+        GRID_OFFSET_Y,
+        x,
+        GRID_OFFSET_Y + GRID_SIZE * CELL_SIZE
+      );
+    }
+
+    // Draw filled cells
+    let filledCellCount = 0;
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE; col++) {
+        if (this.grid[row][col] !== 0) {
+          filledCellCount++;
+          const x = GRID_OFFSET_X + col * CELL_SIZE;
+          const y = GRID_OFFSET_Y + row * CELL_SIZE;
+
+          const cellColor = this.grid[row][col];
+          console.log(`   🖌️ Drawing filled cell at [${row}][${col}]: color=${cellColor} (0x${cellColor.toString(16)}), pos=(${x},${y})`);
+
+          this.gridGraphics.fillStyle(cellColor, 0.8);
+          this.gridGraphics.fillRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+        }
+      }
+    }
+
+    if (filledCellCount > 0) {
+      console.log(`📊 drawGrid: Total filled cells drawn = ${filledCellCount}`);
+    }
+  }
+
+  private spawnBlocks(): void {
+    const numBlocks = 3;
+
+    for (let i = 0; i < numBlocks; i++) {
+      // Random shape and color
+      const shape = Phaser.Utils.Array.GetRandom(BLOCK_SHAPES);
+      const color = Phaser.Utils.Array.GetRandom(BLOCK_COLORS);
+
+      const blockData: BlockData = {
+        id: `block-${Date.now()}-${i}`,
+        shape: shape,
+        color: color,
+      };
+
+      // Calculate spawn position
+      const totalWidth = numBlocks * 120;
+      const startX = 400 - totalWidth / 2 + i * 120;
+      const x = startX + 60;
+      const y = SPAWN_Y;
+
+      const block = this.blockPool.spawn(blockData, x, y);
+
+      // Set callbacks
+      block.setOnPlacedCallback((block, worldX, worldY) => {
+        this.handleBlockPlaced(block, worldX, worldY);
+      });
+    }
+  }
+
+  private handleBlockPlaced(block: DemoBlock, worldX: number, worldY: number): void {
+    console.log(`🎯 handleBlockPlaced: worldX=${worldX}, worldY=${worldY}`);
+
+    // Convert world coordinates to grid coordinates
+    const gridPos = this.worldToGrid(worldX, worldY);
+
+    if (!gridPos) {
+      console.log('   ❌ Not on grid, returning to origin');
+      // Not on grid, return to origin
+      block.returnToOrigin();
+      return;
+    }
+
+    const { row, col } = gridPos;
+    const shape = block.getBlockData().shape;
+    console.log(`   ✓ Grid position: row=${row}, col=${col}`);
+    console.log(`   Block shape:`, shape);
+
+    // Check if placement is valid
+    if (this.canPlaceBlock(row, col, shape)) {
+      console.log('   ✅ Placement valid, placing block...');
+
+      // Place the block
+      this.placeBlock(row, col, shape, block.getBlockData().color);
+
+      // Despawn the block
+      this.blockPool.despawn(block);
+
+      // Check for completed lines
+      this.checkAndClearLines();
+
+      // Spawn new blocks if all are placed
+      if (this.blockPool.getActiveCount() === 0) {
+        this.time.delayedCall(500, () => {
+          this.spawnBlocks();
+        });
+      }
+
+      // Add score
+      this.addScore(shape.length * shape[0].length * 10);
+    } else {
+      console.log('   ❌ Invalid placement, returning to origin');
+      // Invalid placement, return to origin
+      block.returnToOrigin();
+    }
+  }
+
+  private worldToGrid(
+    worldX: number,
+    worldY: number
+  ): { row: number; col: number } | null {
+    const gridX = worldX - GRID_OFFSET_X;
+    const gridY = worldY - GRID_OFFSET_Y;
+
+    // Check if within grid bounds
+    if (
+      gridX < 0 ||
+      gridY < 0 ||
+      gridX > GRID_SIZE * CELL_SIZE ||
+      gridY > GRID_SIZE * CELL_SIZE
+    ) {
+      return null;
+    }
+
+    const col = Math.floor(gridX / CELL_SIZE);
+    const row = Math.floor(gridY / CELL_SIZE);
+
+    return { row, col };
+  }
+
+  private canPlaceBlock(row: number, col: number, shape: number[][]): boolean {
+    // Check bounds
+    if (row < 0 || col < 0) return false;
+    if (row + shape.length > GRID_SIZE) return false;
+    if (col + shape[0].length > GRID_SIZE) return false;
+
+    // Check collision
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape[r].length; c++) {
+        if (shape[r][c] === 1) {
+          if (this.grid[row + r][col + c] !== 0) {
+            return false; // Cell already occupied
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private placeBlock(row: number, col: number, shape: number[][], color: string): void {
+    console.log(`🎨 placeBlock called: row=${row}, col=${col}, color=${color}`);
+
+    const colorValue = Phaser.Display.Color.HexStringToColor(color).color;
+    console.log(`   Color value converted: ${colorValue} (0x${colorValue.toString(16)})`);
+
+    let cellsPlaced = 0;
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape[r].length; c++) {
+        if (shape[r][c] === 1) {
+          this.grid[row + r][col + c] = colorValue;
+          cellsPlaced++;
+          console.log(`   ✓ Placed at grid[${row + r}][${col + c}] = ${colorValue}`);
+        }
+      }
+    }
+    console.log(`   Total cells placed: ${cellsPlaced}`);
+
+    this.drawGrid();
+  }
+
+  private checkAndClearLines(): void {
+    const linesToClear: number[] = [];
+    const colsToClear: number[] = [];
+
+    // Check rows
+    for (let row = 0; row < GRID_SIZE; row++) {
+      if (this.grid[row].every((cell) => cell !== 0)) {
+        linesToClear.push(row);
+      }
+    }
+
+    // Check columns
+    for (let col = 0; col < GRID_SIZE; col++) {
+      const columnFilled = this.grid.every((row) => row[col] !== 0);
+      if (columnFilled) {
+        colsToClear.push(col);
+      }
+    }
+
+    // Clear lines
+    linesToClear.forEach((row) => {
+      this.grid[row].fill(0);
+    });
+
+    colsToClear.forEach((col) => {
+      for (let row = 0; row < GRID_SIZE; row++) {
+        this.grid[row][col] = 0;
+      }
+    });
+
+    if (linesToClear.length > 0 || colsToClear.length > 0) {
+      // Add score
+      const linesCleared = linesToClear.length + colsToClear.length;
+      this.addScore(linesCleared * 100);
+
+      // Visual feedback
+      this.cameras.main.shake(200, 0.005);
+
+      console.log(`🎉 Lines cleared: ${linesCleared}`);
+    }
+
+    this.drawGrid();
+  }
+
+  private addScore(points: number): void {
+    this.score += points;
+    this.scoreText.setText(`Score: ${this.score}`);
+  }
+
+  update(): void {
+    // Update FPS counter
+    const fps = this.game.loop.actualFps;
+    this.fpsText.setText(`FPS: ${Math.round(fps)}`);
+
+    // Update info
+    this.infoText.setText(
+      `Active Blocks: ${this.blockPool.getActiveCount()} | Pool: ${this.blockPool.getPoolSize()}`
+    );
+
+    // Performance warning
+    if (fps < 55) {
+      this.fpsText.setColor('#ff0000');
+    } else {
+      this.fpsText.setColor('#00ff00');
+    }
+  }
+
+  shutdown(): void {
+    console.log('🛑 Demo Scene shutdown');
+    this.blockPool.destroy();
+  }
+}

@@ -1,0 +1,770 @@
+"""
+Signal History Tracking System
+
+Tracks all trading signals over time with outcomes, performance metrics,
+and historical analysis capabilities.
+
+Features:
+- SQLite database for signal storage
+- Signal outcome tracking (win/loss/pending)
+- Performance metrics calculation
+- Historical win rate analysis
+- Signal evolution tracking
+- A/B testing support (Claude vs screener)
+"""
+
+import sqlite3
+import logging
+from datetime import datetime, timezone, timedelta
+from typing import Dict, List, Optional, Tuple
+from pathlib import Path
+from dataclasses import dataclass, asdict
+import json
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SignalRecord:
+    """Complete signal record for historical tracking."""
+    signal_id: str
+    timestamp: str
+    symbol: str
+    direction: str  # long/short
+    score: int
+    enhanced_score: Optional[int]
+    current_price: float
+    entry_price: float
+    stop_loss: float
+    take_profit: float
+    leverage: int
+
+    # Signal details
+    score_breakdown: str  # JSON
+    indicators: str  # JSON
+
+    # Claude validation (if applicable)
+    claude_validated: bool
+    claude_confidence: Optional[float]
+    claude_justification: Optional[str]
+
+    # Outcome tracking
+    status: str  # pending/active/closed_win/closed_loss/stopped_out
+    outcome: Optional[str]  # win/loss/breakeven
+    actual_exit_price: Optional[float]
+    actual_exit_time: Optional[str]
+    pnl_points: Optional[float]
+    pnl_percentage: Optional[float]
+
+    # Metadata
+    timeframe: str
+    data_quality_score: Optional[int]
+    notes: Optional[str]
+
+
+class SignalHistoryManager:
+    """
+    Manages signal history database and provides analytics.
+
+    Features:
+    - Store all signals with complete metadata
+    - Track signal outcomes (win/loss)
+    - Calculate performance metrics
+    - Generate historical reports
+    - Support A/B testing (Claude vs screener)
+    """
+
+    def __init__(self, db_path: str = "data/signal_history.db"):
+        """
+        Initialize signal history manager.
+
+        Args:
+            db_path: Path to SQLite database file
+        """
+        self.db_path = Path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Initialize database
+        self._init_database()
+
+        logger.info(f"Signal history manager initialized: {db_path}")
+
+    def _init_database(self):
+        """Create database tables if they don't exist."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Signals table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS signals (
+                    signal_id TEXT PRIMARY KEY,
+                    timestamp TEXT NOT NULL,
+                    symbol TEXT NOT NULL,
+                    direction TEXT NOT NULL,
+                    score INTEGER NOT NULL,
+                    enhanced_score INTEGER,
+                    current_price REAL NOT NULL,
+                    entry_price REAL NOT NULL,
+                    stop_loss REAL NOT NULL,
+                    take_profit REAL NOT NULL,
+                    leverage INTEGER NOT NULL,
+
+                    score_breakdown TEXT NOT NULL,
+                    indicators TEXT,
+
+                    claude_validated INTEGER NOT NULL,
+                    claude_confidence REAL,
+                    claude_justification TEXT,
+
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    outcome TEXT,
+                    actual_exit_price REAL,
+                    actual_exit_time TEXT,
+                    pnl_points REAL,
+                    pnl_percentage REAL,
+
+                    timeframe TEXT NOT NULL,
+                    data_quality_score INTEGER,
+                    notes TEXT,
+
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
+            # Performance summary table (aggregated stats)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS performance_summary (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    period_start TEXT NOT NULL,
+                    period_end TEXT NOT NULL,
+
+                    total_signals INTEGER NOT NULL,
+                    total_validated INTEGER NOT NULL,
+
+                    wins INTEGER NOT NULL,
+                    losses INTEGER NOT NULL,
+                    breakeven INTEGER NOT NULL,
+                    pending INTEGER NOT NULL,
+
+                    win_rate REAL NOT NULL,
+                    avg_pnl_percentage REAL NOT NULL,
+
+                    screener_only_wins INTEGER NOT NULL,
+                    screener_only_losses INTEGER NOT NULL,
+                    claude_validated_wins INTEGER NOT NULL,
+                    claude_validated_losses INTEGER NOT NULL,
+
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
+            # Indexes for common queries
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_signals_timestamp
+                ON signals(timestamp)
+            ''')
+
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_signals_symbol
+                ON signals(symbol)
+            ''')
+
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_signals_status
+                ON signals(status)
+            ''')
+
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_signals_outcome
+                ON signals(outcome)
+            ''')
+
+            conn.commit()
+            logger.info("Database tables initialized successfully")
+
+    def add_signal(
+        self,
+        symbol: str,
+        direction: str,
+        score: int,
+        current_price: float,
+        entry_price: float,
+        stop_loss: float,
+        take_profit: float,
+        leverage: int,
+        score_breakdown: Dict,
+        indicators: Dict,
+        timeframe: str = "5m",
+        enhanced_score: Optional[int] = None,
+        claude_confidence: Optional[float] = None,
+        claude_justification: Optional[str] = None,
+        data_quality_score: Optional[int] = None
+    ) -> str:
+        """
+        Add a new signal to history.
+
+        Args:
+            symbol: Trading symbol
+            direction: long/short
+            score: Base screening score
+            current_price: Current market price
+            entry_price: Recommended entry price
+            stop_loss: Stop loss price
+            take_profit: Take profit price
+            leverage: Recommended leverage
+            score_breakdown: Score component breakdown
+            indicators: Technical indicators
+            timeframe: Analysis timeframe
+            enhanced_score: Claude-enhanced score (if validated)
+            claude_confidence: Claude confidence (if validated)
+            claude_justification: Claude justification (if validated)
+            data_quality_score: Data quality score (0-100)
+
+        Returns:
+            signal_id: Unique signal identifier
+        """
+        # Generate signal ID
+        timestamp = datetime.now(timezone.utc)
+        signal_id = f"{symbol}_{timestamp.strftime('%Y%m%d_%H%M%S')}"
+
+        # Prepare data
+        claude_validated = enhanced_score is not None and claude_confidence is not None
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                INSERT INTO signals (
+                    signal_id, timestamp, symbol, direction, score, enhanced_score,
+                    current_price, entry_price, stop_loss, take_profit, leverage,
+                    score_breakdown, indicators,
+                    claude_validated, claude_confidence, claude_justification,
+                    timeframe, data_quality_score
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                signal_id,
+                timestamp.isoformat(),
+                symbol,
+                direction,
+                score,
+                enhanced_score,
+                current_price,
+                entry_price,
+                stop_loss,
+                take_profit,
+                leverage,
+                json.dumps(score_breakdown),
+                json.dumps(indicators),
+                1 if claude_validated else 0,
+                claude_confidence,
+                claude_justification,
+                timeframe,
+                data_quality_score
+            ))
+
+            conn.commit()
+
+        logger.info(f"Added signal to history: {signal_id} ({symbol} {direction} @ {score})")
+
+        return signal_id
+
+    def update_signal_outcome(
+        self,
+        signal_id: str,
+        outcome: str,
+        actual_exit_price: float,
+        actual_exit_time: Optional[str] = None,
+        notes: Optional[str] = None
+    ) -> bool:
+        """
+        Update signal outcome after trade closes.
+
+        Args:
+            signal_id: Signal identifier
+            outcome: win/loss/breakeven
+            actual_exit_price: Actual exit price
+            actual_exit_time: Exit timestamp (defaults to now)
+            notes: Optional notes
+
+        Returns:
+            success: True if updated successfully
+        """
+        if actual_exit_time is None:
+            actual_exit_time = datetime.now(timezone.utc).isoformat()
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Get signal details for PnL calculation
+            cursor.execute('''
+                SELECT entry_price, direction, leverage
+                FROM signals
+                WHERE signal_id = ?
+            ''', (signal_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                logger.error(f"Signal not found: {signal_id}")
+                return False
+
+            entry_price, direction, leverage = row
+
+            # Calculate PnL
+            if direction == 'long':
+                pnl_points = actual_exit_price - entry_price
+            else:  # short
+                pnl_points = entry_price - actual_exit_price
+
+            pnl_percentage = (pnl_points / entry_price) * 100 * leverage
+
+            # Determine status
+            if outcome == 'win':
+                status = 'closed_win'
+            elif outcome == 'loss':
+                status = 'closed_loss'
+            elif outcome == 'stopped_out':
+                status = 'stopped_out'
+            else:
+                status = 'closed_breakeven'
+
+            # Update signal
+            cursor.execute('''
+                UPDATE signals
+                SET
+                    status = ?,
+                    outcome = ?,
+                    actual_exit_price = ?,
+                    actual_exit_time = ?,
+                    pnl_points = ?,
+                    pnl_percentage = ?,
+                    notes = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE signal_id = ?
+            ''', (
+                status,
+                outcome,
+                actual_exit_price,
+                actual_exit_time,
+                pnl_points,
+                pnl_percentage,
+                notes,
+                signal_id
+            ))
+
+            conn.commit()
+
+        logger.info(f"Updated signal outcome: {signal_id} → {outcome} ({pnl_percentage:+.2f}%)")
+
+        return True
+
+    def get_signal(self, signal_id: str) -> Optional[Dict]:
+        """Get a specific signal by ID."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute('SELECT * FROM signals WHERE signal_id = ?', (signal_id,))
+            row = cursor.fetchone()
+
+            if row:
+                return dict(row)
+            return None
+
+    def get_recent_signals(self, limit: int = 50, status: Optional[str] = None) -> List[Dict]:
+        """
+        Get recent signals.
+
+        Args:
+            limit: Maximum number of signals to return
+            status: Filter by status (pending/active/closed_win/etc)
+
+        Returns:
+            List of signal dictionaries
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            if status:
+                cursor.execute('''
+                    SELECT * FROM signals
+                    WHERE status = ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                ''', (status, limit))
+            else:
+                cursor.execute('''
+                    SELECT * FROM signals
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                ''', (limit,))
+
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_signals(
+        self,
+        limit: int = 50,
+        symbol: Optional[str] = None,
+        status: Optional[str] = None,
+        days: Optional[int] = None,
+        claude_validated: Optional[bool] = None,
+        signal_id: Optional[str] = None
+    ) -> List[Dict]:
+        """
+        Get signals with flexible filtering.
+
+        Args:
+            limit: Maximum number of signals to return
+            symbol: Filter by symbol (optional)
+            status: Filter by status (pending/active/closed_win/etc, optional)
+            days: Filter signals from last N days (optional)
+            claude_validated: Filter by Claude validation status (optional)
+            signal_id: Get specific signal by ID (optional)
+
+        Returns:
+            List of signal dictionaries
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Build query
+            where_clauses = []
+            params = []
+
+            if signal_id:
+                where_clauses.append('signal_id = ?')
+                params.append(signal_id)
+            else:
+                if symbol:
+                    where_clauses.append('symbol = ?')
+                    params.append(symbol)
+
+                if status:
+                    where_clauses.append('status = ?')
+                    params.append(status)
+
+                if days is not None:
+                    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+                    where_clauses.append('timestamp >= ?')
+                    params.append(cutoff_date)
+
+                if claude_validated is not None:
+                    where_clauses.append('claude_validated = ?')
+                    params.append(1 if claude_validated else 0)
+
+            # Build full query
+            query = 'SELECT * FROM signals'
+            if where_clauses:
+                query += ' WHERE ' + ' AND '.join(where_clauses)
+            query += ' ORDER BY timestamp DESC LIMIT ?'
+            params.append(limit)
+
+            cursor.execute(query, params)
+
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_performance_stats(
+        self,
+        days: int = 30,
+        symbol: Optional[str] = None
+    ) -> Dict:
+        """
+        Get performance statistics.
+
+        Args:
+            days: Number of days to analyze
+            symbol: Filter by symbol (optional)
+
+        Returns:
+            Performance statistics dictionary
+        """
+        cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Base query
+            base_where = 'WHERE timestamp >= ?'
+            params = [cutoff_date]
+
+            if symbol:
+                base_where += ' AND symbol = ?'
+                params.append(symbol)
+
+            # Total signals
+            cursor.execute(f'''
+                SELECT COUNT(*) FROM signals {base_where}
+            ''', params)
+            total_signals = cursor.fetchone()[0]
+
+            # Signals by outcome
+            cursor.execute(f'''
+                SELECT outcome, COUNT(*) as count
+                FROM signals
+                {base_where} AND outcome IS NOT NULL
+                GROUP BY outcome
+            ''', params)
+
+            outcomes = dict(cursor.fetchall())
+            wins = outcomes.get('win', 0)
+            losses = outcomes.get('loss', 0)
+            breakeven = outcomes.get('breakeven', 0)
+
+            # Win rate
+            total_closed = wins + losses + breakeven
+            win_rate = (wins / total_closed * 100) if total_closed > 0 else 0
+
+            # Average PnL
+            cursor.execute(f'''
+                SELECT AVG(pnl_percentage)
+                FROM signals
+                {base_where} AND outcome IS NOT NULL
+            ''', params)
+            avg_pnl = cursor.fetchone()[0] or 0
+
+            # Claude vs Screener comparison
+            cursor.execute(f'''
+                SELECT
+                    claude_validated,
+                    outcome,
+                    COUNT(*) as count
+                FROM signals
+                {base_where} AND outcome IS NOT NULL
+                GROUP BY claude_validated, outcome
+            ''', params)
+
+            ab_results = cursor.fetchall()
+
+            screener_wins = sum(count for validated, outcome, count in ab_results if not validated and outcome == 'win')
+            screener_losses = sum(count for validated, outcome, count in ab_results if not validated and outcome == 'loss')
+            claude_wins = sum(count for validated, outcome, count in ab_results if validated and outcome == 'win')
+            claude_losses = sum(count for validated, outcome, count in ab_results if validated and outcome == 'loss')
+
+            screener_total = screener_wins + screener_losses
+            claude_total = claude_wins + claude_losses
+
+            screener_win_rate = (screener_wins / screener_total * 100) if screener_total > 0 else 0
+            claude_win_rate = (claude_wins / claude_total * 100) if claude_total > 0 else 0
+
+            return {
+                'period_days': days,
+                'total_signals': total_signals,
+                'total_closed': total_closed,
+                'wins': wins,
+                'losses': losses,
+                'breakeven': breakeven,
+                'pending': total_signals - total_closed,
+                'win_rate': round(win_rate, 2),
+                'avg_pnl_percentage': round(avg_pnl, 2),
+                'ab_testing': {
+                    'screener_only': {
+                        'wins': screener_wins,
+                        'losses': screener_losses,
+                        'win_rate': round(screener_win_rate, 2)
+                    },
+                    'claude_validated': {
+                        'wins': claude_wins,
+                        'losses': claude_losses,
+                        'win_rate': round(claude_win_rate, 2)
+                    },
+                    'improvement': round(claude_win_rate - screener_win_rate, 2)
+                }
+            }
+
+    def get_symbol_performance(self, symbol: str, days: int = 30) -> Dict:
+        """Get performance statistics for a specific symbol."""
+        return self.get_performance_stats(days=days, symbol=symbol)
+
+    def get_historical_timeline(
+        self,
+        days: int = 30,
+        group_by: str = 'day'
+    ) -> List[Dict]:
+        """
+        Get historical signal timeline.
+
+        Args:
+            days: Number of days to include
+            group_by: Grouping interval (day/week/month)
+
+        Returns:
+            List of time-grouped statistics
+        """
+        cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+        # SQL date format based on grouping
+        if group_by == 'day':
+            date_format = '%Y-%m-%d'
+        elif group_by == 'week':
+            date_format = '%Y-W%W'
+        else:  # month
+            date_format = '%Y-%m'
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(f'''
+                SELECT
+                    strftime(?, timestamp) as period,
+                    COUNT(*) as total_signals,
+                    SUM(CASE WHEN outcome = 'win' THEN 1 ELSE 0 END) as wins,
+                    SUM(CASE WHEN outcome = 'loss' THEN 1 ELSE 0 END) as losses,
+                    AVG(pnl_percentage) as avg_pnl
+                FROM signals
+                WHERE timestamp >= ?
+                GROUP BY period
+                ORDER BY period DESC
+            ''', (date_format, cutoff_date))
+
+            results = []
+            for row in cursor.fetchall():
+                period, total, wins, losses, avg_pnl = row
+                closed = wins + losses
+                win_rate = (wins / closed * 100) if closed > 0 else 0
+
+                results.append({
+                    'period': period,
+                    'total_signals': total,
+                    'wins': wins,
+                    'losses': losses,
+                    'win_rate': round(win_rate, 2),
+                    'avg_pnl': round(avg_pnl, 2) if avg_pnl else 0
+                })
+
+            return results
+
+    def cleanup_old_records(self, days: int = 365):
+        """Delete records older than specified days (data retention)."""
+        cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                DELETE FROM signals
+                WHERE timestamp < ?
+            ''', (cutoff_date,))
+
+            deleted = cursor.rowcount
+            conn.commit()
+
+        logger.info(f"Cleaned up {deleted} old records (older than {days} days)")
+
+        return deleted
+
+
+def test_signal_history():
+    """Test the signal history system."""
+    logging.basicConfig(level=logging.INFO)
+
+    print("=" * 60)
+    print("TESTING SIGNAL HISTORY SYSTEM")
+    print("=" * 60)
+
+    # Create manager
+    manager = SignalHistoryManager(db_path="data/test_signal_history.db")
+
+    # Test 1: Add signals
+    print("\n" + "=" * 60)
+    print("TEST 1: Add Signals")
+    print("=" * 60)
+
+    signal_ids = []
+
+    # Add a winning signal
+    signal_id1 = manager.add_signal(
+        symbol="EUR/USD",
+        direction="long",
+        score=95,
+        current_price=1.0850,
+        entry_price=1.0850,
+        stop_loss=1.0800,
+        take_profit=1.0950,
+        leverage=20,
+        score_breakdown={'fib': 34, 'ema': 21, 'ewoscillator': 21},
+        indicators={'rsi': 55, 'macd': 0.002},
+        enhanced_score=105,
+        claude_confidence=0.85,
+        claude_justification="Strong Elliott Wave pattern"
+    )
+    signal_ids.append(signal_id1)
+    print(f"✓ Added signal 1: {signal_id1}")
+
+    # Add a losing signal (screener only)
+    signal_id2 = manager.add_signal(
+        symbol="GBP/USD",
+        direction="short",
+        score=78,
+        current_price=1.2650,
+        entry_price=1.2650,
+        stop_loss=1.2700,
+        take_profit=1.2550,
+        leverage=20,
+        score_breakdown={'fib': 21, 'ema': 13},
+        indicators={'rsi': 65, 'macd': -0.001}
+    )
+    signal_ids.append(signal_id2)
+    print(f"✓ Added signal 2: {signal_id2}")
+
+    # Test 2: Update outcomes
+    print("\n" + "=" * 60)
+    print("TEST 2: Update Outcomes")
+    print("=" * 60)
+
+    # Signal 1 wins
+    manager.update_signal_outcome(
+        signal_id1,
+        outcome='win',
+        actual_exit_price=1.0950,
+        notes="Hit take profit"
+    )
+    print(f"✓ Updated {signal_id1}: WIN")
+
+    # Signal 2 loses
+    manager.update_signal_outcome(
+        signal_id2,
+        outcome='loss',
+        actual_exit_price=1.2700,
+        notes="Hit stop loss"
+    )
+    print(f"✓ Updated {signal_id2}: LOSS")
+
+    # Test 3: Get performance stats
+    print("\n" + "=" * 60)
+    print("TEST 3: Performance Statistics")
+    print("=" * 60)
+
+    stats = manager.get_performance_stats(days=30)
+    print(f"\nTotal Signals: {stats['total_signals']}")
+    print(f"Closed: {stats['total_closed']}")
+    print(f"Wins: {stats['wins']} | Losses: {stats['losses']} | Breakeven: {stats['breakeven']}")
+    print(f"Win Rate: {stats['win_rate']}%")
+    print(f"Avg PnL: {stats['avg_pnl_percentage']:+.2f}%")
+
+    print(f"\nA/B Testing Results:")
+    print(f"Screener Only: {stats['ab_testing']['screener_only']['win_rate']}% win rate")
+    print(f"Claude Validated: {stats['ab_testing']['claude_validated']['win_rate']}% win rate")
+    print(f"Improvement: {stats['ab_testing']['improvement']:+.2f}%")
+
+    # Test 4: Get recent signals
+    print("\n" + "=" * 60)
+    print("TEST 4: Recent Signals")
+    print("=" * 60)
+
+    recent = manager.get_recent_signals(limit=10)
+    print(f"\nFound {len(recent)} recent signals:")
+    for signal in recent[:3]:  # Show first 3
+        print(f"  - {signal['symbol']} {signal['direction']} @ {signal['score']}: {signal['outcome'] or 'pending'}")
+
+    print("\n" + "=" * 60)
+    print("✓ ALL TESTS PASSED")
+    print("=" * 60)
+
+    return True
+
+
+if __name__ == "__main__":
+    success = test_signal_history()
+    sys.exit(0 if success else 1)

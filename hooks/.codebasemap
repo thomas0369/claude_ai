@@ -1,0 +1,424 @@
+{
+  "metadata": {
+    "version": 1,
+    "root": "/home/thoma/.claude/hooks",
+    "createdAt": "2025-11-09T09:51:32.904Z",
+    "updatedAt": "2025-11-09T09:51:32.904Z",
+    "totalFiles": 9
+  },
+  "tree": {
+    "name": "hooks",
+    "type": "dir",
+    "children": [
+      {
+        "name": "00-enforce-worktree.js",
+        "type": "file"
+      },
+      {
+        "name": "00-per-prompt-worktree.js",
+        "type": "file"
+      },
+      {
+        "name": "99-per-prompt-commit.js",
+        "type": "file"
+      },
+      {
+        "name": "99-post-merge-cleanup.js",
+        "type": "file"
+      },
+      {
+        "name": "post-memory.js",
+        "type": "file"
+      },
+      {
+        "name": "post-task-worktree-cleanup.js",
+        "type": "file"
+      },
+      {
+        "name": "post-test.js",
+        "type": "file"
+      },
+      {
+        "name": "pre-task-auto-worktree.js",
+        "type": "file"
+      },
+      {
+        "name": "pre-task.js",
+        "type": "file"
+      }
+    ]
+  },
+  "nodes": [
+    "00-enforce-worktree.js",
+    "00-per-prompt-worktree.js",
+    "99-per-prompt-commit.js",
+    "99-post-merge-cleanup.js",
+    "post-memory.js",
+    "post-task-worktree-cleanup.js",
+    "post-test.js",
+    "pre-task-auto-worktree.js",
+    "pre-task.js"
+  ],
+  "edges": [],
+  "files": {
+    "00-enforce-worktree.js": {
+      "imports": [
+        {
+          "from": "child_process",
+          "kind": "import",
+          "imported": [
+            "execSync"
+          ]
+        },
+        {
+          "from": "fs",
+          "kind": "import",
+          "imported": [
+            "existsSync"
+          ]
+        },
+        {
+          "from": "path",
+          "kind": "import",
+          "imported": [
+            "join"
+          ]
+        }
+      ],
+      "dependencies": [],
+      "functions": [
+        {
+          "name": "enforceWorktree",
+          "params": [
+            {
+              "name": "unknown"
+            }
+          ],
+          "isAsync": true,
+          "isExported": true
+        }
+      ],
+      "classes": [],
+      "constants": []
+    },
+    "00-per-prompt-worktree.js": {
+      "imports": [
+        {
+          "from": "child_process",
+          "kind": "import",
+          "imported": [
+            "execSync"
+          ]
+        },
+        {
+          "from": "fs",
+          "kind": "import",
+          "imported": [
+            "existsSync",
+            "readFileSync"
+          ]
+        },
+        {
+          "from": "path",
+          "kind": "import",
+          "imported": [
+            "join"
+          ]
+        }
+      ],
+      "dependencies": [],
+      "functions": [
+        {
+          "name": "perPromptWorktree",
+          "params": [
+            {
+              "name": "unknown"
+            }
+          ],
+          "isAsync": true,
+          "isExported": true
+        }
+      ],
+      "classes": [],
+      "constants": []
+    },
+    "99-per-prompt-commit.js": {
+      "imports": [
+        {
+          "from": "child_process",
+          "kind": "import",
+          "imported": [
+            "execSync"
+          ]
+        },
+        {
+          "from": "fs",
+          "kind": "import",
+          "imported": [
+            "existsSync",
+            "readFileSync"
+          ]
+        },
+        {
+          "from": "path",
+          "kind": "import",
+          "imported": [
+            "join"
+          ]
+        }
+      ],
+      "dependencies": [],
+      "functions": [
+        {
+          "name": "perPromptCommit",
+          "params": [
+            {
+              "name": "unknown"
+            }
+          ],
+          "isAsync": true,
+          "isExported": true
+        }
+      ],
+      "classes": [],
+      "constants": []
+    },
+    "99-post-merge-cleanup.js": {
+      "imports": [
+        {
+          "from": "child_process",
+          "kind": "import",
+          "imported": [
+            "execSync"
+          ]
+        },
+        {
+          "from": "fs",
+          "kind": "import",
+          "imported": [
+            "existsSync"
+          ]
+        },
+        {
+          "from": "path",
+          "kind": "import",
+          "imported": [
+            "join"
+          ]
+        }
+      ],
+      "dependencies": [],
+      "functions": [
+        {
+          "name": "postMergeCleanup",
+          "params": [
+            {
+              "name": "unknown"
+            }
+          ],
+          "isAsync": true,
+          "isExported": true
+        }
+      ],
+      "classes": [],
+      "constants": []
+    },
+    "post-memory.js": {
+      "imports": [
+        {
+          "from": "fs",
+          "kind": "import",
+          "imported": [
+            "writeFileSync",
+            "existsSync",
+            "readFileSync"
+          ]
+        },
+        {
+          "from": "path",
+          "kind": "import",
+          "imported": [
+            "join"
+          ]
+        }
+      ],
+      "dependencies": [],
+      "functions": [
+        {
+          "name": "postMemory",
+          "params": [
+            {
+              "name": "unknown"
+            }
+          ],
+          "isAsync": true,
+          "isExported": true
+        }
+      ],
+      "classes": [],
+      "constants": []
+    },
+    "post-task-worktree-cleanup.js": {
+      "imports": [
+        {
+          "from": "child_process",
+          "kind": "import",
+          "imported": [
+            "execSync"
+          ]
+        },
+        {
+          "from": "fs",
+          "kind": "import",
+          "imported": [
+            "existsSync"
+          ]
+        },
+        {
+          "from": "path",
+          "kind": "import",
+          "imported": [
+            "join"
+          ]
+        }
+      ],
+      "dependencies": [],
+      "functions": [
+        {
+          "name": "postTaskWorktreeCleanup",
+          "params": [
+            {
+              "name": "unknown"
+            }
+          ],
+          "isAsync": true,
+          "isExported": true
+        }
+      ],
+      "classes": [],
+      "constants": []
+    },
+    "post-test.js": {
+      "imports": [
+        {
+          "from": "playwright",
+          "kind": "import",
+          "imported": [
+            "chromium"
+          ]
+        },
+        {
+          "from": "fs",
+          "kind": "import",
+          "imported": [
+            "existsSync",
+            "mkdirSync",
+            "readFileSync"
+          ]
+        },
+        {
+          "from": "path",
+          "kind": "import",
+          "imported": [
+            "join"
+          ]
+        }
+      ],
+      "dependencies": [],
+      "functions": [
+        {
+          "name": "postTest",
+          "params": [
+            {
+              "name": "unknown"
+            }
+          ],
+          "isAsync": true,
+          "isExported": true
+        }
+      ],
+      "classes": [],
+      "constants": []
+    },
+    "pre-task-auto-worktree.js": {
+      "imports": [
+        {
+          "from": "child_process",
+          "kind": "import",
+          "imported": [
+            "execSync"
+          ]
+        },
+        {
+          "from": "fs",
+          "kind": "import",
+          "imported": [
+            "existsSync"
+          ]
+        },
+        {
+          "from": "path",
+          "kind": "import",
+          "imported": [
+            "join"
+          ]
+        }
+      ],
+      "dependencies": [],
+      "functions": [
+        {
+          "name": "preTaskAutoWorktree",
+          "params": [
+            {
+              "name": "unknown"
+            }
+          ],
+          "isAsync": true,
+          "isExported": true
+        }
+      ],
+      "classes": [],
+      "constants": []
+    },
+    "pre-task.js": {
+      "imports": [
+        {
+          "from": "child_process",
+          "kind": "import",
+          "imported": [
+            "execSync"
+          ]
+        },
+        {
+          "from": "fs",
+          "kind": "import",
+          "imported": [
+            "existsSync"
+          ]
+        },
+        {
+          "from": "path",
+          "kind": "import",
+          "imported": [
+            "join"
+          ]
+        }
+      ],
+      "dependencies": [],
+      "functions": [
+        {
+          "name": "preTask",
+          "params": [
+            {
+              "name": "unknown"
+            }
+          ],
+          "isAsync": true,
+          "isExported": true
+        }
+      ],
+      "classes": [],
+      "constants": []
+    }
+  }
+}

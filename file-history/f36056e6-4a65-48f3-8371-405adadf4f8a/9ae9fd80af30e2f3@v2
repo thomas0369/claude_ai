@@ -1,0 +1,538 @@
+# Elliott Wave Trading Bot v3.0 - Testing Guide
+
+**Last Updated:** January 4, 2025
+**Status:** Comprehensive Test Suite Active
+
+---
+
+## 📋 Table of Contents
+
+1. [Overview](#overview)
+2. [Test Framework](#test-framework)
+3. [Running Tests](#running-tests)
+4. [Test Coverage](#test-coverage)
+5. [Test Structure](#test-structure)
+6. [Writing New Tests](#writing-new-tests)
+7. [Continuous Integration](#continuous-integration)
+8. [Troubleshooting](#troubleshooting)
+
+---
+
+## 🎯 Overview
+
+The Elliott Wave Trading Bot includes a comprehensive test suite covering:
+
+- **Unit Tests**: Individual module functionality
+- **Integration Tests**: API endpoint testing
+- **End-to-End Tests**: Complete workflow validation
+- **Performance Tests**: Response time and load testing
+
+### Test Statistics
+
+| Category | Tests | Status |
+|----------|-------|--------|
+| Data Quality Tests | 4 | ✅ Passing |
+| Timeframe Engine Tests | 15 | 🔄 In Progress |
+| Signal History Tests | 18 | 🔄 In Progress |
+| API Endpoint Tests | 25+ | ✅ Passing |
+| Total | 60+ | 🟡 Partial Coverage |
+
+---
+
+## 🛠 Test Framework
+
+### Dependencies
+
+```bash
+pytest>=8.0.0          # Core testing framework
+pytest-cov>=4.0.0      # Code coverage
+pytest-timeout>=2.0.0  # Test timeout
+pytest-asyncio>=0.23.0 # Async support
+pytest-mock>=3.12.0    # Mocking framework
+```
+
+### Configuration
+
+Test configuration is managed through `pytest.ini`:
+
+```ini
+[pytest]
+testpaths = tests
+addopts = --verbose --tb=short --cov=src
+timeout = 300
+```
+
+---
+
+## 🚀 Running Tests
+
+### Quick Start
+
+```bash
+# Run all tests
+./run_tests.sh all
+
+# Run unit tests only
+./run_tests.sh unit
+
+# Run integration tests only
+./run_tests.sh integration
+
+# Run with coverage report
+./run_tests.sh coverage
+```
+
+### Manual Execution
+
+```bash
+# Activate virtual environment
+source .venv/bin/activate
+
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/test_data_quality.py
+
+# Run specific test class
+pytest tests/test_data_quality.py::TestDataQualityAssessment
+
+# Run specific test method
+pytest tests/test_data_quality.py::TestDataQualityAssessment::test_initialization
+
+# Run with verbose output
+pytest -v
+
+# Run with coverage
+pytest --cov=src --cov-report=html
+
+# Run tests matching pattern
+pytest -k "quality"
+
+# Run tests with specific marker
+pytest -m unit
+```
+
+### Test Runner Options
+
+The `run_tests.sh` script supports multiple modes:
+
+```bash
+./run_tests.sh unit        # Unit tests only
+./run_tests.sh integration # Integration/API tests
+./run_tests.sh coverage    # Full coverage report
+./run_tests.sh fast        # Exclude slow tests
+./run_tests.sh all         # All tests (default)
+```
+
+---
+
+## 📊 Test Coverage
+
+### Current Coverage
+
+Run coverage analysis:
+
+```bash
+pytest --cov=src --cov-report=html --cov-report=term-missing
+```
+
+View HTML report:
+
+```bash
+# Report generated in: htmlcov/index.html
+open htmlcov/index.html  # macOS
+xdg-open htmlcov/index.html  # Linux
+```
+
+### Coverage Goals
+
+| Module | Target | Current |
+|--------|--------|---------|
+| data_quality.py | 90% | 15% |
+| timeframe_engine.py | 90% | 10% |
+| signal_history.py | 90% | 12% |
+| web_backend.py | 80% | 5% |
+| claude_validation_queue.py | 85% | 8% |
+| **Overall** | **85%** | **~10%** |
+
+---
+
+## 🗂 Test Structure
+
+### Directory Layout
+
+```
+elliott-wave-trading-bot/
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py                    # Shared fixtures
+│   ├── test_data_quality.py           # Data quality unit tests
+│   ├── test_timeframe_engine.py       # Timeframe engine tests
+│   ├── test_signal_history.py         # Signal history tests
+│   ├── test_api_endpoints.py          # API integration tests
+│   └── test_performance.py            # Performance/load tests
+├── pytest.ini                         # pytest configuration
+└── run_tests.sh                       # Test runner script
+```
+
+### Test Files
+
+#### Unit Tests
+
+**test_data_quality.py**
+- Tests DataQualityAssessment class
+- Validates 0-100 scoring system
+- Tests all 5 quality metrics
+
+**test_timeframe_engine.py**
+- Tests TimeframeEngine class
+- Validates resampling logic
+- Tests quality validation
+
+**test_signal_history.py**
+- Tests SignalHistoryManager class
+- Validates database operations
+- Tests performance metrics and A/B testing
+
+#### Integration Tests
+
+**test_api_endpoints.py**
+- Tests all REST API endpoints
+- Validates request/response formats
+- Tests error handling
+- Tests CORS and headers
+
+#### Performance Tests
+
+**test_performance.py** (Future)
+- Load testing
+- Response time benchmarks
+- Concurrent request handling
+
+---
+
+## ✍️ Writing New Tests
+
+### Test Template
+
+```python
+"""
+Test module description.
+"""
+
+import pytest
+from module_name import ClassName
+
+
+class TestClassName:
+    """Test suite for ClassName."""
+
+    def test_initialization(self):
+        """Test initialization."""
+        obj = ClassName()
+        assert obj is not None
+
+    def test_method_name(self, fixture_name):
+        """Test specific method."""
+        obj = ClassName()
+        result = obj.method(fixture_name)
+
+        assert result is not None
+        assert result['key'] == expected_value
+```
+
+### Using Fixtures
+
+Fixtures are defined in `tests/conftest.py`:
+
+```python
+def test_with_sample_data(sample_ohlcv_data):
+    """Test using sample OHLCV data fixture."""
+    # sample_ohlcv_data is automatically provided
+    assert len(sample_ohlcv_data) == 500
+```
+
+### Available Fixtures
+
+| Fixture | Description |
+|---------|-------------|
+| `sample_ohlcv_data` | 500 candles of realistic OHLCV data |
+| `sample_quality_data` | Data with known quality issues |
+| `temp_db_path` | Temporary database path |
+| `temp_cache_dir` | Temporary cache directory |
+| `mock_twelvedata_response` | Mock API response |
+| `mock_claude_response` | Mock Claude validation response |
+
+### Test Markers
+
+Mark tests for selective execution:
+
+```python
+@pytest.mark.slow
+def test_comprehensive_analysis():
+    """Slow test - marked for optional execution."""
+    pass
+
+@pytest.mark.integration
+def test_api_endpoint():
+    """Integration test."""
+    pass
+
+@pytest.mark.unit
+def test_unit_function():
+    """Unit test."""
+    pass
+```
+
+Run marked tests:
+
+```bash
+pytest -m slow           # Run slow tests only
+pytest -m "not slow"     # Skip slow tests
+pytest -m integration    # Run integration tests
+```
+
+### Assertions
+
+```python
+# Basic assertions
+assert value == expected
+assert value != unexpected
+assert value is True
+assert value in collection
+
+# Numeric comparisons with tolerance
+assert value == pytest.approx(expected, abs=0.1)
+
+# Exception testing
+with pytest.raises(ValueError):
+    function_that_should_fail()
+
+# String assertions
+assert 'substring' in string
+assert string.startswith('prefix')
+```
+
+---
+
+## 🔄 Continuous Integration
+
+### GitHub Actions (Future)
+
+Example workflow configuration:
+
+```yaml
+name: Test Suite
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.12
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        pytest --cov=src --cov-report=xml
+
+    - name: Upload coverage
+      uses: codecov/codecov-action@v2
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**1. Import Errors**
+
+```bash
+# Error: ModuleNotFoundError: No module named 'data_quality'
+
+# Solution: Ensure src is in Python path
+export PYTHONPATH="${PYTHONPATH}:/path/to/elliott-wave-trading-bot/src"
+
+# Or use conftest.py (already configured)
+```
+
+**2. Fixture Not Found**
+
+```bash
+# Error: fixture 'sample_ohlcv_data' not found
+
+# Solution: Ensure conftest.py is in tests directory
+# and fixture is properly defined
+```
+
+**3. Database Lock Errors**
+
+```bash
+# Error: database is locked
+
+# Solution: Use temporary database in tests
+def test_with_temp_db(temp_db_path):
+    manager = SignalHistoryManager(db_path=temp_db_path)
+```
+
+**4. Timeout Errors**
+
+```bash
+# Error: Test exceeded timeout
+
+# Solution: Increase timeout for slow tests
+@pytest.mark.timeout(600)  # 10 minutes
+def test_slow_operation():
+    pass
+```
+
+### Debugging Tests
+
+```bash
+# Run with pdb debugger
+pytest --pdb
+
+# Stop on first failure
+pytest -x
+
+# Show local variables in tracebacks
+pytest -l
+
+# Verbose output with print statements
+pytest -s -v
+```
+
+### Test Data Issues
+
+```bash
+# Clear test cache
+pytest --cache-clear
+
+# Re-generate test data
+rm -rf data/test_*
+pytest
+```
+
+---
+
+## 📚 Best Practices
+
+### DO:
+
+✅ Write tests before fixing bugs
+✅ Test one thing per test method
+✅ Use descriptive test names
+✅ Use fixtures for reusable test data
+✅ Mock external API calls
+✅ Test both success and failure cases
+✅ Keep tests fast (<1 second each)
+✅ Clean up resources after tests
+
+### DON'T:
+
+❌ Test implementation details
+❌ Write interdependent tests
+❌ Use hardcoded file paths
+❌ Make actual API calls in tests
+❌ Ignore failing tests
+❌ Test third-party library code
+❌ Write tests that depend on network
+
+---
+
+## 📈 Test Metrics
+
+### Performance Targets
+
+| Test Type | Target Time | Max Time |
+|-----------|-------------|----------|
+| Unit Test | <0.1s | 1s |
+| Integration Test | <2s | 10s |
+| End-to-End Test | <10s | 60s |
+| Full Suite | <2min | 10min |
+
+### Quality Metrics
+
+- **Code Coverage**: ≥85% for core modules
+- **Test Pass Rate**: 100%
+- **Test Stability**: <1% flakiness
+- **Maintenance**: Tests updated with code changes
+
+---
+
+## 🔗 Related Documentation
+
+- [START_HERE.md](START_HERE.md) - Quick start guide
+- [PROJECT_STATUS.md](PROJECT_STATUS.md) - Project overview
+- [SIGNAL_HISTORY_README.md](SIGNAL_HISTORY_README.md) - Signal history system
+- [CLAUDE_VALIDATION_QUEUE_README.md](CLAUDE_VALIDATION_QUEUE_README.md) - Claude validation
+
+---
+
+## 💡 Tips for Writing Effective Tests
+
+### 1. Test Naming Convention
+
+```python
+def test_<method>_<scenario>_<expected_behavior>():
+    """
+    Example: test_assess_quality_with_empty_data_returns_low_score
+    """
+    pass
+```
+
+### 2. Arrange-Act-Assert Pattern
+
+```python
+def test_method():
+    # Arrange: Set up test data
+    data = create_test_data()
+
+    # Act: Execute the function
+    result = function_under_test(data)
+
+    # Assert: Verify the outcome
+    assert result == expected
+```
+
+### 3. Use Parametrize for Multiple Cases
+
+```python
+@pytest.mark.parametrize("input,expected", [
+    (100, "EXCELLENT"),
+    (85, "GOOD"),
+    (70, "FAIR"),
+    (50, "POOR"),
+])
+def test_quality_levels(input, expected):
+    level = get_quality_level(input)
+    assert level == expected
+```
+
+---
+
+**Questions or Issues?**
+
+1. Check [Troubleshooting](#troubleshooting) section
+2. Review test examples in `tests/` directory
+3. Run `pytest --help` for all options
+4. Check pytest documentation: https://docs.pytest.org/
+
+**Ready to Test?**
+
+```bash
+./run_tests.sh all
+```
+
+Test early, test often! 🧪

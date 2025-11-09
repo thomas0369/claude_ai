@@ -1,0 +1,452 @@
+/**
+ * Complete Game Playthrough - Autonomous Test
+ *
+ * This test autonomously plays an entire game from start to finish,
+ * making intelligent placement decisions and tracking all game metrics.
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Complete Autonomous Game Playthrough', () => {
+
+  test('Play a complete game autonomously with intelligent block placement', async ({ page }) => {
+    console.log('\n🎮 STARTING COMPLETE AUTONOMOUS GAME PLAYTHROUGH\n');
+    console.log('=' .repeat(80));
+
+    // Game statistics tracking
+    const gameStats = {
+      blocksPlaced: 0,
+      totalCellsPlaced: 0,
+      linesCleared: 0,
+      maxCombo: 0,
+      finalScore: 0,
+      moves: [] as Array<{ block: string; position: string; score: number; linesCleared: number }>,
+      startTime: Date.now(),
+      endTime: 0,
+    };
+
+    // Configure longer timeout for complete gameplay
+    test.setTimeout(300000); // 5 minutes
+
+    // ========================================================================
+    // GAME INITIALIZATION
+    // ========================================================================
+    console.log('\n📍 PHASE 1: GAME INITIALIZATION');
+    console.log('-'.repeat(80));
+
+    await page.goto('/play/1', { waitUntil: 'networkidle', timeout: 60000 });
+    console.log('✓ Navigated to Level 1');
+
+    // Wait for canvas
+    await page.locator('canvas').waitFor({ state: 'visible', timeout: 30000 });
+    console.log('✓ Canvas rendered');
+
+    // Wait for game instance
+    await page.waitForFunction(() => {
+      return typeof (window as any).game !== 'undefined' &&
+             typeof (window as any).gameDebug !== 'undefined';
+    }, { timeout: 40000 });
+    console.log('✓ Game instance created');
+
+    // Wait for scene to be ready
+    await page.waitForTimeout(8000);
+    console.log('✓ Game fully initialized');
+
+    // Take initial screenshot
+    await page.screenshot({ path: 'test-results/playthrough-00-start.png', fullPage: true });
+    console.log('✓ Initial screenshot saved');
+
+    // ========================================================================
+    // HELPER FUNCTIONS
+    // ========================================================================
+
+    /**
+     * Get current game state
+     */
+    async function getGameState() {
+      return await page.evaluate(() => {
+        const scene = (window as any).game.scene.scenes[0];
+        return {
+          score: scene.score || 0,
+          combo: scene.comboCount || 0,
+          grid: scene.grid,
+          hasBlockPool: !!scene.blockPool,
+        };
+      });
+    }
+
+    /**
+     * Get available blocks
+     */
+    async function getAvailableBlocks() {
+      return await page.evaluate(() => {
+        return (window as any).gameDebug.getAvailableBlocks();
+      });
+    }
+
+    /**
+     * Find all valid positions for a block on the grid
+     */
+    async function findValidPositions(blockIndex: number) {
+      return await page.evaluate((idx) => {
+        const scene = (window as any).game.scene.scenes[0];
+        const blocks = (window as any).gameDebug.getAvailableBlocks();
+
+        if (!blocks || idx >= blocks.length) return [];
+
+        const block = blocks[idx];
+        const grid = scene.grid;
+        const validPositions: Array<{ row: number; col: number; coverage: number }> = [];
+
+        // Try every position on the grid
+        for (let row = 0; row < 8; row++) {
+          for (let col = 0; col < 8; col++) {
+            let canPlace = true;
+            let cellCount = 0;
+
+            // Check if block fits at this position
+            for (let r = 0; r < block.shape.length; r++) {
+              for (let c = 0; c < block.shape[r].length; c++) {
+                if (block.shape[r][c] === 1) {
+                  const gridRow = row + r;
+                  const gridCol = col + c;
+
+                  // Check bounds
+                  if (gridRow < 0 || gridRow >= 8 || gridCol < 0 || gridCol >= 8) {
+                    canPlace = false;
+                    break;
+                  }
+
+                  // Check if cell is empty
+                  if (grid[gridRow][gridCol] !== 0) {
+                    canPlace = false;
+                    break;
+                  }
+
+                  cellCount++;
+                }
+              }
+              if (!canPlace) break;
+            }
+
+            if (canPlace && cellCount > 0) {
+              validPositions.push({ row, col, coverage: cellCount });
+            }
+          }
+        }
+
+        return validPositions;
+      }, blockIndex);
+    }
+
+    /**
+     * Calculate potential line clears for a position
+     */
+    async function calculatePotentialLines(blockIndex: number, row: number, col: number) {
+      return await page.evaluate(({ idx, r, c }) => {
+        const scene = (window as any).game.scene.scenes[0];
+        const blocks = (window as any).gameDebug.getAvailableBlocks();
+
+        if (!blocks || idx >= blocks.length) return 0;
+
+        const block = blocks[idx];
+        const grid = JSON.parse(JSON.stringify(scene.grid)); // Deep copy
+
+        // Simulate placement
+        for (let br = 0; br < block.shape.length; br++) {
+          for (let bc = 0; bc < block.shape[br].length; bc++) {
+            if (block.shape[br][bc] === 1) {
+              const gridRow = r + br;
+              const gridCol = c + bc;
+              if (gridRow >= 0 && gridRow < 8 && gridCol >= 0 && gridCol < 8) {
+                grid[gridRow][gridCol] = 1;
+              }
+            }
+          }
+        }
+
+        // Count complete lines
+        let linesCleared = 0;
+
+        // Check rows
+        for (let row = 0; row < 8; row++) {
+          if (grid[row].every((cell: number) => cell !== 0)) {
+            linesCleared++;
+          }
+        }
+
+        // Check columns
+        for (let col = 0; col < 8; col++) {
+          let columnFilled = true;
+          for (let row = 0; row < 8; row++) {
+            if (grid[row][col] === 0) {
+              columnFilled = false;
+              break;
+            }
+          }
+          if (columnFilled) linesCleared++;
+        }
+
+        return linesCleared;
+      }, { idx: blockIndex, r: row, c: col });
+    }
+
+    /**
+     * Place a block at the best available position
+     */
+    async function placeBlockIntelligently(blockIndex: number) {
+      const blocks = await getAvailableBlocks();
+      if (!blocks || blockIndex >= blocks.length) {
+        return { success: false, reason: 'Invalid block index' };
+      }
+
+      const block = blocks[blockIndex];
+      const validPositions = await findValidPositions(blockIndex);
+
+      if (validPositions.length === 0) {
+        return { success: false, reason: 'No valid positions available' };
+      }
+
+      // Score each position based on potential line clears
+      const scoredPositions = await Promise.all(
+        validPositions.map(async (pos) => {
+          const potentialLines = await calculatePotentialLines(blockIndex, pos.row, pos.col);
+          return {
+            ...pos,
+            potentialLines,
+            score: potentialLines * 100 + pos.coverage,
+          };
+        })
+      );
+
+      // Sort by score (prioritize line clears, then coverage)
+      scoredPositions.sort((a, b) => b.score - a.score);
+
+      // Place at best position
+      const bestPosition = scoredPositions[0];
+
+      const result = await page.evaluate(({ idx, row, col }) => {
+        return (window as any).gameDebug.placeBlockAt(idx, row, col);
+      }, { idx: blockIndex, row: bestPosition.row, col: bestPosition.col });
+
+      return {
+        success: result.success,
+        block: block.id,
+        position: `(${bestPosition.row}, ${bestPosition.col})`,
+        potentialLines: bestPosition.potentialLines,
+        result,
+      };
+    }
+
+    // ========================================================================
+    // MAIN GAMEPLAY LOOP
+    // ========================================================================
+    console.log('\n📍 PHASE 2: AUTONOMOUS GAMEPLAY');
+    console.log('-'.repeat(80));
+
+    let moveNumber = 0;
+    let consecutiveFailures = 0;
+    let gameOver = false;
+
+    while (!gameOver && moveNumber < 100) { // Max 100 moves as safety
+      moveNumber++;
+
+      console.log(`\n🎲 MOVE ${moveNumber}`);
+      console.log('─'.repeat(40));
+
+      // Get current state
+      const stateBefore = await getGameState();
+      const availableBlocks = await getAvailableBlocks();
+
+      console.log(`  Blocks available: ${availableBlocks.length}`);
+      console.log(`  Current score: ${stateBefore.score}`);
+      console.log(`  Current combo: ${stateBefore.combo}x`);
+
+      if (availableBlocks.length === 0) {
+        console.log('  ⚠️  No blocks available - waiting for respawn...');
+        await page.waitForTimeout(2000);
+        continue;
+      }
+
+      // Try to place each block
+      let placedAny = false;
+
+      for (let i = 0; i < availableBlocks.length && i < 3; i++) {
+        const block = availableBlocks[i];
+        console.log(`\n  Attempting to place Block ${i}: ${block.id} (${block.width}x${block.height})`);
+
+        const placement = await placeBlockIntelligently(i);
+
+        if (placement.success && placement.result) {
+          placedAny = true;
+          consecutiveFailures = 0;
+
+          const linesCleared = placement.result.linesCleared || 0;
+
+          console.log(`  ✅ SUCCESS!`);
+          console.log(`    Position: ${placement.position}`);
+          console.log(`    Cells placed: ${placement.result.cellsPlaced}`);
+          console.log(`    Lines cleared: ${linesCleared}`);
+          console.log(`    Score after: ${placement.result.score}`);
+
+          // Update statistics
+          gameStats.blocksPlaced++;
+          gameStats.totalCellsPlaced += placement.result.cellsPlaced;
+          gameStats.linesCleared += linesCleared;
+          gameStats.finalScore = placement.result.score;
+
+          gameStats.moves.push({
+            block: block.id,
+            position: placement.position,
+            score: placement.result.score,
+            linesCleared,
+          });
+
+          // Wait for animations
+          await page.waitForTimeout(800);
+
+          // Take screenshot every 5 moves
+          if (moveNumber % 5 === 0) {
+            const screenshotNum = String(moveNumber).padStart(2, '0');
+            await page.screenshot({
+              path: `test-results/playthrough-${screenshotNum}.png`,
+              fullPage: true
+            });
+            console.log(`    📸 Screenshot saved: playthrough-${screenshotNum}.png`);
+          }
+
+          break; // Successfully placed one block, move to next iteration
+        } else {
+          console.log(`  ❌ FAILED: ${placement.reason || 'Unknown reason'}`);
+        }
+      }
+
+      if (!placedAny) {
+        consecutiveFailures++;
+        console.log(`  ⚠️  Could not place any blocks (failure ${consecutiveFailures}/3)`);
+
+        if (consecutiveFailures >= 3) {
+          console.log('  🛑 GAME OVER - No valid moves available');
+          gameOver = true;
+        }
+      }
+
+      // Check current state after move
+      const stateAfter = await getGameState();
+      if (stateAfter.combo > gameStats.maxCombo) {
+        gameStats.maxCombo = stateAfter.combo;
+      }
+
+      // Small delay between moves
+      await page.waitForTimeout(500);
+    }
+
+    // ========================================================================
+    // GAME COMPLETE
+    // ========================================================================
+    gameStats.endTime = Date.now();
+    const duration = ((gameStats.endTime - gameStats.startTime) / 1000).toFixed(1);
+
+    console.log('\n' + '='.repeat(80));
+    console.log('🏁 GAME COMPLETE!');
+    console.log('='.repeat(80));
+
+    // Get final state
+    const finalState = await getGameState();
+    const finalGrid = await page.evaluate(() => {
+      return (window as any).gameDebug.getGridVisualization();
+    });
+
+    // Take final screenshot
+    await page.screenshot({ path: 'test-results/playthrough-final.png', fullPage: true });
+
+    // ========================================================================
+    // DISPLAY STATISTICS
+    // ========================================================================
+    console.log('\n📊 GAME STATISTICS');
+    console.log('-'.repeat(80));
+    console.log(`  Total Moves: ${moveNumber}`);
+    console.log(`  Blocks Placed: ${gameStats.blocksPlaced}`);
+    console.log(`  Total Cells Placed: ${gameStats.totalCellsPlaced}`);
+    console.log(`  Lines Cleared: ${gameStats.linesCleared}`);
+    console.log(`  Max Combo: ${gameStats.maxCombo}x`);
+    console.log(`  Final Score: ${finalState.score}`);
+    console.log(`  Duration: ${duration}s`);
+    console.log(`  Average Time per Move: ${(parseFloat(duration) / moveNumber).toFixed(2)}s`);
+
+    console.log('\n📈 MOVE HISTORY (Last 10 Moves)');
+    console.log('-'.repeat(80));
+    const recentMoves = gameStats.moves.slice(-10);
+    recentMoves.forEach((move, idx) => {
+      const moveNum = gameStats.moves.length - recentMoves.length + idx + 1;
+      console.log(`  ${moveNum}. ${move.block.padEnd(8)} @ ${move.position.padEnd(10)} → Score: ${move.score}, Lines: ${move.linesCleared}`);
+    });
+
+    console.log('\n🎯 FINAL GRID STATE');
+    console.log('-'.repeat(80));
+    console.log(finalGrid);
+
+    // Count filled cells
+    const filledCells = await page.evaluate(() => {
+      const scene = (window as any).game.scene.scenes[0];
+      let count = 0;
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          if (scene.grid[row][col] !== 0) count++;
+        }
+      }
+      return count;
+    });
+
+    console.log(`\n  Grid Fill: ${filledCells}/64 cells (${((filledCells / 64) * 100).toFixed(1)}%)`);
+
+    console.log('\n' + '='.repeat(80));
+    console.log('✅ AUTONOMOUS PLAYTHROUGH TEST COMPLETED SUCCESSFULLY');
+    console.log('='.repeat(80) + '\n');
+
+    // Write detailed report
+    const report = `# Complete Game Playthrough Report
+
+**Date:** ${new Date().toISOString()}
+**Duration:** ${duration}s
+**Final Score:** ${finalState.score}
+
+## Game Statistics
+
+- **Total Moves:** ${moveNumber}
+- **Blocks Placed:** ${gameStats.blocksPlaced}
+- **Total Cells Placed:** ${gameStats.totalCellsPlaced}
+- **Lines Cleared:** ${gameStats.linesCleared}
+- **Max Combo:** ${gameStats.maxCombo}x
+- **Average Time per Move:** ${(parseFloat(duration) / moveNumber).toFixed(2)}s
+- **Grid Fill Rate:** ${((filledCells / 64) * 100).toFixed(1)}%
+
+## Move History
+
+${gameStats.moves.map((move, idx) => `${idx + 1}. Block ${move.block} placed at ${move.position} → Score: ${move.score}, Lines Cleared: ${move.linesCleared}`).join('\n')}
+
+## Final Grid State
+
+\`\`\`
+${finalGrid}
+\`\`\`
+
+## Conclusion
+
+The autonomous player successfully completed ${moveNumber} moves, placing ${gameStats.blocksPlaced} blocks
+and clearing ${gameStats.linesCleared} lines, achieving a final score of ${finalState.score}.
+
+${gameOver ? '**Game ended:** No more valid moves available (Game Over)' : '**Game ended:** Maximum move limit reached'}
+`;
+
+    await page.evaluate((reportContent) => {
+      console.log('\n📄 DETAILED REPORT:\n');
+      console.log(reportContent);
+    }, report);
+
+    // Assertions
+    expect(gameStats.blocksPlaced).toBeGreaterThan(0);
+    expect(moveNumber).toBeGreaterThan(0);
+    expect(finalState.score).toBeGreaterThanOrEqual(0);
+  });
+});

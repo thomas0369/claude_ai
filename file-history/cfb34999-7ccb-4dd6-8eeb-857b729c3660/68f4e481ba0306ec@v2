@@ -1,0 +1,108 @@
+/**
+ * Simulate Drag Test
+ *
+ * This test uses Phaser's built-in simulateDrag function to test
+ * drag-and-drop functionality with multiple rounds of block placement.
+ */
+
+import { test, expect } from '@playwright/test';
+
+test.describe('Simulate Drag with Respawn', () => {
+
+  test('Should respawn draggable blocks after first round', async ({ page }) => {
+    console.log('\n🎮 TESTING DRAG-AND-DROP WITH RESPAWN\n');
+    console.log('=' .repeat(80));
+
+    test.setTimeout(120000); // 2 minutes
+
+    // Navigate to game
+    await page.goto('/play/1', { waitUntil: 'networkidle', timeout: 60000 });
+    console.log('✓ Navigated to Level 1');
+
+    // Wait for canvas
+    await page.locator('canvas').waitFor({ state: 'visible', timeout: 30000 });
+    console.log('✓ Canvas visible');
+
+    // Wait for game instance
+    await page.waitForFunction(() => {
+      return typeof (window as any).game !== 'undefined' &&
+             typeof (window as any).gameDebug !== 'undefined';
+    }, { timeout: 40000 });
+    console.log('✓ Game instance created');
+
+    // Wait for game to be ready
+    await page.waitForTimeout(8000);
+    console.log('✓ Game initialized\n');
+
+    // === ROUND 1: Place first 3 blocks using simulateDrag ===
+    console.log('🎯 ROUND 1: Placing first 3 blocks\n');
+
+    for (let i = 0; i < 3; i++) {
+      console.log(`--- Placing Block ${i} using simulateDrag ---`);
+
+      const result = await page.evaluate((blockIndex) => {
+        // Use the built-in gameDebug.simulateDrag function
+        return (window as any).gameDebug.simulateDrag(blockIndex, 0, blockIndex * 2);
+      }, 0); // Always use block 0 (first available block)
+
+      console.log(`  Result:`, result);
+
+      if (result.success) {
+        console.log(`  ✅ SUCCESS: Block placed at (0, ${i * 2})`);
+        console.log(`    Cells placed: ${result.cellsPlaced}`);
+        console.log(`    Lines cleared: ${result.linesCleared}`);
+        console.log(`    Score: ${result.score}`);
+      } else {
+        console.log(`  ❌ FAILED: ${result.message}`);
+      }
+
+      await page.waitForTimeout(500);
+    }
+
+    // Check if blocks respawned
+    await page.waitForTimeout(1000);
+
+    const blocksAfterRound1 = await page.evaluate(() => {
+      const blocks = (window as any).gameDebug.getAvailableBlocks();
+      return blocks.map((b: any, idx: number) => ({
+        index: idx,
+        id: b.id,
+        hasInput: b.hasInput,
+        isDraggable: b.isDraggable
+      }));
+    });
+
+    console.log('\n📍 BLOCKS AFTER ROUND 1:');
+    blocksAfterRound1.forEach((b: any) => {
+      console.log(`  Block ${b.index}: ${b.id} - HasInput: ${b.hasInput}, Draggable: ${b.isDraggable}`);
+    });
+
+    expect(blocksAfterRound1.length).toBe(3);
+
+    // === ROUND 2: Test if respawned blocks are draggable ===
+    console.log('\n🎯 ROUND 2: Testing respawned blocks\n');
+
+    console.log('--- Attempting to drag first respawned block using simulateDrag ---');
+
+    const round2Result = await page.evaluate(() => {
+      return (window as any).gameDebug.simulateDrag(0, 1, 0);
+    });
+
+    console.log(`  Result:`, round2Result);
+
+    if (round2Result.success) {
+      console.log(`  ✅ SUCCESS: Respawned block is draggable!`);
+      console.log(`    Cells placed: ${round2Result.cellsPlaced}`);
+      console.log(`    Lines cleared: ${round2Result.linesCleared}`);
+      console.log(`    Score: ${round2Result.score}`);
+    } else {
+      console.log(`  ❌ FAILED: ${round2Result.message}`);
+      console.log(`  🐛 BUG CONFIRMED: Respawned blocks are NOT draggable`);
+      throw new Error('Respawned blocks are not draggable - this is the bug!');
+    }
+
+    console.log('\n' + '='.repeat(80));
+    console.log('✅ TEST PASSED: Blocks respawn and remain draggable');
+    console.log('='.repeat(80) + '\n');
+  });
+});

@@ -1,0 +1,447 @@
+"""
+Integration tests for web_backend.py API endpoints.
+
+Tests all REST API endpoints including:
+- Health check
+- TwelveData monitoring
+- Data quality assessment
+- Timeframe engine
+- Claude validation queue
+- Signal history
+- Market scanning
+"""
+
+import pytest
+import json
+from datetime import datetime, timezone, timedelta
+
+
+class TestAPIEndpoints:
+    """Integration tests for API endpoints."""
+
+    @pytest.fixture
+    def client(self):
+        """Create Flask test client."""
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+
+        from web_backend import app
+
+        app.config['TESTING'] = True
+        with app.test_client() as client:
+            yield client
+
+    def test_health_endpoint(self, client):
+        """Test GET /api/health endpoint."""
+        response = client.get('/api/health')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'status' in data
+        assert data['status'] == 'healthy'
+
+    def test_root_endpoint(self, client):
+        """Test GET / endpoint returns HTML."""
+        response = client.get('/')
+
+        assert response.status_code == 200
+        assert b'html' in response.data.lower()
+
+    def test_dashboard_endpoint(self, client):
+        """Test GET /dashboard endpoint returns dashboard HTML."""
+        response = client.get('/dashboard')
+
+        assert response.status_code == 200
+        assert b'html' in response.data.lower()
+        assert b'dashboard' in response.data.lower()
+
+    def test_twelvedata_status_endpoint(self, client):
+        """Test GET /api/twelvedata/status endpoint."""
+        response = client.get('/api/twelvedata/status')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+        if data['success']:
+            assert 'status' in data
+            assert 'api_health' in data['status']
+
+    def test_twelvedata_symbols_endpoint(self, client):
+        """Test GET /api/twelvedata/symbols endpoint."""
+        response = client.get('/api/twelvedata/symbols')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+        if data['success']:
+            assert 'symbols' in data
+            assert isinstance(data['symbols'], list)
+
+    def test_quality_startup_endpoint(self, client):
+        """Test GET /api/quality/startup endpoint."""
+        response = client.get('/api/quality/startup')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+        if data['success']:
+            assert 'quality_check' in data
+            quality = data['quality_check']
+            assert 'overall_score' in quality or 'average_quality' in quality
+
+    def test_quality_system_endpoint(self, client):
+        """Test GET /api/quality/system endpoint."""
+        response = client.get('/api/quality/system')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+    def test_quality_assess_endpoint(self, client):
+        """Test POST /api/quality/assess endpoint."""
+        payload = {
+            'symbol': 'EUR/USD'
+        }
+
+        response = client.post(
+            '/api/quality/assess',
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+
+        assert response.status_code in [200, 400, 500]
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+    def test_timeframes_available_endpoint(self, client):
+        """Test GET /api/timeframes/available endpoint."""
+        response = client.get('/api/timeframes/available?base_candles=500')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+        if data['success']:
+            assert 'available_timeframes' in data
+            assert isinstance(data['available_timeframes'], list)
+
+    def test_timeframes_calculate_endpoint(self, client):
+        """Test POST /api/timeframes/calculate endpoint."""
+        payload = {
+            'target_timeframe': 15,
+            'available_candles': 500
+        }
+
+        response = client.post(
+            '/api/timeframes/calculate',
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+
+        assert response.status_code in [200, 400]
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+    def test_timeframes_recommend_endpoint(self, client):
+        """Test GET /api/timeframes/recommend endpoint."""
+        response = client.get('/api/timeframes/recommend?available_candles=500')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+        if data['success']:
+            assert 'recommendations' in data
+
+    def test_claude_queue_status_endpoint(self, client):
+        """Test GET /api/claude/queue/status endpoint."""
+        response = client.get('/api/claude/queue/status')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+        if data['success']:
+            assert 'status' in data
+            status = data['status']
+            assert 'queue_length' in status
+            assert 'validations_today' in status
+
+    def test_claude_performance_endpoint(self, client):
+        """Test GET /api/claude/performance endpoint."""
+        response = client.get('/api/claude/performance')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+        if data['success']:
+            assert 'performance' in data
+
+    def test_claude_settings_get_endpoint(self, client):
+        """Test GET /api/claude/settings endpoint."""
+        response = client.get('/api/claude/settings')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+        if data['success']:
+            assert 'settings' in data
+            settings = data['settings']
+            assert 'max_validations_per_day' in settings
+            assert 'min_score_for_validation' in settings
+
+    def test_claude_settings_post_endpoint(self, client):
+        """Test POST /api/claude/settings endpoint."""
+        payload = {
+            'max_validations_per_day': 20,
+            'min_score_for_validation': 85
+        }
+
+        response = client.post(
+            '/api/claude/settings',
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+    def test_history_signals_get_endpoint(self, client):
+        """Test GET /api/history/signals endpoint."""
+        response = client.get('/api/history/signals?limit=10')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+        if data['success']:
+            assert 'signals' in data
+            assert isinstance(data['signals'], list)
+
+    def test_history_performance_endpoint(self, client):
+        """Test GET /api/history/performance endpoint."""
+        response = client.get('/api/history/performance?days=30')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+        if data['success']:
+            assert 'performance' in data
+
+    def test_history_timeline_endpoint(self, client):
+        """Test GET /api/history/timeline endpoint."""
+        response = client.get('/api/history/timeline?days=7&group_by=day')
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+    def test_scan_endpoint(self, client):
+        """Test POST /api/scan endpoint."""
+        response = client.post('/api/scan')
+
+        # This may take a while and require actual data
+        assert response.status_code in [200, 500]
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+    def test_add_signal_to_history(self, client):
+        """Test POST /api/history/signal endpoint."""
+        payload = {
+            'symbol': 'EUR/USD',
+            'direction': 'LONG',
+            'score': 95,
+            'current_price': 1.1000,
+            'entry_price': 1.1000,
+            'stop_loss': 1.0950,
+            'take_profit': 1.1100,
+            'leverage': 10,
+            'score_breakdown': {'elliott_wave': 50, 'ict': 45},
+            'indicators': {'rsi': 65},
+            'timeframe': '1h'
+        }
+
+        response = client.post(
+            '/api/history/signal',
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+
+        assert response.status_code in [200, 400]
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+    def test_invalid_endpoint(self, client):
+        """Test that invalid endpoints return 404."""
+        response = client.get('/api/nonexistent')
+
+        assert response.status_code == 404
+
+    def test_cors_headers(self, client):
+        """Test that CORS headers are present."""
+        response = client.get('/api/health')
+
+        # Check for CORS headers
+        assert 'Access-Control-Allow-Origin' in response.headers
+
+    def test_json_content_type(self, client):
+        """Test that API endpoints return JSON content type."""
+        response = client.get('/api/health')
+
+        assert response.content_type == 'application/json'
+
+    def test_error_handling(self, client):
+        """Test error handling for malformed requests."""
+        # Send invalid JSON
+        response = client.post(
+            '/api/quality/assess',
+            data='invalid json',
+            content_type='application/json'
+        )
+
+        assert response.status_code in [400, 500]
+
+    def test_missing_required_parameters(self, client):
+        """Test API handles missing required parameters gracefully."""
+        # POST without required fields
+        response = client.post(
+            '/api/history/signal',
+            data=json.dumps({}),
+            content_type='application/json'
+        )
+
+        assert response.status_code in [400, 422]
+
+        data = json.loads(response.data)
+        assert 'success' in data
+        assert data['success'] is False
+
+    def test_timeframe_resample_endpoint(self, client):
+        """Test POST /api/timeframes/resample endpoint."""
+        payload = {
+            'symbol': 'EUR/USD',
+            'target_timeframe': 15
+        }
+
+        response = client.post(
+            '/api/timeframes/resample',
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+
+        assert response.status_code in [200, 400, 500]
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+    def test_twelvedata_refresh_endpoint(self, client):
+        """Test POST /api/twelvedata/refresh endpoint."""
+        payload = {
+            'symbol': 'EUR/USD'
+        }
+
+        response = client.post(
+            '/api/twelvedata/refresh',
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+
+        # May require valid API key
+        assert response.status_code in [200, 400, 500]
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+    def test_claude_enqueue_endpoint(self, client):
+        """Test POST /api/claude/enqueue endpoint."""
+        payload = {
+            'symbol': 'EUR/USD',
+            'score': 95,
+            'signal_data': {
+                'direction': 'LONG',
+                'entry_price': 1.1000,
+                'stop_loss': 1.0950,
+                'take_profit': 1.1100
+            }
+        }
+
+        response = client.post(
+            '/api/claude/enqueue',
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+
+        assert response.status_code in [200, 400]
+
+        data = json.loads(response.data)
+        assert 'success' in data
+
+
+class TestAPIPerformance:
+    """Performance tests for API endpoints."""
+
+    @pytest.fixture
+    def client(self):
+        """Create Flask test client."""
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+
+        from web_backend import app
+
+        app.config['TESTING'] = True
+        with app.test_client() as client:
+            yield client
+
+    @pytest.mark.timeout(5)
+    def test_health_response_time(self, client):
+        """Test health endpoint responds within 5 seconds."""
+        response = client.get('/api/health')
+        assert response.status_code == 200
+
+    @pytest.mark.timeout(10)
+    def test_quality_startup_response_time(self, client):
+        """Test startup quality check responds within 10 seconds."""
+        response = client.get('/api/quality/startup')
+        assert response.status_code == 200
+
+    def test_concurrent_requests(self, client):
+        """Test handling multiple concurrent requests."""
+        import concurrent.futures
+
+        def make_request():
+            return client.get('/api/health')
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(make_request) for _ in range(10)]
+            results = [f.result() for f in concurrent.futures.as_completed(futures)]
+
+        # All requests should succeed
+        for result in results:
+            assert result.status_code == 200

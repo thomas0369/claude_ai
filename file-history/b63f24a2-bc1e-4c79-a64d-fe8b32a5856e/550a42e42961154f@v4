@@ -1,0 +1,327 @@
+import { describe, it, expect } from 'vitest';
+import { enrichZEREZUnits, validateEnrichment, analyzeFieldCoverage } from '@/lib/zerez-data-utils';
+import { ZEREZUnit } from '@/lib/zerez-types';
+
+describe('enrichZEREZUnits', () => {
+  // Helper function to create minimal valid ZEREZ units
+  const createBasicUnit = (id: string, overrides: Partial<ZEREZUnit> = {}): ZEREZUnit => ({
+    id,
+    unitCode: null,
+    modelName: null,
+    modelNumber: null,
+    maxActivePower: null,
+    ratedActivePower: null,
+    maxApparentPower: null,
+    ratedApparentPower: null,
+    maxActivePowerRange: null,
+    minActivePowerRange: null,
+    maxApparentPowerRange: null,
+    minApparentPowerRange: null,
+    maxActivePower09: null,
+    hasActivePowerRange: false,
+    hasApparentPowerRange: false,
+    fastVoltageChangeTurnOffAtRatedPower: null,
+    ratedVoltage: null,
+    ratedCurrent: null,
+    shortCircuitPeakCurrent: null,
+    initialShortCircuitAlternatingCurrent: null,
+    fastVoltageChangeTurnOnAtRatedConditions: null,
+    fastVoltageChangeTurnOnWithoutSpecifications: null,
+    fastVoltageChangeWorstCaseDuringGeneratorStageSwitching: null,
+    operation1VoltageVariationFactor30: null,
+    operation1VoltageVariationFactor50: null,
+    operation1VoltageVariationFactor70: null,
+    operation1VoltageVariationFactor85: null,
+    operation2VoltageVariationFactor30: null,
+    operation2VoltageVariationFactor50: null,
+    operation2VoltageVariationFactor70: null,
+    operation2VoltageVariationFactor85: null,
+    operation3VoltageVariationFactor30: null,
+    operation3VoltageVariationFactor50: null,
+    operation3VoltageVariationFactor70: null,
+    operation3VoltageVariationFactor85: null,
+    systemFlickerCoefficientCY30: null,
+    systemFlickerCoefficientCY50: null,
+    systemFlickerCoefficientCY70: null,
+    systemFlickerCoefficientCY85: null,
+    operationAllWorstCase: null,
+    operation1FlickerStepFactor30: null,
+    operation1FlickerStepFactor50: null,
+    operation1FlickerStepFactor70: null,
+    operation1FlickerStepFactor85: null,
+    operation1MaxNumberN120: null,
+    operation1MaxSwitchN10: null,
+    hasSwitchingOperation1: null,
+    operation2FlickerStepFactor30: null,
+    operation2FlickerStepFactor50: null,
+    operation2FlickerStepFactor70: null,
+    operation2FlickerStepFactor85: null,
+    operation2MaxNumberN120: null,
+    operation2MaxSwitchN10: null,
+    hasSwitchingOperation2: null,
+    operation3FlickerStepFactor30: null,
+    operation3FlickerStepFactor50: null,
+    operation3FlickerStepFactor70: null,
+    operation3FlickerStepFactor85: null,
+    operation3MaxNumberN120: null,
+    operation3MaxSwitchN10: null,
+    hasSwitchingOperation3: null,
+    isImported: false,
+    revision: null,
+    createdAt: null,
+    modifiedAt: null,
+    createdBy: null,
+    modifiedBy: null,
+    manufacturerId: null,
+    replacedByUnitId: null,
+    tenantId: null,
+    unitTypeId: null,
+    ledgerStartTransactionId: null,
+    ledgerEndTransactionId: null,
+    ledgerStartSequenceNumber: null,
+    ledgerEndSequenceNumber: null,
+    primaryEnergySource: null,
+    category: null,
+    certificateId: null,
+    certificateIssueDate: null,
+    certificateAuthorityId: null,
+    certificateHolderId: null,
+    manufacturerName: null,
+    certificateValidityStatusName: null,
+    certificateNormIssueDateDescriptions: null,
+    certificateNumber: null,
+    isVerified: false,
+    // is4105 removed - replaced by certificateNorms filter
+    validityStartDate: null,
+    validityEndDate: null,
+    restrictions: null,
+    ...overrides
+  });
+
+  it('should preserve unitOverview-only fields from basic units', () => {
+    const basicUnit = createBasicUnit('test-uuid-123', {
+      manufacturerName: 'Tesla Energy',
+      primaryEnergySource: 'Speicher',
+      category: 'Wechselrichter des Speichers',
+      certificateNumber: 'CERT-001',
+    });
+
+    const detailedUnit = createBasicUnit('test-uuid-123', {
+      manufacturerName: null, // unit(id) query doesn't have this
+      primaryEnergySource: null,
+      category: null,
+      certificateNumber: null,
+      maxActivePower: 100, // But has technical specs
+      ratedVoltage: 400,
+    });
+
+    const result = enrichZEREZUnits([basicUnit], [detailedUnit]);
+
+    expect(result[0].manufacturerName).toBe('Tesla Energy');
+    expect(result[0].primaryEnergySource).toBe('Speicher');
+    expect(result[0].category).toBe('Wechselrichter des Speichers');
+    expect(result[0].certificateNumber).toBe('CERT-001');
+  });
+
+  it('should add technical fields from detailed units', () => {
+    const basicUnit = createBasicUnit('test-uuid-123', {
+      maxActivePower: null,
+      ratedVoltage: null,
+    });
+
+    const detailedUnit = createBasicUnit('test-uuid-123', {
+      maxActivePower: 100,
+      ratedVoltage: 400,
+      ratedCurrent: 11.6,
+      shortCircuitPeakCurrent: 53.6,
+    });
+
+    const result = enrichZEREZUnits([basicUnit], [detailedUnit]);
+
+    expect(result[0].maxActivePower).toBe(100);
+    expect(result[0].ratedVoltage).toBe(400);
+    expect(result[0].ratedCurrent).toBe(11.6);
+    expect(result[0].shortCircuitPeakCurrent).toBe(53.6);
+  });
+
+  it('should handle missing detailed data gracefully', () => {
+    const basicUnit = createBasicUnit('test-uuid-123', {
+      manufacturerName: 'Tesla Energy',
+      maxActivePower: 50,
+    });
+
+    const result = enrichZEREZUnits([basicUnit], []);
+
+    // Should return basicUnit unchanged
+    expect(result[0]).toEqual(basicUnit);
+  });
+
+  it('should ignore detailed units without matching basic units', () => {
+    const basicUnit = createBasicUnit('unit-1');
+    const detailedUnit1 = createBasicUnit('unit-1', { maxActivePower: 100 });
+    const detailedUnit2 = createBasicUnit('unit-unknown', { maxActivePower: 200 });
+
+    const result = enrichZEREZUnits([basicUnit], [detailedUnit1, detailedUnit2]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('unit-1');
+    expect(result[0].maxActivePower).toBe(100);
+  });
+
+  it('should handle empty arrays', () => {
+    expect(enrichZEREZUnits([], [])).toEqual([]);
+    expect(enrichZEREZUnits([], [createBasicUnit('test')])).toEqual([]);
+  });
+
+  it('should correctly match multiple units', () => {
+    const basicUnits = [
+      createBasicUnit('unit-1', { manufacturerName: 'Tesla' }),
+      createBasicUnit('unit-2', { manufacturerName: 'Schneider' }),
+      createBasicUnit('unit-3', { manufacturerName: 'Sungrow' }),
+    ];
+
+    const detailedUnits = [
+      createBasicUnit('unit-1', { maxActivePower: 100 }),
+      createBasicUnit('unit-2', { maxActivePower: 200 }),
+      createBasicUnit('unit-3', { maxActivePower: 300 }),
+    ];
+
+    const result = enrichZEREZUnits(basicUnits, detailedUnits);
+
+    expect(result).toHaveLength(3);
+    expect(result[0].manufacturerName).toBe('Tesla');
+    expect(result[0].maxActivePower).toBe(100);
+    expect(result[1].manufacturerName).toBe('Schneider');
+    expect(result[1].maxActivePower).toBe(200);
+    expect(result[2].manufacturerName).toBe('Sungrow');
+    expect(result[2].maxActivePower).toBe(300);
+  });
+
+  it('should prefer detailedUnit values for overlapping fields', () => {
+    const basicUnit = createBasicUnit('test-uuid', {
+      maxActivePower: 100, // From unitOverview
+      ratedVoltage: 230,
+    });
+
+    const detailedUnit = createBasicUnit('test-uuid', {
+      maxActivePower: 105, // More accurate from unit(id)
+      ratedVoltage: 400,
+    });
+
+    const result = enrichZEREZUnits([basicUnit], [detailedUnit]);
+
+    // Detailed unit wins for overlapping fields
+    expect(result[0].maxActivePower).toBe(105);
+    expect(result[0].ratedVoltage).toBe(400);
+  });
+});
+
+describe('validateEnrichment', () => {
+  const createMinimalUnit = (id: string, overrides: Partial<ZEREZUnit> = {}): ZEREZUnit => ({
+    id,
+    manufacturerName: null,
+    primaryEnergySource: null,
+    category: null,
+    certificateNumber: null,
+    isVerified: false,
+    isImported: false,
+    // is4105 removed - replaced by certificateNorms filter
+    ...overrides
+  } as ZEREZUnit);
+
+  it('should detect missing critical fields', () => {
+    const original = createMinimalUnit('123', {
+      manufacturerName: 'Tesla',
+      primaryEnergySource: 'Speicher',
+    });
+
+    const enriched = createMinimalUnit('123', {
+      manufacturerName: null, // Lost!
+      primaryEnergySource: null, // Lost!
+    });
+
+    const validation = validateEnrichment(original, enriched);
+
+    expect(validation.valid).toBe(false);
+    expect(validation.missingFields).toContain('manufacturerName');
+    expect(validation.missingFields).toContain('primaryEnergySource');
+  });
+
+  it('should pass when all fields are preserved', () => {
+    const original = createMinimalUnit('123', {
+      manufacturerName: 'Tesla',
+      category: 'Wechselrichter',
+    });
+
+    const enriched = createMinimalUnit('123', {
+      manufacturerName: 'Tesla',
+      category: 'Wechselrichter',
+    });
+
+    const validation = validateEnrichment(original, enriched);
+
+    expect(validation.valid).toBe(true);
+    expect(validation.missingFields).toHaveLength(0);
+  });
+
+  it('should not flag fields that were already null', () => {
+    const original = createMinimalUnit('123', {
+      manufacturerName: null,
+      category: 'Wechselrichter',
+    });
+
+    const enriched = createMinimalUnit('123', {
+      manufacturerName: null,
+      category: 'Wechselrichter',
+    });
+
+    const validation = validateEnrichment(original, enriched);
+
+    expect(validation.valid).toBe(true);
+  });
+});
+
+describe('analyzeFieldCoverage', () => {
+  const createMinimalUnit = (id: string, overrides: Partial<ZEREZUnit> = {}): ZEREZUnit => ({
+    id,
+    manufacturerName: null,
+    maxActivePower: null,
+    ratedVoltage: null,
+    isVerified: false,
+    isImported: false,
+    // is4105 removed - replaced by certificateNorms filter
+    ...overrides
+  } as ZEREZUnit);
+
+  it('should calculate field coverage percentages', () => {
+    const units = [
+      createMinimalUnit('1', { manufacturerName: 'Tesla', maxActivePower: 100 }),
+      createMinimalUnit('2', { manufacturerName: 'Schneider', maxActivePower: null }),
+      createMinimalUnit('3', { manufacturerName: null, maxActivePower: null }),
+      createMinimalUnit('4', { manufacturerName: 'Sungrow', maxActivePower: 300 }),
+    ];
+
+    const coverage = analyzeFieldCoverage(units);
+
+    expect(coverage.manufacturerName).toBe(75); // 3/4 units
+    expect(coverage.maxActivePower).toBe(50); // 2/4 units
+    expect(coverage.isVerified).toBe(100); // All units have this (boolean)
+  });
+
+  it('should handle empty array', () => {
+    const coverage = analyzeFieldCoverage([]);
+    expect(coverage).toEqual({});
+  });
+
+  it('should round to one decimal place', () => {
+    const units = [
+      createMinimalUnit('1', { manufacturerName: 'A' }),
+      createMinimalUnit('2', { manufacturerName: 'B' }),
+      createMinimalUnit('3', { manufacturerName: null }),
+    ];
+
+    const coverage = analyzeFieldCoverage(units);
+
+    expect(coverage.manufacturerName).toBe(66.7); // 2/3 = 66.666... → 66.7
+  });
+});

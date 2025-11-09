@@ -1,0 +1,85 @@
+// Final ZEREZ table validation - extracts and validates data from 10 products
+const { chromium } = require('playwright');
+
+async function validateTable() {
+  console.log('\n=== ZEREZ Table Validation (10 Products) ===\n');
+
+  const browser = await chromium.launch({ headless: false });
+  const page = await browser.newPage();
+
+  try {
+    // Load page and click Preview Products
+    await page.goto('http://localhost:3000/import/zerez');
+    await page.waitForLoadState('networkidle');
+
+    await page.click('button:has-text("Preview Products")');
+    await page.waitForTimeout(5000); // Wait for async loading
+
+    // Find all sticky columns (should be product rows)
+    const stickyColumns = page.locator('div.sticky.left-16');
+    const count = await stickyColumns.count();
+    console.log(`Found ${count} sticky columns (products)\n`);
+
+    // Extract data from first 10 products
+    const products = [];
+    const limit = Math.min(count, 10);
+
+    console.log('═'.repeat(100));
+    for (let i = 0; i < limit; i++) {
+      const modelElem = stickyColumns.nth(i);
+      const modelName = await modelElem.textContent().catch(() => '');
+
+      // Try to get data from the same row
+      const rowParent = modelElem.locator('xpath=ancestor::div[@role="row" or contains(@class, "flex")]').first();
+
+      products.push({
+        index: i + 1,
+        modelName: modelName?.trim() || 'N/A'
+      });
+
+      console.log(`\nProduct ${i + 1}:`);
+      console.log(`  Model Name: ${products[i].modelName}`);
+    }
+    console.log('\n' + '═'.repeat(100));
+
+    // Validation checks
+    console.log('\n=== Validation Results ===\n');
+
+    const withModelName = products.filter(p => p.modelName !== 'N/A' && p.modelName !== '');
+    console.log(`✓ Products with model names: ${withModelName.length}/${products.length}`);
+
+    // Test sticky column behavior
+    console.log('\n=== Testing Sticky Column Behavior ===\n');
+
+    const scrollContainer = page.locator('div.overflow-x-auto').first();
+    const modelBefore = await stickyColumns.first().boundingBox();
+
+    console.log(`Model column X before scroll: ${modelBefore?.x}`);
+
+    await scrollContainer.evaluate(el => el.scrollLeft = 500);
+    await page.waitForTimeout(500);
+
+    const modelAfter = await stickyColumns.first().boundingBox();
+    console.log(`Model column X after scroll: ${modelAfter?.x}`);
+
+    const isSticky = modelBefore?.x === modelAfter?.x;
+    console.log(`\n${isSticky ? '✓' : '✗'} Model column stays fixed: ${isSticky ? 'YES' : 'NO'}`);
+
+    // Summary
+    console.log('\n=== Summary ===\n');
+    console.log(`Total products validated: ${products.length}`);
+    console.log(`Products with valid names: ${withModelName.length}`);
+    console.log(`Sticky column working: ${isSticky ? 'Yes ✓' : 'No ✗'}`);
+
+    console.log('\nKeeping browser open for 5 seconds...');
+    await page.waitForTimeout(5000);
+
+  } catch (error) {
+    console.error('\n❌ Error:', error.message);
+  } finally {
+    await browser.close();
+    console.log('\n✓ Validation complete\n');
+  }
+}
+
+validateTable();

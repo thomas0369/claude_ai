@@ -1,0 +1,462 @@
+/**
+ * Data Validation System for Extracted Specifications
+ * =====================================================
+ *
+ * Validates extracted data against:
+ * - Plausibility rules (physics, typical ranges)
+ * - Consistency checks (related values)
+ * - Database cross-reference
+ * - Unit conversions
+ */
+
+import { z } from 'zod';
+
+export interface ValidationIssue {
+  field: string;
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+  extractedValue: any;
+  suggestedValue?: any;
+  reason: string;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  confidence: number;  // 0-100
+  issues: ValidationIssue[];
+  corrections: Record<string, any>;
+  overallAssessment: string;
+}
+
+/**
+ * Normalize decimal separators (comma to point)
+ */
+export function normalizeDecimal(value: string | number): number | null {
+  if (typeof value === 'number') return value;
+  if (!value) return null;
+
+  // Remove thousands separators and convert comma to point
+  const normalized = String(value)
+    .replace(/\s/g, '')           // Remove spaces
+    .replace(/\./g, '')           // Remove dots (thousands separator in EU)
+    .replace(/,/g, '.')           // Convert comma to point
+    .replace(/[^\d.-]/g, '');     // Remove non-numeric except . and -
+
+  const parsed = parseFloat(normalized);
+  return isNaN(parsed) ? null : parsed;
+}
+
+/**
+ * Extract numeric value from string with unit
+ */
+export function extractNumericValue(value: string): number | null {
+  if (!value) return null;
+
+  // Common patterns: "100 kW", "97.5%", "1,234.56 kg"
+  const match = value.match(/([\d\s.,]+)/);
+  if (!match) return null;
+
+  return normalizeDecimal(match[1]);
+}
+
+/**
+ * Convert power units to kW
+ */
+export function convertToKW(value: number, unit: string): number {
+  const unitLower = unit.toLowerCase();
+
+  if (unitLower.includes('mw')) return value * 1000;
+  if (unitLower.includes('w') && !unitLower.includes('kw')) return value / 1000;
+
+  return value; // Already in kW
+}
+
+/**
+ * Convert voltage units to V
+ */
+export function convertToVolts(value: number, unit: string): number {
+  const unitLower = unit.toLowerCase();
+
+  if (unitLower.includes('kv')) return value * 1000;
+  if (unitLower.includes('mv')) return value / 1000;
+
+  return value; // Already in V
+}
+
+/**
+ * Validate power specifications
+ */
+export function validatePower(power: any): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (!power) return issues;
+
+  const { rated_power_kw, max_power_kw, continuous_power_kw, peak_power_kw } = power;
+
+  // Check for reasonable ranges
+  if (rated_power_kw !== null) {
+    if (rated_power_kw <= 0) {
+      issues.push({
+        field: 'power.rated_power_kw',
+        severity: 'error',
+        message: 'Rated power must be positive',
+        extractedValue: rated_power_kw,
+        suggestedValue: null,
+        reason: 'Physical impossibility',
+      });
+    } else if (rated_power_kw < 1 || rated_power_kw > 10000) {
+      issues.push({
+        field: 'power.rated_power_kw',
+        severity: 'warning',
+        message: 'Rated power outside typical range (1-10,000 kW)',
+        extractedValue: rated_power_kw,
+        reason: 'Unusually low or high value - might be unit conversion error',
+      });
+    }
+  }
+
+  // Check consistency: max >= rated
+  if (rated_power_kw !== null && max_power_kw !== null) {
+    if (max_power_kw < rated_power_kw) {
+      issues.push({
+        field: 'power.max_power_kw',
+        severity: 'error',
+        message: 'Max power cannot be less than rated power',
+        extractedValue: max_power_kw,
+        suggestedValue: rated_power_kw,
+        reason: 'Logical inconsistency - values may be swapped',
+      });
+    }
+  }
+
+  // Check if peak > max > rated (if all present)
+  if (peak_power_kw !== null && max_power_kw !== null && rated_power_kw !== null) {
+    if (peak_power_kw < max_power_kw || max_power_kw < rated_power_kw) {
+      issues.push({
+        field: 'power',
+        severity: 'warning',
+        message: 'Power hierarchy should be: peak >= max >= rated',
+        extractedValue: { peak_power_kw, max_power_kw, rated_power_kw },
+        reason: 'Values may be mislabeled or swapped',
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Validate efficiency specifications
+ */
+export function validateEfficiency(efficiency: any): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (!efficiency) return issues;
+
+  const { peak_percent, rated_percent, euro_percent, cec_percent } = efficiency;
+
+  // Check all efficiency values
+  [
+    { key: 'peak_percent', value: peak_percent },
+    { key: 'rated_percent', value: rated_percent },
+    { key: 'euro_percent', value: euro_percent },
+    { key: 'cec_percent', value: cec_percent },
+  ].forEach(({ key, value }) => {
+    if (value !== null) {
+      if (value <= 0 || value > 100) {
+        // Check if it's likely a decimal point error (e.g., 975 instead of 97.5)
+        const suggestedValue = value > 100 ? value / 10 : null;
+
+        issues.push({
+          field: `efficiency.${key}`,
+          severity: 'error',
+          message: 'Efficiency must be between 0 and 100%',
+          extractedValue: value,
+          suggestedValue,
+          reason: suggestedValue
+            ? 'Likely decimal point error'
+            : 'Invalid efficiency value',
+        });
+      } else if (value < 70) {
+        issues.push({
+          field: `efficiency.${key}`,
+          severity: 'warning',
+          message: 'Efficiency unusually low for modern systems (< 70%)',
+          extractedValue: value,
+          reason: 'Typical range is 90-99% for modern inverters',
+        });
+      } else if (value > 99.5) {
+        issues.push({
+          field: `efficiency.${key}`,
+          severity: 'info',
+          message: 'Very high efficiency (> 99.5%) - please verify',
+          extractedValue: value,
+          reason: 'Exceptional value - double-check if correct',
+        });
+      }
+    }
+  });
+
+  return issues;
+}
+
+/**
+ * Validate voltage specifications
+ */
+export function validateVoltage(voltage: any): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (!voltage) return issues;
+
+  const { nominal_v, max_v, min_v, mppt_min_v, mppt_max_v } = voltage;
+
+  // Check reasonable ranges for DC voltage
+  if (nominal_v !== null) {
+    if (nominal_v < 100 || nominal_v > 2000) {
+      issues.push({
+        field: 'voltage.nominal_v',
+        severity: 'warning',
+        message: 'Nominal voltage outside typical range (100-2000 V)',
+        extractedValue: nominal_v,
+        reason: 'May be unit conversion error (V vs kV)',
+      });
+    }
+  }
+
+  // Check consistency: max > min
+  if (max_v !== null && min_v !== null && max_v <= min_v) {
+    issues.push({
+      field: 'voltage',
+      severity: 'error',
+      message: 'Max voltage must be greater than min voltage',
+      extractedValue: { max_v, min_v },
+      reason: 'Values may be swapped',
+    });
+  }
+
+  // Check MPPT range
+  if (mppt_max_v !== null && mppt_min_v !== null && mppt_max_v <= mppt_min_v) {
+    issues.push({
+      field: 'voltage.mppt',
+      severity: 'error',
+      message: 'MPPT max voltage must be greater than min voltage',
+      extractedValue: { mppt_max_v, mppt_min_v },
+      reason: 'Values may be swapped',
+    });
+  }
+
+  return issues;
+}
+
+/**
+ * Validate physical dimensions
+ */
+export function validatePhysical(physical: any, power_kw: number | null): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (!physical) return issues;
+
+  const { width_mm, height_mm, depth_mm, weight_kg } = physical;
+
+  // Check positive values
+  [
+    { key: 'width_mm', value: width_mm },
+    { key: 'height_mm', value: height_mm },
+    { key: 'depth_mm', value: depth_mm },
+    { key: 'weight_kg', value: weight_kg },
+  ].forEach(({ key, value }) => {
+    if (value !== null && value <= 0) {
+      issues.push({
+        field: `physical.${key}`,
+        severity: 'error',
+        message: `${key} must be positive`,
+        extractedValue: value,
+        reason: 'Invalid measurement',
+      });
+    }
+  });
+
+  // Check reasonable ranges
+  if (width_mm !== null && (width_mm < 100 || width_mm > 5000)) {
+    issues.push({
+      field: 'physical.width_mm',
+      severity: 'warning',
+      message: 'Width outside typical range (100-5000 mm)',
+      extractedValue: width_mm,
+      reason: 'May be unit error (mm vs cm vs m)',
+    });
+  }
+
+  // Check weight reasonableness based on power
+  if (weight_kg !== null && power_kw !== null) {
+    const weightPerKW = weight_kg / power_kw;
+
+    if (weightPerKW < 0.1) {
+      issues.push({
+        field: 'physical.weight_kg',
+        severity: 'warning',
+        message: 'Weight seems too low for power rating',
+        extractedValue: weight_kg,
+        suggestedValue: weight_kg * 1000,
+        reason: 'May be tons instead of kg',
+      });
+    } else if (weightPerKW > 50) {
+      issues.push({
+        field: 'physical.weight_kg',
+        severity: 'warning',
+        message: 'Weight seems too high for power rating',
+        extractedValue: weight_kg,
+        suggestedValue: weight_kg / 1000,
+        reason: 'May be grams instead of kg',
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Validate environmental specifications
+ */
+export function validateEnvironmental(environmental: any): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (!environmental) return issues;
+
+  const { operating_temp_min_c, operating_temp_max_c } = environmental;
+
+  if (operating_temp_min_c !== null && operating_temp_max_c !== null) {
+    if (operating_temp_max_c <= operating_temp_min_c) {
+      issues.push({
+        field: 'environmental.operating_temp',
+        severity: 'error',
+        message: 'Max temperature must be greater than min temperature',
+        extractedValue: { operating_temp_min_c, operating_temp_max_c },
+        reason: 'Values may be swapped',
+      });
+    }
+
+    // Check reasonable range
+    if (operating_temp_min_c < -50 || operating_temp_min_c > 10) {
+      issues.push({
+        field: 'environmental.operating_temp_min_c',
+        severity: 'warning',
+        message: 'Min operating temperature outside typical range (-40 to +10°C)',
+        extractedValue: operating_temp_min_c,
+        reason: 'Unusual operating range',
+      });
+    }
+
+    if (operating_temp_max_c < 30 || operating_temp_max_c > 70) {
+      issues.push({
+        field: 'environmental.operating_temp_max_c',
+        severity: 'warning',
+        message: 'Max operating temperature outside typical range (+30 to +60°C)',
+        extractedValue: operating_temp_max_c,
+        reason: 'Unusual operating range',
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Comprehensive validation of extracted product data
+ */
+export function validateProductData(product: any): ValidationResult {
+  const issues: ValidationIssue[] = [];
+
+  // Validate each section
+  issues.push(...validatePower(product.power));
+  issues.push(...validateEfficiency(product.efficiency));
+  issues.push(...validateVoltage(product.voltage));
+  issues.push(
+    ...validatePhysical(product.physical, product.power?.rated_power_kw)
+  );
+  issues.push(...validateEnvironmental(product.environmental));
+
+  // Calculate confidence based on issues
+  const errorCount = issues.filter((i) => i.severity === 'error').length;
+  const warningCount = issues.filter((i) => i.severity === 'warning').length;
+
+  let confidence = 100;
+  confidence -= errorCount * 20;  // -20 per error
+  confidence -= warningCount * 5;  // -5 per warning
+  confidence = Math.max(0, confidence);
+
+  // Generate corrections
+  const corrections: Record<string, any> = {};
+  issues.forEach((issue) => {
+    if (issue.suggestedValue !== undefined) {
+      corrections[issue.field] = issue.suggestedValue;
+    }
+  });
+
+  // Overall assessment
+  let assessment = '';
+  if (errorCount === 0 && warningCount === 0) {
+    assessment = 'All values pass validation checks';
+  } else if (errorCount > 0) {
+    assessment = `Found ${errorCount} critical error(s) and ${warningCount} warning(s)`;
+  } else {
+    assessment = `Found ${warningCount} warning(s) - data is usable but should be reviewed`;
+  }
+
+  return {
+    valid: errorCount === 0,
+    confidence,
+    issues,
+    corrections,
+    overallAssessment: assessment,
+  };
+}
+
+/**
+ * Cross-validate with existing database entry
+ */
+export function crossValidateWithDatabase(
+  extracted: any,
+  existing: any
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (!existing) return issues;
+
+  // Compare key fields
+  const fieldsToCompare = [
+    { path: 'power.rated_power_kw', tolerance: 0.05 }, // 5% tolerance
+    { path: 'efficiency.peak_percent', tolerance: 0.02 }, // 2% tolerance
+    { path: 'physical.weight_kg', tolerance: 0.1 }, // 10% tolerance
+  ];
+
+  fieldsToCompare.forEach(({ path, tolerance }) => {
+    const extractedValue = getNestedValue(extracted, path);
+    const existingValue = getNestedValue(existing, path);
+
+    if (extractedValue !== null && existingValue !== null) {
+      const diff = Math.abs(extractedValue - existingValue);
+      const relativeDiff = diff / existingValue;
+
+      if (relativeDiff > tolerance) {
+        issues.push({
+          field: path,
+          severity: 'warning',
+          message: `Value differs significantly from database (${(relativeDiff * 100).toFixed(1)}% difference)`,
+          extractedValue,
+          suggestedValue: existingValue,
+          reason: 'Database has different value - please verify which is correct',
+        });
+      }
+    }
+  });
+
+  return issues;
+}
+
+/**
+ * Helper function to get nested object value by path
+ */
+function getNestedValue(obj: any, path: string): any {
+  return path.split('.').reduce((current, key) => current?.[key], obj);
+}

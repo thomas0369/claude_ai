@@ -1,0 +1,635 @@
+// Data Enrichment - Add Competitive Intelligence to Products
+import type { EnhancedProductData as BaseEnhancedProductData, RawProductData } from './types-enhanced';
+import { StatisticsEngine } from './statistics';
+import { MarketPositionAnalyzer } from './market-position';
+
+/**
+ * Extended product data with pre-calculated power density metrics
+ * Adds runtime-calculated fields for optimal performance
+ *
+ * @since 2025-10-28 - Phase 1.1: Power Density Integration
+ */
+export interface EnhancedProductData extends BaseEnhancedProductData {
+  /** Volume in cubic meters (m³) - calculated from physical dimensions */
+  volume_m3?: number | null;
+
+  /** Power-to-weight ratio in kW/kg - efficiency metric for weight */
+  power_to_weight?: number | null;
+
+  /** Power density in kW/m³ - efficiency metric for volume */
+  power_density?: number | null;
+
+  /** Efficiency percentile (0-100) for quick filtering - already in benchmarks but duplicated for convenience */
+  efficiency_percentile?: number | null;
+}
+
+export class DataEnricher {
+  /**
+   * Enrich product data with competitive intelligence
+   * @param products Raw product data array from YAML files
+   * @returns Enhanced product data with competitive metrics
+   */
+  static enrichProducts(products: RawProductData[]): EnhancedProductData[] {
+    const enriched = products.map(product => this.enrichSingleProduct(product, products));
+
+    // Calculate relative benchmarks
+    const enrichedWithBenchmarks = this.calculateBenchmarks(enriched);
+
+    // Generate AI insights
+    return enrichedWithBenchmarks.map(product =>
+      this.generateInsights(product, enrichedWithBenchmarks)
+    );
+  }
+
+  /**
+   * Enrich a single product with additional fields
+   */
+  private static enrichSingleProduct(
+    product: RawProductData,
+    allProducts: RawProductData[]
+  ): EnhancedProductData {
+    // Calculate market position based on specifications
+    const marketPosition = this.determineMarketPosition(product, allProducts);
+
+    // Calculate innovation score
+    const innovationScore = this.calculateInnovationScore(product);
+
+    // Estimate market share (simplified - based on ZEREZ variant count)
+    const totalVariants = allProducts.reduce(
+      (sum, p) => sum + (p.identification.zerez_variant_count || 0),
+      0
+    );
+    const marketShare = totalVariants > 0
+      ? ((product.identification.zerez_variant_count || 0) / totalVariants) * 100
+      : 0;
+
+    // Fill missing efficiency data with industry-standard estimates
+    const enrichedEfficiency = this.enrichEfficiencyData(product.efficiency, product.power);
+
+    // Fill missing physical data with power-based estimates
+    const enrichedPhysical = this.enrichPhysicalData(product.physical, product.power);
+
+    // Fill missing environmental data with standard operating ranges
+    const enrichedEnvironmental = this.enrichEnvironmentalData(product.environmental);
+
+    return {
+      identification: {
+        ...product.identification,
+        zerez_variant_count: product.identification.zerez_variant_count || 0,
+      },
+      power: product.power || {},
+      efficiency: enrichedEfficiency,
+      physical: enrichedPhysical,
+      electrical: product.electrical || {},
+      environmental: enrichedEnvironmental,
+      battery: product.battery || {},
+      warranty: product.warranty || {},
+      certifications: {
+        zerez_certifications: [],
+        safety_standards: [],
+        grid_codes: [],
+        regional_compliance: [],
+        ce_marking: false,
+        ul_certified: false,
+      },
+      competitive: {
+        market_position: marketPosition,
+        price_index: this.estimatePriceIndex(product),
+        innovation_score: innovationScore,
+        market_share_estimate_percent: marketShare,
+        unique_selling_points: this.identifyUSPs(product),
+        technology_advantages: this.identifyTechAdvantages(product),
+      },
+      benchmarks: {
+        efficiency_percentile: 0, // Will be calculated later
+        power_density_rank: 0,
+        cost_efficiency_score: 0,
+        reliability_score: this.calculateReliabilityScore(product),
+        overall_rank: 0,
+        comparison_vs_avg: {
+          efficiency_delta: 0,
+          power_delta: 0,
+          weight_delta: 0,
+        },
+      },
+      certification_timeline: {
+        zerez_certification_dates: [],
+        standard_versions: [],
+        recertification_count: product.identification.zerez_variant_count || 0,
+        certification_velocity: 0,
+      },
+      insights: {
+        strengths: [],
+        weaknesses: [],
+        market_opportunities: [],
+        risk_factors: [],
+        competitive_threats: [],
+        recommendation_score: 0,
+        confidence_level: product.data_source.confidence_level * 10,
+      },
+      data_source: {
+        ...product.data_source,
+        last_updated: new Date().toISOString(),
+        data_quality_score: this.calculateDataQualityScore(product),
+        completeness_percent: this.calculateCompletenessPercent(product),
+      },
+      market: {
+        market_status: 'active',
+        target_markets: this.inferTargetMarkets(product),
+        competitor_products: [],
+        pricing_tier: this.determinePricingTier(product),
+      },
+    } as EnhancedProductData;
+  }
+
+  /**
+   * Calculate competitive benchmarks across all products
+   */
+  private static calculateBenchmarks(products: EnhancedProductData[]): EnhancedProductData[] {
+    // Prevent division by zero for empty product arrays
+    if (products.length === 0) return [];
+
+    const powers = products.map(p => p.power?.rated_power_kw || 0);
+    const efficiencies = products.map(p => p.efficiency?.peak_percent || 0);
+    const weights = products.map(p => p.physical?.weight_kg || 0);
+
+    const avgPower = powers.reduce((a, b) => a + b, 0) / powers.length;
+    const avgEfficiency = efficiencies.reduce((a, b) => a + b, 0) / efficiencies.length;
+    const avgWeight = weights.reduce((a, b) => a + b, 0) / weights.length;
+
+    return products.map(product => {
+      const power = product.power?.rated_power_kw || 0;
+      const efficiency = product.efficiency?.peak_percent || 0;
+      const weight = product.physical?.weight_kg || 0;
+
+      // Calculate volume from dimensions (mm to m³)
+      const width_m = (product.physical?.width_mm || 0) / 1000;
+      const height_m = (product.physical?.height_mm || 0) / 1000;
+      const depth_m = (product.physical?.depth_mm || 0) / 1000;
+      const volume_m3 = (width_m > 0 && height_m > 0 && depth_m > 0)
+        ? width_m * height_m * depth_m
+        : null;
+
+      // Calculate power-to-weight ratio (kW/kg)
+      const power_to_weight = (weight > 0 && power > 0) ? power / weight : null;
+
+      // Calculate power density (kW/m³)
+      const power_density = (volume_m3 && volume_m3 > 0 && power > 0)
+        ? power / volume_m3
+        : null;
+
+      // Calculate efficiency percentile
+      const efficiency_percentile = StatisticsEngine.percentileRank(efficiency, efficiencies);
+
+      const powerDensityForRank = power_to_weight || 0; // Use power/weight for ranking
+      const allPowerDensities = products
+        .map(p => {
+          const w = p.physical?.weight_kg || 0;
+          const pw = p.power?.rated_power_kw || 0;
+          return w > 0 ? pw / w : 0;
+        })
+        .filter(pd => pd > 0);
+
+      return {
+        // Explicit field mapping for consistency and safety
+        identification: product.identification,
+        power: product.power || {},
+        efficiency: product.efficiency, // Already enriched - don't revert to empty
+        physical: product.physical, // Already enriched - don't revert to empty
+        electrical: product.electrical || {},
+        environmental: product.environmental, // Already enriched - don't revert to empty
+        battery: product.battery || {},
+        warranty: product.warranty || {},
+        certifications: product.certifications,
+        competitive: product.competitive,
+        certification_timeline: product.certification_timeline,
+        data_source: product.data_source,
+        market: product.market,
+        insights: product.insights,
+        benchmarks: {
+          ...product.benchmarks,
+          efficiency_percentile,
+          power_density_rank: allPowerDensities.length > 0
+            ? allPowerDensities.filter(pd => pd > powerDensityForRank).length + 1
+            : 0,
+          cost_efficiency_score: this.calculateCostEfficiency(product),
+          comparison_vs_avg: {
+            efficiency_delta: efficiency - avgEfficiency,
+            power_delta: power - avgPower,
+            weight_delta: weight - avgWeight,
+          },
+        },
+        // Pre-calculated power density metrics (Phase 1.2)
+        volume_m3,
+        power_to_weight,
+        power_density,
+        efficiency_percentile,
+      };
+    });
+  }
+
+  /**
+   * Generate AI-powered insights for a product
+   */
+  private static generateInsights(
+    product: EnhancedProductData,
+    allProducts: EnhancedProductData[]
+  ): EnhancedProductData {
+    const strengths: string[] = [];
+    const weaknesses: string[] = [];
+    const opportunities: string[] = [];
+    const risks: string[] = [];
+    const threats: string[] = [];
+
+    // Analyze strengths
+    if (product.benchmarks.efficiency_percentile > 75) {
+      strengths.push('Top-tier efficiency performance');
+    }
+    if ((product.identification.zerez_variant_count || 0) > 5) {
+      strengths.push('Extensive certification portfolio');
+    }
+    if (product.competitive.innovation_score > 70) {
+      strengths.push('High innovation rating');
+    }
+
+    // Analyze weaknesses
+    if (product.benchmarks.efficiency_percentile < 25) {
+      weaknesses.push('Below-average efficiency');
+    }
+    if (product.data_source.confidence_level < 3) {
+      weaknesses.push('Limited technical documentation');
+    }
+
+    // Identify opportunities
+    if (product.competitive.market_position === 'innovator') {
+      opportunities.push('First-mover advantage in emerging technologies');
+    }
+    if ((product.power.rated_power_kw || 0) > 100) {
+      opportunities.push('Growing demand in C&I segment');
+    }
+
+    // Identify risks
+    if (product.data_source.completeness_percent < 50) {
+      risks.push('Incomplete technical specifications');
+    }
+
+    // Identify competitive threats
+    const betterCompetitors = allProducts.filter(
+      p => p.identification.manufacturer !== product.identification.manufacturer &&
+           (p.efficiency?.peak_percent || 0) > (product.efficiency?.peak_percent || 0)
+    );
+    if (betterCompetitors.length > 5) {
+      threats.push('Significant competition from more efficient systems');
+    }
+
+    // Calculate recommendation score
+    const recommendationScore = this.calculateRecommendationScore(product);
+
+    return {
+      // Explicit field mapping for consistency and safety
+      identification: product.identification,
+      power: product.power || {},
+      efficiency: product.efficiency, // Already enriched - don't revert to empty
+      physical: product.physical, // Already enriched - don't revert to empty
+      electrical: product.electrical || {},
+      environmental: product.environmental, // Already enriched - don't revert to empty
+      battery: product.battery || {},
+      warranty: product.warranty || {},
+      certifications: product.certifications,
+      competitive: product.competitive,
+      certification_timeline: product.certification_timeline,
+      data_source: product.data_source,
+      market: product.market,
+      benchmarks: product.benchmarks,
+      insights: {
+        strengths,
+        weaknesses,
+        market_opportunities: opportunities,
+        risk_factors: risks,
+        competitive_threats: threats,
+        recommendation_score: recommendationScore,
+        confidence_level: product.insights.confidence_level,
+      },
+      // Preserve pre-calculated power density metrics
+      volume_m3: product.volume_m3,
+      power_to_weight: product.power_to_weight,
+      power_density: product.power_density,
+      efficiency_percentile: product.efficiency_percentile,
+    };
+  }
+
+  // Helper methods
+
+  private static determineMarketPosition(
+    product: RawProductData,
+    allProducts: RawProductData[]
+  ): 'leader' | 'challenger' | 'innovator' | 'follower' {
+    // Prevent division by zero for empty product arrays
+    if (allProducts.length === 0) return 'follower';
+
+    const variantCount = product.identification.zerez_variant_count || 0;
+    const avgVariants = allProducts.reduce(
+      (sum, p) => sum + (p.identification.zerez_variant_count || 0),
+      0
+    ) / allProducts.length;
+
+    const efficiency = product.efficiency?.peak_percent || 0;
+    const avgEfficiency = allProducts.reduce(
+      (sum, p) => sum + (p.efficiency?.peak_percent || 0),
+      0
+    ) / allProducts.length;
+
+    return MarketPositionAnalyzer.determineMarketPosition(
+      variantCount,
+      efficiency,
+      avgVariants,
+      avgEfficiency
+    );
+  }
+
+  private static calculateInnovationScore(product: RawProductData): number {
+    // Use centralized product innovation scoring for consistency
+    return MarketPositionAnalyzer.calculateProductInnovationScore(
+      product.efficiency?.peak_percent || 0,
+      product.electrical?.mppt_count || 0,
+      product.physical?.ip_rating || 0,
+      product.physical?.cooling?.toLowerCase().includes('intelligent') || false
+    );
+  }
+
+  private static estimatePriceIndex(product: RawProductData): number {
+    // Simplified price estimation based on power and features
+    const basePower = product.power?.rated_power_kw || 100;
+    const efficiency = product.efficiency?.peak_percent || 95;
+
+    let index = 1.0; // Average price
+
+    if (efficiency > 97) index += 0.15; // Premium for high efficiency
+    if (basePower > 150) index += 0.10; // Premium for high power
+    if (product.electrical?.mppt_count && product.electrical.mppt_count > 10) {
+      index += 0.05;
+    }
+
+    return index;
+  }
+
+  private static identifyUSPs(product: RawProductData): string[] {
+    const usps: string[] = [];
+
+    if ((product.efficiency?.peak_percent || 0) > 98) {
+      usps.push('Industry-leading efficiency');
+    }
+    if ((product.power?.rated_power_kw || 0) > 150) {
+      usps.push('High power output');
+    }
+    if (product.electrical?.mppt_count && product.electrical.mppt_count > 10) {
+      usps.push('Multiple MPPT trackers');
+    }
+
+    return usps;
+  }
+
+  private static identifyTechAdvantages(product: RawProductData): string[] {
+    const advantages: string[] = [];
+
+    if (product.physical?.cooling?.includes('liquid')) {
+      advantages.push('Advanced liquid cooling');
+    }
+    if ((product.physical?.ip_rating || 0) >= 65) {
+      advantages.push('High ingress protection');
+    }
+
+    return advantages;
+  }
+
+  private static calculateReliabilityScore(product: RawProductData): number {
+    let score = 70; // Base score
+
+    if ((product.warranty?.years || 0) > 10) score += 15;
+    if ((product.physical?.ip_rating || 0) >= 65) score += 10;
+    if (product.environmental?.temp_max_c && product.environmental.temp_max_c > 50) {
+      score += 5;
+    }
+
+    return Math.min(100, score);
+  }
+
+  private static calculateCostEfficiency(product: EnhancedProductData): number {
+    const efficiency = product.efficiency?.peak_percent || 0;
+    const priceIndex = product.competitive.price_index;
+
+    // Prevent division by zero
+    if (priceIndex === 0 || !isFinite(priceIndex)) return 0;
+
+    // Higher efficiency and lower price = better score
+    return (efficiency / priceIndex) * 0.5; // Normalized to ~50-100 range
+  }
+
+  private static calculateDataQualityScore(product: RawProductData): number {
+    const completeness = this.calculateCompletenessPercent(product);
+    const confidence = product.data_source.confidence_level * 10;
+
+    return (completeness + confidence) / 2;
+  }
+
+  private static calculateCompletenessPercent(product: RawProductData): number {
+    const fields = [
+      product.power?.rated_power_kw,
+      product.efficiency?.peak_percent,
+      product.physical?.weight_kg,
+      product.physical?.width_mm,
+      product.physical?.height_mm,
+      product.physical?.depth_mm,
+      product.electrical?.max_dc_voltage_v,
+      product.electrical?.mppt_count,
+      product.environmental?.temp_min_c,
+      product.environmental?.temp_max_c,
+    ];
+
+    const filled = fields.filter(f => f !== undefined && f !== null).length;
+    return (filled / fields.length) * 100;
+  }
+
+  private static inferTargetMarkets(product: RawProductData): string[] {
+    const markets: string[] = [];
+    const power = product.power?.rated_power_kw || 0;
+
+    if (power >= 100 && power <= 200) {
+      markets.push('Commercial & Industrial');
+    }
+    if (power > 50 && power < 100) {
+      markets.push('Small Commercial');
+    }
+    if (power >= 200) {
+      markets.push('Utility Scale');
+    }
+
+    return markets;
+  }
+
+  private static determinePricingTier(product: RawProductData): 'budget' | 'mid-range' | 'premium' {
+    const efficiency = product.efficiency?.peak_percent || 0;
+
+    if (efficiency > 97.5) return 'premium';
+    if (efficiency > 95) return 'mid-range';
+    return 'budget';
+  }
+
+  private static calculateRecommendationScore(product: EnhancedProductData): number {
+    let score = 50;
+
+    // Factor in efficiency percentile
+    score += product.benchmarks.efficiency_percentile * 0.3;
+
+    // Factor in market position
+    const positionScores = {
+      leader: 20,
+      challenger: 10,
+      innovator: 15,
+      follower: 0,
+    };
+    score += positionScores[product.competitive.market_position];
+
+    // Factor in data quality
+    score += (product.data_source.data_quality_score - 50) * 0.2;
+
+    return Math.max(0, Math.min(100, score));
+  }
+
+  /**
+   * Enrich efficiency data with industry-standard estimates when missing
+   *
+   * For C&I BESS storage inverters (100-500kW range):
+   * - Peak efficiency typically 96-98.5%
+   * - EURO efficiency typically 95-97.5%
+   * - CEC efficiency typically 95-97%
+   *
+   * Estimates based on rated power and manufacturer (if available in future)
+   */
+  private static enrichEfficiencyData(
+    efficiency: RawProductData['efficiency'] | undefined,
+    power: RawProductData['power']
+  ): NonNullable<RawProductData['efficiency']> {
+    // If efficiency data exists and has values, return it as-is
+    if (efficiency && Object.keys(efficiency).length > 0) {
+      return efficiency;
+    }
+
+    // Calculate estimated efficiency based on power rating
+    // Higher power units tend to have slightly higher efficiency due to better components
+    const ratedPower = power?.rated_power_kw || 100;
+
+    // Base efficiency: 96.5% for typical C&I inverters
+    let estimatedPeakEfficiency = 96.5;
+
+    // Adjust based on power class
+    if (ratedPower >= 200) {
+      estimatedPeakEfficiency = 97.5; // Large units typically more efficient
+    } else if (ratedPower >= 150) {
+      estimatedPeakEfficiency = 97.0;
+    } else if (ratedPower < 100) {
+      estimatedPeakEfficiency = 96.0; // Smaller units slightly less efficient
+    }
+
+    // EURO and CEC are typically 0.5-1.0% lower than peak
+    const estimatedEuroEfficiency = estimatedPeakEfficiency - 0.7;
+    const estimatedCecEfficiency = estimatedPeakEfficiency - 0.8;
+
+    return {
+      peak_percent: estimatedPeakEfficiency,
+      euro_percent: estimatedEuroEfficiency,
+      cec_percent: estimatedCecEfficiency,
+    };
+  }
+
+  /**
+   * Enrich physical data with power-based estimates when missing
+   *
+   * Industry standard dimensions for C&I storage inverters:
+   * - Weight: ~7-12 kg per kW (average 9.5 kg/kW)
+   * - Volume: Roughly scales with power
+   * - IP rating: typically IP54-IP65 for outdoor installations
+   * - Cooling: Natural convection or forced air for <150kW, liquid cooling for >150kW
+   */
+  private static enrichPhysicalData(
+    physical: RawProductData['physical'] | undefined,
+    power: RawProductData['power']
+  ): NonNullable<RawProductData['physical']> {
+    // If physical data exists and has values, return it
+    if (physical && Object.keys(physical).length > 0) {
+      return physical;
+    }
+
+    const ratedPower = power?.rated_power_kw || 100;
+
+    // Estimate weight: 9.5 kg/kW average for C&I inverters
+    const estimatedWeight = Math.round(ratedPower * 9.5);
+
+    // Estimate dimensions based on power rating
+    // Typical cabinet sizes for C&I inverters
+    let width_mm, height_mm, depth_mm;
+
+    if (ratedPower >= 200) {
+      // Large units: 800mm wide cabinet
+      width_mm = 800;
+      height_mm = Math.round(1800 + (ratedPower - 200) * 2); // Taller for more power
+      depth_mm = 600;
+    } else if (ratedPower >= 150) {
+      // Medium-large: 700mm cabinet
+      width_mm = 700;
+      height_mm = 1800;
+      depth_mm = 500;
+    } else if (ratedPower >= 100) {
+      // Standard: 600mm cabinet
+      width_mm = 600;
+      height_mm = 1600;
+      depth_mm = 400;
+    } else {
+      // Smaller units: compact cabinet
+      width_mm = 500;
+      height_mm = 1400;
+      depth_mm = 350;
+    }
+
+    // Determine cooling method based on power
+    const cooling = ratedPower >= 150 ? 'Forced air cooling' : 'Natural convection';
+
+    // Standard IP rating for outdoor C&I equipment
+    const ip_rating = 54; // IP54 is common for outdoor inverters
+
+    return {
+      weight_kg: estimatedWeight,
+      width_mm,
+      height_mm,
+      depth_mm,
+      ip_rating,
+      cooling,
+    };
+  }
+
+  /**
+   * Enrich environmental data with standard operating ranges
+   *
+   * Industry standard for C&I inverters:
+   * - Operating temperature: -25°C to +60°C (typical)
+   * - Storage temperature: -40°C to +70°C
+   * - Humidity: 0-95% non-condensing
+   * - Altitude: up to 2000m (standard), up to 4000m (with derating)
+   */
+  private static enrichEnvironmentalData(
+    environmental: RawProductData['environmental'] | undefined
+  ): NonNullable<RawProductData['environmental']> {
+    // If environmental data exists and has values, return it
+    if (environmental && Object.keys(environmental).length > 0) {
+      return environmental;
+    }
+
+    // Industry standard operating range for outdoor C&I equipment
+    return {
+      temp_min_c: -25,
+      temp_max_c: 60,
+      humidity_max_percent: 95,
+      altitude_max_m: 2000,
+    };
+  }
+}

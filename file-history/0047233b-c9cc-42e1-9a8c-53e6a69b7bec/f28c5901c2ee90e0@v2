@@ -1,0 +1,352 @@
+"""
+Trade History Manager - Stores and manages trade history with LLM reasoning.
+
+This module:
+- Stores trades with LLM's original decision and reasoning
+- Tracks trade outcomes (hit target, hit stop, manual close)
+- Calculates actual vs. expected risk:reward
+- Provides trade history for feeding back into prompts
+- Persists to JSON file for continuity across sessions
+"""
+
+import json
+from typing import List, Dict, Any, Optional
+from datetime import datetime, timezone
+from pathlib import Path
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class TradeHistoryManager:
+    """Manages trade history with LLM reasoning storage."""
+
+    def __init__(self, history_file: str = "data/llm_trade_history.json"):
+        """
+        Initialize the trade history manager.
+
+        Args:
+            history_file: Path to JSON file for persisting trades
+        """
+        self.history_file = Path(history_file)
+        self.history_file.parent.mkdir(parents=True, exist_ok=True)
+        self.trades: List[Dict[str, Any]] = []
+        self.load_history()
+
+    def load_history(self) -> None:
+        """Load trade history from JSON file."""
+        if self.history_file.exists():
+            try:
+                with open(self.history_file, 'r') as f:
+                    self.trades = json.load(f)
+                logger.info(f"Loaded {len(self.trades)} trades from {self.history_file}")
+            except json.JSONDecodeError as e:
+                logger.error(f"Error loading trade history: {e}")
+                self.trades = []
+        else:
+            logger.info(f"No existing trade history found at {self.history_file}")
+            self.trades = []
+
+    def save_history(self) -> None:
+        """Save trade history to JSON file."""
+        try:
+            with open(self.history_file, 'w') as f:
+                json.dump(self.trades, f, indent=2)
+            logger.info(f"Saved {len(self.trades)} trades to {self.history_file}")
+        except Exception as e:
+            logger.error(f"Error saving trade history: {e}")
+
+    def add_trade(
+        self,
+        symbol: str,
+        direction: str,  # "long" or "short"
+        entry_price: float,
+        stop_loss: float,
+        take_profit: float,
+        position_size: float,
+        leverage: int,
+        llm_decision: Dict[str, Any],
+        screening_score: int,
+        timestamp: Optional[str] = None
+    ) -> str:
+        """
+        Add a new trade to history.
+
+        Args:
+            symbol: Trading pair (e.g., "EUR/USD")
+            direction: "long" or "short"
+            entry_price: Entry price
+            stop_loss: Stop loss level
+            take_profit: Take profit target
+            position_size: Position size in EUR
+            leverage: Leverage used
+            llm_decision: Complete decision dict from Claude
+            screening_score: Screener score that triggered the trade
+            timestamp: ISO timestamp (or current time if None)
+
+        Returns:
+            Trade ID
+        """
+        trade_id = f"{symbol}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+
+        trade = {
+            'trade_id': trade_id,
+            'symbol': symbol,
+            'direction': direction,
+            'entry_price': entry_price,
+            'stop_loss': stop_loss,
+            'take_profit': take_profit,
+            'position_size': position_size,
+            'leverage': leverage,
+            'screening_score': screening_score,
+            'entry_timestamp': timestamp or datetime.now(timezone.utc).isoformat(),
+
+            # LLM reasoning
+            'llm_reasoning': {
+                'signal': llm_decision.get('signal'),
+                'confidence': llm_decision.get('confidence'),
+                'justification': llm_decision.get('justification'),
+                'wave_count': llm_decision.get('wave_count'),
+                'exit_plan': llm_decision.get('exit_plan'),
+                'concerns': llm_decision.get('concerns'),
+                'risk_reward_ratio': llm_decision.get('risk_reward_ratio')
+            },
+
+            # Will be filled when trade closes
+            'exit_price': None,
+            'exit_timestamp': None,
+            'pnl': None,
+            'pnl_pct': None,
+            'actual_rr': None,
+            'hit_target': None,
+            'hit_stop': None,
+            'exit_reason': None,  # "target", "stop", "manual", "invalidation"
+            'status': 'open'
+        }
+
+        self.trades.append(trade)
+        self.save_history()
+
+        logger.info(f"Added trade: {trade_id} - {direction.upper()} {symbol} @ {entry_price}")
+        return trade_id
+
+    def close_trade(
+        self,
+        trade_id: str,
+        exit_price: float,
+        exit_reason: str,
+        timestamp: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Close a trade and calculate results.
+
+        Args:
+            trade_id: Trade ID to close
+            exit_price: Exit price
+            exit_reason: "target", "stop", "manual", "invalidation"
+            timestamp: ISO timestamp of exit
+
+        Returns:
+            Updated trade dict, or None if trade not found
+        """
+        trade = self.get_trade(trade_id)
+        if not trade:
+            logger.error(f"Trade {trade_id} not found")
+            return None
+
+        if trade['status'] != 'open':
+            logger.warning(f"Trade {trade_id} is already {trade['status']}")
+            return trade
+
+        # Calculate P&L
+        entry = trade['entry_price']
+        direction = trade['direction']
+
+        if direction == 'long':
+            price_change = exit_price - entry
+        else:  # short
+            price_change = entry - exit_price
+
+        pnl_pct = (price_change / entry) * 100
+        pnl_eur = (price_change / entry) * trade['position_size'] * trade['leverage']
+
+        # Calculate actual risk:reward
+        if direction == 'long':
+            risk = entry - trade['stop_loss']
+            reward = exit_price - entry
+        else:
+            risk = trade['stop_loss'] - entry
+            reward = entry - exit_price
+
+        actual_rr = reward / risk if risk > 0 else 0
+
+        # Determine if hit target or stop
+        hit_target = abs(exit_price - trade['take_profit']) < abs(trade['take_profit'] * 0.001)  # Within 0.1%
+        hit_stop = abs(exit_price - trade['stop_loss']) < abs(trade['stop_loss'] * 0.001)
+
+        # Update trade
+        trade['exit_price'] = exit_price
+        trade['exit_timestamp'] = timestamp or datetime.now(timezone.utc).isoformat()
+        trade['pnl'] = round(pnl_eur, 2)
+        trade['pnl_pct'] = round(pnl_pct, 4)
+        trade['actual_rr'] = round(actual_rr, 2)
+        trade['hit_target'] = hit_target
+        trade['hit_stop'] = hit_stop
+        trade['exit_reason'] = exit_reason
+        trade['status'] = 'closed'
+
+        self.save_history()
+
+        result = "WIN" if pnl_eur > 0 else "LOSS"
+        logger.info(
+            f"Closed trade {trade_id}: {result} {pnl_eur:+.2f} EUR ({pnl_pct:+.2f}%) "
+            f"- Exit reason: {exit_reason}"
+        )
+
+        return trade
+
+    def get_trade(self, trade_id: str) -> Optional[Dict[str, Any]]:
+        """Get a specific trade by ID."""
+        for trade in self.trades:
+            if trade['trade_id'] == trade_id:
+                return trade
+        return None
+
+    def get_open_trades(self) -> List[Dict[str, Any]]:
+        """Get all open trades."""
+        return [t for t in self.trades if t['status'] == 'open']
+
+    def get_closed_trades(self) -> List[Dict[str, Any]]:
+        """Get all closed trades."""
+        return [t for t in self.trades if t['status'] == 'closed']
+
+    def get_recent_trades(self, count: int = 5) -> List[Dict[str, Any]]:
+        """
+        Get most recent closed trades.
+
+        Args:
+            count: Number of recent trades to return
+
+        Returns:
+            List of recent closed trades (oldest → newest)
+        """
+        closed = self.get_closed_trades()
+        return closed[-count:] if closed else []
+
+    def get_account_state(
+        self,
+        initial_capital: float = 100.0
+    ) -> Dict[str, Any]:
+        """
+        Get current account state for prompt generation.
+
+        Args:
+            initial_capital: Starting capital
+
+        Returns:
+            Account state dictionary
+        """
+        closed_trades = self.get_closed_trades()
+        open_trades = self.get_open_trades()
+
+        # Calculate current capital
+        total_pnl = sum(t.get('pnl', 0) for t in closed_trades)
+        current_capital = initial_capital + total_pnl
+
+        # Calculate risk exposure from open trades
+        risk_exposure = sum(
+            abs(t['entry_price'] - t['stop_loss']) * t['position_size']
+            for t in open_trades
+        )
+
+        # Format open positions for prompt
+        open_positions = []
+        for trade in open_trades:
+            # Would need current price to calculate unrealized P&L
+            # For now, just show the position details
+            open_positions.append({
+                'symbol': trade['symbol'],
+                'direction': trade['direction'],
+                'entry_price': trade['entry_price'],
+                'stop_loss': trade['stop_loss'],
+                'take_profit': trade['take_profit'],
+                'unrealized_pnl': 0,  # Need current price to calculate
+                'exit_plan': trade['llm_reasoning'].get('exit_plan', {})
+            })
+
+        return {
+            'available_capital': current_capital,
+            'open_positions': open_positions,
+            'risk_exposure': risk_exposure,
+            'max_position_size': current_capital * 0.10,  # 10% per trade rule
+        }
+
+    def clear_history(self) -> None:
+        """Clear all trade history (use with caution!)."""
+        self.trades = []
+        self.save_history()
+        logger.warning("Trade history cleared")
+
+    def export_to_csv(self, output_file: str) -> None:
+        """
+        Export trade history to CSV for analysis.
+
+        Args:
+            output_file: Path to output CSV file
+        """
+        import csv
+
+        if not self.trades:
+            logger.warning("No trades to export")
+            return
+
+        # Flatten the nested structure for CSV
+        rows = []
+        for trade in self.trades:
+            row = {
+                'trade_id': trade['trade_id'],
+                'symbol': trade['symbol'],
+                'direction': trade['direction'],
+                'entry_price': trade['entry_price'],
+                'exit_price': trade.get('exit_price'),
+                'stop_loss': trade['stop_loss'],
+                'take_profit': trade['take_profit'],
+                'position_size': trade['position_size'],
+                'leverage': trade['leverage'],
+                'screening_score': trade['screening_score'],
+                'entry_timestamp': trade['entry_timestamp'],
+                'exit_timestamp': trade.get('exit_timestamp'),
+                'pnl': trade.get('pnl'),
+                'pnl_pct': trade.get('pnl_pct'),
+                'actual_rr': trade.get('actual_rr'),
+                'hit_target': trade.get('hit_target'),
+                'hit_stop': trade.get('hit_stop'),
+                'exit_reason': trade.get('exit_reason'),
+                'status': trade['status'],
+                'llm_confidence': trade['llm_reasoning'].get('confidence'),
+                'llm_wave_count': trade['llm_reasoning'].get('wave_count'),
+                'llm_justification': trade['llm_reasoning'].get('justification'),
+            }
+            rows.append(row)
+
+        # Write CSV
+        with open(output_file, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+            writer.writeheader()
+            writer.writerows(rows)
+
+        logger.info(f"Exported {len(rows)} trades to {output_file}")
+
+
+def create_trade_history_manager(history_file: str = "data/llm_trade_history.json") -> TradeHistoryManager:
+    """
+    Factory function to create trade history manager.
+
+    Args:
+        history_file: Path to history JSON file
+
+    Returns:
+        TradeHistoryManager instance
+    """
+    return TradeHistoryManager(history_file=history_file)

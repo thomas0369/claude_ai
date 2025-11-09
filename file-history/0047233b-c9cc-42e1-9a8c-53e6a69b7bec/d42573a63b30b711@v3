@@ -1,0 +1,336 @@
+# Claude Trading Bot - LLM-Powered Elliott Wave Trading
+
+## Overview
+
+This application integrates Claude AI with the Elliott Wave trading bot to make intelligent, context-aware trading decisions. It follows the Nof1 Alpha Arena prompt architecture pattern:
+
+1. **Multi-Provider Data Aggregation** → Collect market data from TradingView, Yahoo Finance, CoinPaprika
+2. **Signal Detection** → Screen assets using 194-point Elliott Wave scoring system
+3. **Prompt Generation** → Build structured Nof1-style prompts with multi-timeframe data
+4. **Claude Analysis** → Send to Claude CLI/API for intelligent decision-making
+5. **Trade Execution** → Execute paper trades or live trades based on Claude's decision
+6. **Feedback Loop** → Store LLM reasoning and track performance
+
+## Architecture
+
+```
+Data Providers → Screener → Time Series Extractor → Prompt Builder → Claude CLI/API
+                     ↓                                                      ↓
+                  Signals                                           Trading Decision
+                                                                           ↓
+                                           Trade Execution ← Decision Parser
+                                                 ↓
+                                          Trade History ← Performance Metrics
+                                                 ↓
+                                          (Feeds back to future prompts)
+```
+
+## Installation
+
+### Prerequisites
+
+1. **Python 3.9+** with dependencies:
+```bash
+pip install pandas numpy yfinance tradingview-scraper ccxt
+```
+
+2. **For Local CLI Method (NO API KEY NEEDED)**:
+   - Make sure `claude` command is available in your terminal
+   - Test with: `echo "Hello" | claude`
+   - This uses your local Claude Code installation
+
+3. **For API Method** (alternative to CLI):
+```bash
+pip install anthropic
+export ANTHROPIC_API_KEY="your-api-key-here"
+```
+
+## Usage
+
+### Recommended: Local Claude CLI (NO API CALLS)
+
+Use your local Claude installation without any API keys or charges:
+
+```bash
+# First, test that Claude CLI works
+python test_claude_cli.py
+
+# Then run the trading bot
+python src/claude_trading_bot.py --mode paper --method cli
+```
+
+**How it works:**
+- Calls `claude` command locally (like: `echo "prompt" | claude`)
+- Uses your local Claude Code installation
+- No API keys needed
+- No API charges
+- All processing happens on your machine
+
+### Alternative: Simulated Mode (Testing)
+
+Test the complete flow without calling Claude at all:
+
+```bash
+python src/claude_trading_bot.py --mode paper --simulate
+```
+
+This will:
+- Screen all configured symbols
+- Find tradeable setups (score ≥ 75)
+- Generate prompts for top setups
+- Use simulated Claude responses (based on screener scores)
+- Log paper trades
+
+### Alternative: Claude API (Requires API Key)
+
+If you prefer using the API instead of local CLI:
+
+```bash
+export ANTHROPIC_API_KEY="your-key"
+python src/claude_trading_bot.py --mode paper --method api
+```
+
+Note: This requires an Anthropic API key and incurs API charges.
+
+### Screen Specific Symbols
+
+```bash
+python src/claude_trading_bot.py --symbols EUR/USD GBP/USD --mode paper --simulate
+```
+
+### Show Performance Summary
+
+```bash
+python src/claude_trading_bot.py --show-performance
+```
+
+## Configuration
+
+Edit `src/config.py` to customize:
+
+- **Symbols**: Assets to trade
+- **Timeframes**: Analysis timeframes (M15, H1, H4, Daily)
+- **Risk Parameters**: Position size %, leverage, stop loss %
+- **Score Thresholds**: Minimum score for tradeable signals
+
+## Prompt Structure (Nof1 Pattern)
+
+The system generates prompts following Nof1's proven pattern:
+
+### System Prompt
+- Defines Claude's role as Elliott Wave expert
+- Sets trading rules (score ≥ 75, Fibonacci principles, exit plans)
+- Specifies output format (strict JSON)
+
+### User Prompt
+- **Time Context**: Minutes since session start
+- **Market Data**: Multi-timeframe OHLCV + indicators (oldest → newest)
+- **Screening Score**: 194-point breakdown by category
+- **Account State**: Capital, positions, risk exposure
+- **Trade History**: Last 5 trades with LLM reasoning and outcomes
+- **Performance Metrics**: Win rate, Sharpe ratio, R:R, drawdown
+
+## Output Files
+
+### Generated Files
+- **data/prompts/** - Saved prompts for each analysis (debugging)
+- **data/llm_trade_history.json** - Trade history with LLM reasoning
+- **data/hold_decisions.jsonl** - Log of hold decisions
+- **data/screening_results.json** - Latest screening results
+
+### Reading Trade History
+
+```python
+from trade_history_manager import TradeHistoryManager
+
+history = TradeHistoryManager()
+trades = history.get_closed_trades()
+
+for trade in trades:
+    print(f"{trade['symbol']}: {trade['pnl']:+.2f} EUR")
+    print(f"  LLM Wave Count: {trade['llm_reasoning']['wave_count']}")
+    print(f"  LLM Confidence: {trade['llm_reasoning']['confidence']}")
+    print(f"  Outcome: {'HIT TARGET' if trade['hit_target'] else 'STOPPED OUT'}")
+```
+
+### Exporting to CSV
+
+```python
+history.export_to_csv("data/trades_export.csv")
+```
+
+## Claude Response Format
+
+Claude returns JSON with required fields:
+
+```json
+{
+  "signal": "buy|sell|hold|close",
+  "confidence": 0.85,
+  "position_size_eur": 10.0,
+  "leverage": 8,
+  "justification": "Wave 3 of larger Wave 5 confirmed at 0.618 Fibonacci retracement",
+  "exit_plan": {
+    "stop_loss": 1.0817,
+    "take_profit": 1.1119,
+    "invalidation_level": 1.0750,
+    "invalidation_reason": "Break below Wave 4 invalidates count"
+  },
+  "wave_count": "Wave 3 of larger degree Wave 5",
+  "risk_reward_ratio": 2.618,
+  "concerns": "ADX weakening on 4H timeframe"
+}
+```
+
+## Example Workflow
+
+### 1. Morning Scan
+```bash
+# Run screening to find top setups
+python src/claude_trading_bot.py --mode paper --method api
+```
+
+Output:
+```
+Screening 8 symbols...
+EUR/USD: Score 125/194, Direction: long, Tradeable: True
+GBP/USD: Score 82/194, Direction: short, Tradeable: True
+...
+
+Analyzing EUR/USD (Score: 125/194)
+Claude decision for EUR/USD: BUY (confidence: 0.87)
+[PAPER TRADE] Opening LONG EUR/USD
+  Entry: 1.0850
+  Stop: 1.0817
+  Target: 1.1119
+  Wave Count: Wave 3 of larger degree Wave 5
+  Reasoning: Price bounced from 0.618 Fibonacci level with EMA confluence...
+Trade recorded with ID: EUR_USD_20250311_143000
+```
+
+### 2. Monitor Positions
+```bash
+# Check open positions
+python src/claude_trading_bot.py --show-performance
+```
+
+### 3. Close Positions Manually (if needed)
+```python
+from trade_history_manager import TradeHistoryManager
+
+history = TradeHistoryManager()
+history.close_trade(
+    trade_id="EUR_USD_20250311_143000",
+    exit_price=1.1050,
+    exit_reason="manual"
+)
+```
+
+## Backtesting Mode
+
+Test the system on historical data:
+
+```bash
+python src/claude_trading_bot.py --mode backtest --simulate
+```
+
+The simulator will:
+- Use screener scores to make deterministic decisions
+- Not make actual API calls
+- Fast iteration for testing
+
+## Performance Metrics Calculated
+
+Following Nof1's approach, the system tracks:
+
+- **Total Return** (%)
+- **Win Rate** (%)
+- **Average Risk:Reward Ratio**
+- **Sharpe Ratio** (annualized)
+- **Maximum Drawdown** (%)
+- **Profit Factor** (total wins / total losses)
+- **Expectancy** (average profit per trade)
+- **Average Win/Loss** (EUR and %)
+
+## Key Differences from Nof1
+
+| Feature | Nof1 | This Bot |
+|---------|------|----------|
+| Data sources | Single exchange | 3 providers with fallback |
+| Indicators | Unknown | 21+ Fibonacci-optimized |
+| Scoring | Implicit | Explicit 194-point system |
+| Markets | Crypto only | Forex + Crypto + Commodities |
+| Timeframes | 2 (3-min, 4H) | 4 (M15, H1, H4, Daily) |
+| Exit plan tracking | ✅ Yes | ✅ Yes |
+| Structured output | ✅ Yes | ✅ Yes |
+| Context window | Minimal | Includes trade history |
+
+## Troubleshooting
+
+### "Claude CLI not found"
+Install from: https://docs.anthropic.com/en/docs/claude-code
+
+Or use API method instead:
+```bash
+python src/claude_trading_bot.py --method api --api-key YOUR_KEY
+```
+
+### "No tradeable setups found"
+Current market conditions may not meet the 75-point threshold. Check screening results:
+```bash
+cat data/screening_results.json
+```
+
+Lower the threshold in `src/screener.py` if needed (not recommended for live trading).
+
+### "Anthropic SDK not installed"
+```bash
+pip install anthropic
+```
+
+### Check Generated Prompts
+All prompts are saved to `data/prompts/` for debugging. Inspect them to see exactly what Claude receives.
+
+## Development
+
+### Running Tests
+```bash
+pytest tests/
+```
+
+### Adding New Indicators
+1. Add to `src/indicators.py`
+2. Update `src/screener.py` scoring
+3. Update `src/time_series_extractor.py` to extract the new indicator
+4. Update `src/claude_prompt_builder.py` to include in prompts
+
+### Customizing Prompts
+Edit `src/claude_prompt_builder.py`:
+- `_build_system_prompt()` - Claude's role and rules
+- `build_user_prompt()` - Market data formatting
+- `_format_timeframe_data()` - Time series presentation
+
+## Safety Notes
+
+⚠️ **IMPORTANT**:
+- Always test with `--mode paper --simulate` first
+- Never use `--mode live` without thorough paper trading validation
+- The system can make autonomous trading decisions - use with caution
+- Start with minimal capital and low leverage
+- Monitor all trades and be ready to intervene manually
+
+## License
+
+Same as the main Elliott Wave Trading Bot project.
+
+## Support
+
+For issues or questions:
+1. Check the logs in console output
+2. Inspect `data/prompts/` for prompt debugging
+3. Review `data/llm_trade_history.json` for trade details
+4. Open an issue on GitHub with relevant logs
+
+---
+
+**Remember**: This is experimental technology combining Elliott Wave analysis with LLM decision-making. Use at your own risk and always validate decisions before executing real trades.

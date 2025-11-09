@@ -1,0 +1,275 @@
+# Environment Setup Guide
+
+## DeepSeek API Key Configuration
+
+The DeepSeek PDF extraction feature requires an API key to function. Here's how to set it up:
+
+---
+
+## 1. Local Development
+
+### Step 1: Create `.env.local` file
+
+In the `benchmark-app` directory, create a file named `.env.local`:
+
+```bash
+cd benchmark-app
+touch .env.local
+```
+
+### Step 2: Add your API key
+
+Open `.env.local` in your text editor and add:
+
+```bash
+DEEPSEEK_API_KEY=sk-your-actual-api-key-here
+```
+
+### Step 3: Restart development server
+
+```bash
+# Stop the current server (Ctrl+C)
+# Then restart:
+npm run dev
+```
+
+### Step 4: Verify it works
+
+The PDF extraction endpoint should now work:
+```bash
+curl http://localhost:3000/api/pdf/extract
+```
+
+---
+
+## 2. Vercel Production Deployment
+
+### Option A: Via Vercel Dashboard
+
+1. Go to your project on [vercel.com](https://vercel.com)
+2. Navigate to **Settings** → **Environment Variables**
+3. Add a new variable:
+   - **Name:** `DEEPSEEK_API_KEY`
+   - **Value:** `sk-your-actual-api-key-here`
+   - **Environment:** Production (or all environments)
+4. Click **Save**
+5. Redeploy your application
+
+### Option B: Via Vercel CLI
+
+```bash
+# Install Vercel CLI (if not already installed)
+npm i -g vercel
+
+# Add environment variable
+vercel env add DEEPSEEK_API_KEY production
+
+# When prompted, paste your API key
+# Then redeploy
+vercel --prod
+```
+
+---
+
+## 3. Getting a DeepSeek API Key
+
+### Step 1: Sign up for DeepSeek
+
+1. Visit: https://platform.deepseek.com
+2. Create an account or log in
+3. Navigate to **API Keys** section
+
+### Step 2: Create an API key
+
+1. Click **Create API Key**
+2. Give it a name (e.g., "C&I BESS Production")
+3. Copy the key (starts with `sk-`)
+4. **Important:** Save it securely - you won't see it again!
+
+### Step 3: Add funds (if required)
+
+DeepSeek may require a small deposit for API usage. Check their pricing page.
+
+---
+
+## 4. Verify Configuration
+
+### Test locally:
+
+```bash
+# Start dev server
+npm run dev
+
+# In another terminal, test the endpoint
+curl -X POST http://localhost:3000/api/pdf/extract \
+  -H "Content-Type: application/json" \
+  -d '{
+    "images": ["iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="],
+    "aggregate": false
+  }'
+```
+
+**Expected response:**
+- If configured: JSON with extracted data or error about image quality
+- If not configured: Error message about missing API key
+
+---
+
+## 5. Security Best Practices
+
+### ✅ DO:
+- Store API keys in `.env.local` (local development)
+- Add API keys via Vercel dashboard (production)
+- Keep `.env.local` in `.gitignore` (already configured)
+- Rotate keys periodically
+- Use different keys for dev/staging/prod
+
+### ❌ DON'T:
+- Commit API keys to Git
+- Share API keys in public channels
+- Use production keys in development
+- Hard-code keys in source code
+
+---
+
+## 6. Environment Variables Reference
+
+### Required for PDF Extraction:
+```bash
+DEEPSEEK_API_KEY=sk-xxxxxxxxxxxx
+```
+
+### Optional (with defaults):
+```bash
+# DeepSeek API configuration
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1  # Default
+DEEPSEEK_MAX_COST_USD=1.0                       # Default
+DEEPSEEK_MAX_REQUESTS_PER_MINUTE=60             # Default
+```
+
+---
+
+## 7. Troubleshooting
+
+### Error: "DeepSeek API key not configured"
+
+**Cause:** API key not set or not loaded
+
+**Solutions:**
+1. Verify `.env.local` exists in `benchmark-app/` directory
+2. Check the key format: must start with `sk-`
+3. Restart the development server
+4. Check for typos in variable name (must be exactly `DEEPSEEK_API_KEY`)
+
+### Error: "Invalid API key"
+
+**Cause:** Incorrect or expired API key
+
+**Solutions:**
+1. Verify the key in DeepSeek dashboard
+2. Generate a new API key
+3. Update `.env.local` with new key
+4. Restart server
+
+### Error: "Rate limit exceeded"
+
+**Cause:** Too many requests in short time
+
+**Solutions:**
+1. Wait a few minutes
+2. Increase `DEEPSEEK_MAX_REQUESTS_PER_MINUTE` if needed
+3. Implement request queuing in your application
+
+### Environment variable not loading
+
+**Common issues:**
+1. **Wrong directory:** `.env.local` must be in `benchmark-app/` not root
+2. **Wrong name:** Must be exactly `.env.local` (not `.env` or `env.local`)
+3. **Server not restarted:** Changes require server restart
+4. **Syntax error:** No quotes around the value, no spaces around `=`
+
+**Correct format:**
+```bash
+DEEPSEEK_API_KEY=sk-your-key-here
+```
+
+**Incorrect formats:**
+```bash
+DEEPSEEK_API_KEY = sk-your-key-here  # ❌ spaces around =
+DEEPSEEK_API_KEY="sk-your-key-here"  # ❌ quotes
+export DEEPSEEK_API_KEY=sk-...       # ❌ export keyword
+```
+
+---
+
+## 8. Testing After Setup
+
+### Run the PDF extraction tests:
+
+```bash
+# Make sure server is running
+npm run dev
+
+# In another terminal
+npm run test:e2e -- pdf-extraction-test.spec.ts
+```
+
+**Expected results:**
+- ✅ All 11 tests should pass
+- ✅ API endpoint should respond (not 500 error)
+- ✅ DeepSeek client should be initialized
+
+---
+
+## 9. Cost Considerations
+
+### DeepSeek Pricing (as of 2025)
+- **Input tokens:** ~$0.14 per 1M tokens
+- **Output tokens:** ~$0.28 per 1M tokens
+
+### Estimated costs:
+- Single PDF (3 pages): ~$0.0012
+- 100 PDFs: ~$0.12
+- 1,000 PDFs: ~$1.20
+
+### Cost controls in place:
+- Per-request limit: $0.05
+- Session limit: $1.00 (configurable via `DEEPSEEK_MAX_COST_USD`)
+- Rate limiting: 60 requests/minute
+
+---
+
+## 10. Additional Resources
+
+- **DeepSeek Docs:** https://platform.deepseek.com/docs
+- **Vercel Env Vars:** https://vercel.com/docs/environment-variables
+- **Next.js Env Vars:** https://nextjs.org/docs/basic-features/environment-variables
+
+---
+
+## Quick Reference
+
+### Local Development
+```bash
+# 1. Create .env.local
+echo "DEEPSEEK_API_KEY=sk-your-key" > .env.local
+
+# 2. Restart server
+npm run dev
+
+# 3. Test
+curl http://localhost:3000/api/pdf/extract
+```
+
+### Production (Vercel)
+```bash
+# Via CLI
+vercel env add DEEPSEEK_API_KEY production
+
+# Then redeploy
+vercel --prod
+```
+
+---
+
+**Need help?** Check the troubleshooting section or review the test output for specific error messages.

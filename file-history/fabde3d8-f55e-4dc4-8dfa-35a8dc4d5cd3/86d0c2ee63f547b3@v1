@@ -1,0 +1,164 @@
+/**
+ * PDF to Image Processor for Node.js
+ * ====================================
+ *
+ * Node.js-compatible PDF to image conversion using pdf.js legacy build
+ * and node-canvas. Used for testing and scripts.
+ *
+ * For browser/Vercel use, see processor.ts instead.
+ */
+
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
+import { createCanvas } from 'canvas';
+import { promises as fs } from 'fs';
+
+export interface PDFProcessorConfig {
+  /** Scale factor for rendering (higher = better quality, slower) */
+  scale?: number;
+  /** Maximum number of pages to process */
+  maxPages?: number;
+  /** Output format */
+  format?: 'png' | 'jpeg';
+  /** JPEG quality (0-1, only for JPEG format) */
+  quality?: number;
+}
+
+export interface PDFMetadata {
+  numPages: number;
+  title?: string;
+  author?: string;
+  creationDate?: string;
+}
+
+export class PDFProcessorNode {
+  private config: Required<PDFProcessorConfig>;
+
+  constructor(config: PDFProcessorConfig = {}) {
+    this.config = {
+      scale: config.scale ?? 2.0,
+      maxPages: config.maxPages ?? 3,
+      format: config.format ?? 'png',
+      quality: config.quality ?? 0.95,
+    };
+  }
+
+  /**
+   * Convert PDF buffer to base64-encoded images
+   */
+  async convertToImages(pdfBuffer: Buffer, maxPages?: number): Promise<string[]> {
+    const pagesToProcess = maxPages ?? this.config.maxPages;
+
+    try {
+      // Load PDF document
+      const loadingTask = getDocument({ data: new Uint8Array(pdfBuffer) });
+      const pdf = await loadingTask.promise;
+
+      const totalPages = Math.min(pdf.numPages, pagesToProcess);
+      const images: string[] = [];
+
+      console.log(`Converting ${totalPages} page(s) from PDF`);
+
+      // Process each page
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const imageBase64 = await this.renderPageToImage(page, pageNum);
+
+        if (imageBase64) {
+          images.push(imageBase64);
+        }
+      }
+
+      console.log(`Successfully converted ${images.length} page(s)`);
+
+      return images;
+    } catch (error) {
+      console.error('PDF conversion failed:', error);
+      throw new Error(
+        `Failed to convert PDF to images: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Convert PDF file from path to images
+   */
+  async convertFileToImages(pdfPath: string, maxPages?: number): Promise<string[]> {
+    const pdfBuffer = await fs.readFile(pdfPath);
+    return this.convertToImages(pdfBuffer, maxPages);
+  }
+
+  /**
+   * Get PDF metadata
+   */
+  async getMetadata(pdfBuffer: Buffer): Promise<PDFMetadata> {
+    try {
+      const loadingTask = getDocument({ data: new Uint8Array(pdfBuffer) });
+      const pdf = await loadingTask.promise;
+      const metadata = await pdf.getMetadata();
+
+      const info = metadata.info as any;
+
+      return {
+        numPages: pdf.numPages,
+        title: info?.Title,
+        author: info?.Author,
+        creationDate: info?.CreationDate,
+      };
+    } catch (error) {
+      throw new Error(
+        `Failed to read PDF metadata: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Convert a single PDF page to base64-encoded image
+   */
+  private async renderPageToImage(
+    page: PDFPageProxy,
+    pageNum: number
+  ): Promise<string | null> {
+    try {
+      // Calculate viewport with scale
+      const viewport = page.getViewport({ scale: this.config.scale });
+
+      // Create canvas using node-canvas
+      const canvas = createCanvas(viewport.width, viewport.height);
+      const context = canvas.getContext('2d');
+
+      // Render PDF page to canvas
+      const renderContext = {
+        canvasContext: context as any,
+        viewport: viewport,
+      };
+
+      await page.render(renderContext).promise;
+
+      // Convert canvas to base64
+      const mimeType = this.config.format === 'jpeg' ? 'image/jpeg' : 'image/png';
+      const dataUrl = canvas.toDataURL(mimeType, this.config.quality);
+
+      // Extract base64 data (remove data:image/png;base64, prefix)
+      const base64 = dataUrl.split(',')[1];
+
+      console.log(
+        `Rendered page ${pageNum}: ${canvas.width}x${canvas.height}px, ` +
+          `${((base64.length * 0.75) / 1024).toFixed(1)} KB`
+      );
+
+      return base64;
+    } catch (error) {
+      console.error(`Failed to render page ${pageNum}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Estimate memory usage for PDF conversion
+   */
+  estimateMemoryUsage(numPages: number): number {
+    const mbPerPage = 5;
+    return numPages * mbPerPage;
+  }
+}

@@ -1,0 +1,286 @@
+# Twelve Data Integration Setup
+
+## Overview
+
+Twelve Data is now integrated as a premium data provider for the Elliott Wave Trading Bot. The FREE tier provides excellent value for algorithmic trading.
+
+## FREE Tier Benefits
+
+- **8 API calls per minute** (auto rate-limited)
+- **800 API calls per day**
+- **Real-time & historical data** for Forex, Crypto, Stocks, Commodities
+- **5-minute granularity** (perfect for our caching strategy!)
+- **No credit card required** for FREE tier
+
+## Setup Instructions
+
+### Step 1: Get Your FREE API Key
+
+1. Visit **https://twelvedata.com/**
+2. Click **"Sign Up"** (top right)
+3. Create account (email + password)
+4. Verify your email
+5. Navigate to **Dashboard → API Key**
+6. Copy your FREE API key
+
+### Step 2: Configure Environment
+
+Add your API key to `.env`:
+
+```bash
+# Edit .env file
+nano .env
+
+# Add this line:
+TWELVEDATA_API_KEY=your_actual_api_key_here
+```
+
+**Important:** Keep your API key secret! Never commit it to git.
+
+### Step 3: Test the Integration
+
+```bash
+# Test Twelve Data provider
+python src/twelvedata_provider.py
+```
+
+Expected output:
+```
+============================================================
+TESTING TWELVE DATA PROVIDER
+============================================================
+INFO - Twelve Data: Fetching EUR/USD (EUR/USD) 5m (5min), 200 candles [Call #1]
+INFO - ✓ Fetched 200 candles for EUR/USD 5m
+
+✓ Success! Got 200 candles
+
+First candle: [1730707500000, 1.0879, 1.0881, 1.0878, 1.088, 124.0]
+Last candle:  [1730724000000, 1.0865, 1.0867, 1.0864, 1.0866, 98.0]
+
+Data range: 2025-11-04 08:25:00 to 2025-11-04 14:20:00
+
+============================================================
+✓ ALL TESTS PASSED
+============================================================
+
+Total API calls: 2
+Available symbols: 10
+Available timeframes: 10
+```
+
+## Supported Assets
+
+### Forex (10 pairs)
+- EUR/USD, GBP/USD, USD/JPY
+- AUD/USD, USD/CHF
+
+### Crypto (4 pairs)
+- BTC/USD, ETH/USD
+- BNB/USD, SOL/USD
+
+### Commodities (2)
+- XAU/USD (Gold)
+- XAG/USD (Silver)
+
+## Supported Timeframes
+
+- **Intraday**: 1min, 5min, 15min, 30min, 45min
+- **Hourly**: 1h, 2h, 4h
+- **Daily+**: 1day, 1week, 1month
+
+## API Call Optimization
+
+### With Persistent Cache (Recommended)
+
+```python
+from screener import AssetScreener
+
+# Use caching (enabled by default)
+screener = AssetScreener(use_cache=True)
+
+# First scan: 3 calls per asset (5m, 4h, daily)
+# - 8 assets × 3 = 24 calls
+#
+# Subsequent scans: ~1-2 calls per asset (incremental updates)
+# - 8 assets × 1.5 = 12 calls
+#
+# Result: ~50 scans per day with FREE tier! ✅
+```
+
+### Without Cache (Not Recommended)
+
+```python
+# Legacy mode (4 calls per asset)
+screener = AssetScreener(use_cache=False)
+
+# 8 assets × 4 = 32 calls per scan
+# 800 / 32 = 25 scans per day (half as efficient!)
+```
+
+## Switching to Twelve Data (Full Integration)
+
+To use Twelve Data as the primary data provider system-wide:
+
+### Option 1: Update `capital_api.py`
+
+```python
+# In src/capital_api.py, modify get_api():
+
+def get_api():
+    """Factory function to get the appropriate API client"""
+    # Check if Twelve Data is configured
+    if os.getenv("TWELVEDATA_API_KEY"):
+        from twelvedata_provider import TwelveDataProvider
+        return TwelveDataProvider()
+
+    # Fallback to existing providers
+    if config.TRADINGVIEW_ENABLED:
+        return TradingViewDataProvider()
+    else:
+        return YFinanceDataProvider()
+```
+
+### Option 2: Create Unified Data Provider
+
+```python
+# src/unified_data_provider.py (NEW FILE)
+
+class UnifiedDataProvider:
+    """
+    Smart data provider with automatic fallback chain:
+    1. Twelve Data (if API key configured)
+    2. TradingView (if enabled)
+    3. Yahoo Finance (universal fallback)
+    """
+
+    def __init__(self):
+        self.providers = []
+
+        # Try Twelve Data first (best quality, rate-limited)
+        if os.getenv("TWELVEDATA_API_KEY"):
+            self.providers.append(TwelveDataProvider())
+
+        # Try TradingView second
+        if config.TRADINGVIEW_ENABLED:
+            self.providers.append(TradingViewDataProvider())
+
+        # Always have YFinance as fallback
+        self.providers.append(YFinanceDataProvider())
+
+    def get_ohlcv(self, symbol, timeframe, limit):
+        """Try providers in order until success."""
+        for provider in self.providers:
+            try:
+                data = provider.get_ohlcv(symbol, timeframe, limit)
+                if data:
+                    return data
+            except Exception as e:
+                logger.warning(f"{provider.__class__.__name__} failed: {e}")
+
+        return None  # All providers failed
+```
+
+## Rate Limiting
+
+The provider automatically rate-limits to **7.5 seconds between calls** (8 calls/min).
+
+```python
+from twelvedata_provider import TwelveDataProvider
+
+provider = TwelveDataProvider()
+
+# Calls are automatically spaced 7.5 seconds apart
+provider.get_ohlcv("EUR/USD", "5m", 200)  # Call 1: immediate
+provider.get_ohlcv("BTC/USD", "5m", 200)  # Call 2: waits 7.5s
+provider.get_ohlcv("GBP/USD", "5m", 200)  # Call 3: waits 7.5s
+```
+
+## Monitoring API Usage
+
+```python
+from twelvedata_provider import TwelveDataProvider
+
+provider = TwelveDataProvider()
+
+# ... make some calls ...
+
+# Check how many calls you've made
+print(f"API calls this session: {provider.get_call_count()}")
+
+# Reset counter (e.g., daily cron job)
+provider.reset_call_count()
+```
+
+## Cost Comparison
+
+### FREE Tier (Current)
+- **Cost**: $0/month
+- **Calls**: 800/day
+- **Scans/day** (with cache): ~50 scans
+- **Perfect for**: Development, small-scale live trading
+
+### Grow Plan ($79/month)
+- **Cost**: $79/month ($2.63/day)
+- **Calls**: Unlimited
+- **Scans/day**: Unlimited
+- **Additional**: WebSocket support, faster updates
+- **Perfect for**: High-frequency scanning, production trading
+
+### When to Upgrade?
+- You need >50 scans per day
+- You want real-time WebSocket data
+- You need sub-minute granularity (15s, 30s)
+- You're trading live with real capital
+
+## Troubleshooting
+
+### Error: "No API key configured"
+```bash
+# Check if .env is loaded
+cat .env | grep TWELVEDATA
+
+# If missing, add it
+echo "TWELVEDATA_API_KEY=your_key_here" >> .env
+```
+
+### Error: "Rate limit exceeded"
+```
+# You've hit the 8 calls/min limit
+# Solution: Wait 60 seconds or enable caching
+
+# With caching enabled, this shouldn't happen
+# as rate limiting is built-in (7.5s between calls)
+```
+
+### Error: "Invalid symbol"
+```python
+# Check supported symbols
+from twelvedata_provider import TwelveDataProvider
+
+provider = TwelveDataProvider()
+print(provider.get_available_symbols())
+
+# If your symbol isn't listed, add it to SYMBOL_MAP
+# in src/twelvedata_provider.py
+```
+
+## Next Steps
+
+1. ✅ Get FREE API key from twelvedata.com
+2. ✅ Add to `.env` file
+3. ✅ Test with `python src/twelvedata_provider.py`
+4. ⬜ Integrate with `capital_api.py` (optional)
+5. ⬜ Run full scan with caching: `python src/screener.py`
+6. ⬜ Monitor API usage and optimize
+
+## Resources
+
+- **Twelve Data Homepage**: https://twelvedata.com/
+- **API Documentation**: https://twelvedata.com/docs
+- **Python Client**: https://github.com/twelvedata/twelvedata-python
+- **Pricing**: https://twelvedata.com/pricing
+- **Support**: support@twelvedata.com
+
+---
+
+**Ready to test?** Run: `python src/twelvedata_provider.py` after setting your API key!

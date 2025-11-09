@@ -1,0 +1,270 @@
+# DeepSeek Vision API Integration
+
+TypeScript implementation of DeepSeek-VL2 vision model for intelligent PDF datasheet extraction.
+
+## Features
+
+- ✅ **Rate Limiting:** 60 requests/minute (configurable)
+- ✅ **Cost Controls:** Configurable spending limits ($1.00 default)
+- ✅ **Retry Logic:** Exponential backoff on failures
+- ✅ **Error Handling:** Comprehensive error types and recovery
+- ✅ **Multi-page Aggregation:** Merge data from multiple PDF pages
+- ✅ **Type Safety:** Full TypeScript with Zod validation
+- ✅ **Vercel Compatible:** Works on serverless deployment
+
+## Quick Start
+
+### 1. Set API Key
+
+```bash
+# Local development (.env.local)
+DEEPSEEK_API_KEY=sk-your-api-key-here
+
+# Vercel deployment
+vercel env add DEEPSEEK_API_KEY
+```
+
+### 2. Basic Usage
+
+```typescript
+import { DeepSeekVisionClient } from '@/lib/deepseek';
+
+// Initialize client
+const client = new DeepSeekVisionClient({
+  apiKey: process.env.DEEPSEEK_API_KEY!,
+  maxCostUsd: 1.0,
+  maxRequestsPerMinute: 60
+});
+
+// Extract from single image
+const result = await client.extractFromImage(imageBase64);
+
+// Extract from multiple pages
+const results = await client.extractFromImages([img1, img2, img3], true);
+```
+
+### 3. API Route Usage
+
+```typescript
+// POST /api/pdf/extract
+const response = await fetch('/api/pdf/extract', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    images: [base64Image1, base64Image2],
+    aggregate: true
+  })
+});
+
+const data = await response.json();
+```
+
+## Configuration
+
+### Client Options
+
+```typescript
+interface DeepSeekConfig {
+  apiKey: string;                    // Required: DeepSeek API key
+  baseUrl?: string;                  // Default: https://api.deepseek.com/v1
+  maxRequestsPerMinute?: number;     // Default: 60
+  maxCostUsd?: number;               // Default: 1.0
+  timeout?: number;                  // Default: 60000 (60s)
+  retries?: number;                  // Default: 3
+}
+```
+
+### Cost Estimation
+
+```typescript
+// Current DeepSeek pricing
+const PRICING = {
+  INPUT_PER_M_TOKENS: 0.14,    // $0.14 per million input tokens
+  OUTPUT_PER_M_TOKENS: 0.28,   // $0.28 per million output tokens
+};
+
+// Estimated cost per PDF page
+const costPerPage = ~$0.0004;
+```
+
+## Extracted Data Schema
+
+```typescript
+interface ExtractionResult {
+  model_name: string;
+  manufacturer: string | null;
+  power: {
+    rated_power_kw: number | null;
+    max_power_kw: number | null;
+    continuous_power_kw: number | null;
+  };
+  efficiency: {
+    peak_percent: number | null;
+    rated_percent: number | null;
+  };
+  voltage: {
+    nominal_v: number | null;
+    max_v: number | null;
+    min_v: number | null;
+  };
+  physical: {
+    width_mm: number | null;
+    height_mm: number | null;
+    depth_mm: number | null;
+    weight_kg: number | null;
+  };
+  environmental: {
+    operating_temp_min_c: number | null;
+    operating_temp_max_c: number | null;
+    humidity_max_percent: number | null;
+  };
+  battery: {
+    capacity_kwh: number | null;
+    type: string | null;
+    cycles: number | null;
+  };
+  certifications: string[];
+}
+```
+
+## Error Handling
+
+```typescript
+try {
+  const result = await client.extractFromImage(imageBase64);
+} catch (error) {
+  if (error instanceof DeepSeekRateLimitError) {
+    // Rate limit exceeded
+    console.log(`Retry after: ${error.retryAfter}s`);
+  } else if (error instanceof DeepSeekCostLimitError) {
+    // Cost limit exceeded
+    console.log(`Cost: ${error.currentCost}, Limit: ${error.limit}`);
+  } else if (error instanceof DeepSeekAPIError) {
+    // API error
+    console.log(`Status: ${error.statusCode}, Message: ${error.message}`);
+  }
+}
+```
+
+## Usage Statistics
+
+```typescript
+const stats = client.getStats();
+console.log({
+  requestCount: stats.requestCount,
+  totalCost: stats.totalCost,
+  successRate: stats.successRate
+});
+
+// Reset statistics
+client.resetStats();
+```
+
+## Best Practices
+
+### 1. Cost Control
+
+```typescript
+// Set conservative limits for production
+const client = new DeepSeekVisionClient({
+  apiKey: process.env.DEEPSEEK_API_KEY!,
+  maxCostUsd: 0.05,  // $0.05 per session
+  maxRequestsPerMinute: 30  // Half the default
+});
+```
+
+### 2. Error Recovery
+
+```typescript
+async function extractWithRetry(imageBase64: string, maxAttempts = 3) {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      return await client.extractFromImage(imageBase64);
+    } catch (error) {
+      if (i === maxAttempts - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+    }
+  }
+}
+```
+
+### 3. Batch Processing
+
+```typescript
+// Process multiple PDFs with rate limiting
+async function processBatch(images: string[][]) {
+  const results = [];
+
+  for (const pdfImages of images) {
+    const result = await client.extractFromImages(pdfImages, true);
+    results.push(result);
+
+    // Small delay between PDFs
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  return results;
+}
+```
+
+## Frontend Integration
+
+```typescript
+import { PDFExtractor } from '@/components/pdf-extractor';
+
+export default function Page() {
+  return (
+    <div>
+      <h1>PDF Datasheet Extraction</h1>
+      <PDFExtractor />
+    </div>
+  );
+}
+```
+
+## Testing
+
+```typescript
+// Mock client for testing
+const mockClient = {
+  extractFromImage: jest.fn().mockResolvedValue({
+    model_name: 'TEST-100KW',
+    manufacturer: 'Test Corp',
+    power: { rated_power_kw: 100, max_power_kw: null, continuous_power_kw: null },
+    // ... other fields
+  })
+};
+```
+
+## Performance
+
+### Client-side PDF Processing
+
+- **PDF.js rendering:** ~1-2s per page
+- **DeepSeek API call:** ~30-60s per request
+- **Total:** ~35-65s for 3-page PDF
+
+### Serverless Limits
+
+- **Vercel Hobby:** 10s function timeout (use Pro for 60s)
+- **Memory:** 1024 MB recommended
+- **Cold start:** ~2-3s
+
+## Migration from Python
+
+This implementation replaces the Python scripts:
+- `scripts/deepseek_vision_client.py` → `lib/deepseek/client.ts`
+- `scripts/pdf_to_images.py` → `lib/pdf/processor.ts`
+- `scripts/zerez_pdf_matcher_enhanced.py` → `lib/pdf/matcher.ts`
+
+All features preserved with better Vercel compatibility.
+
+## Support
+
+- **DeepSeek Docs:** https://api-docs.deepseek.com/
+- **DeepSeek-VL2:** https://github.com/deepseek-ai/DeepSeek-VL2
+- **Pricing:** https://platform.deepseek.com/pricing
+
+## License
+
+Internal use only - Part of C&I BESS Benchmark App

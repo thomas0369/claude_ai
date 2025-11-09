@@ -1,0 +1,271 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { createErrorResponse } from '@/lib/api-error-handler';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+type Product = {
+  identification: {
+    zerez_id?: string;
+    model?: string;
+    manufacturer?: string;
+    [key: string]: unknown;
+  };
+  data_source?: {
+    source?: string;
+    pdf_filename?: string | null;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
+type PDFMatch = {
+  productId: string;
+  productModel: string;
+  pdfPath: string | null;
+  pdfFilename: string | null;
+  matchConfidence: number;
+};
+
+/**
+ * Normalizes a string for matching by:
+ * - Converting to lowercase
+ * - Removing special characters
+ * - Collapsing whitespace
+ */
+function normalizeForMatching(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Calculates a simple string similarity score (0-100)
+ * based on common substring matching
+ */
+function calculateSimilarity(str1: string, str2: string): number {
+  const normalized1 = normalizeForMatching(str1);
+  const normalized2 = normalizeForMatching(str2);
+
+  // Exact match
+  if (normalized1 === normalized2) return 100;
+
+  // One contains the other
+  if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
+    return 80;
+  }
+
+  // Check for significant word overlap
+  const words1 = normalized1.split(' ');
+  const words2 = normalized2.split(' ');
+  const commonWords = words1.filter(w => words2.includes(w) && w.length > 2);
+
+  if (commonWords.length > 0) {
+    const overlapRatio = (commonWords.length / Math.max(words1.length, words2.length));
+    return Math.round(overlapRatio * 60); // Max 60 for partial match
+  }
+
+  return 0;
+}
+
+/**
+ * Recursively scans a directory for PDF files
+ */
+async function scanPDFsInDirectory(dirPath: string): Promise<string[]> {
+  const pdfFiles: string[] = [];
+
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+
+      if (entry.isDirectory()) {
+        // Recursively scan subdirectories
+        const subPdfs = await scanPDFsInDirectory(fullPath);
+        pdfFiles.push(...subPdfs);
+      } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.pdf')) {
+        pdfFiles.push(fullPath);
+      }
+    }
+  } catch (error) {
+    console.warn(`Could not scan directory ${dirPath}:`, error);
+  }
+
+  return pdfFiles;
+}
+
+/**
+ * Matches a product with PDF files based on manufacturer and model name
+ */
+function matchProductWithPDF(
+  product: Product,
+  pdfFiles: string[],
+  datasheetRoot: string
+): PDFMatch {
+  const productId = product.identification?.zerez_id || 'unknown';
+  const productModel = product.identification?.model || '';
+  const manufacturer = product.identification?.manufacturer || '';
+
+  let bestMatch: PDFMatch = {
+    productId,
+    productModel,
+    pdfPath: null,
+    pdfFilename: null,
+    matchConfidence: 0
+  };
+
+  for (const pdfPath of pdfFiles) {
+    const relativePath = path.relative(datasheetRoot, pdfPath);
+    const pdfFilename = path.basename(pdfPath, '.pdf');
+    const dirName = path.basename(path.dirname(pdfPath));
+
+    let confidence = 0;
+
+    // Check manufacturer match (directory name)
+    const manufacturerMatch = calculateSimilarity(manufacturer, dirName);
+    if (manufacturerMatch > 40) {
+      confidence += manufacturerMatch * 0.4; // 40% weight for manufacturer match
+    }
+
+    // Check model name match (filename)
+    const modelMatch = calculateSimilarity(productModel, pdfFilename);
+    confidence += modelMatch * 0.6; // 60% weight for model match
+
+    // Update best match if this is better
+    if (confidence > bestMatch.matchConfidence) {
+      bestMatch = {
+        productId,
+        productModel,
+        pdfPath: relativePath.replace(/\\/g, '/'), // Normalize path separators
+        pdfFilename,
+        matchConfidence: Math.round(confidence)
+      };
+    }
+  }
+
+  return bestMatch;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { minConfidence = 50 } = body as { minConfidence?: number };
+
+    console.log(`📂 Starting PDF sync with minimum confidence: ${minConfidence}%`);
+
+    // Path to the main products database
+    const dbPath = path.join(process.cwd(), 'public', 'data', 'zerez', 'products.json');
+
+    // Path to datasheets directory (one level up from benchmark-app)
+    const repoRoot = path.join(process.cwd(), '..');
+    const datasheetRoot = path.join(repoRoot, 'datasheets');
+
+    // Check if datasheets directory exists
+    try {
+      await fs.access(datasheetRoot);
+    } catch {
+      return NextResponse.json(
+        {
+          error: 'Datasheets directory not found',
+          message: `Expected directory at: ${datasheetRoot}`
+        },
+        { status: 404 }
+      );
+    }
+
+    // Read existing database
+    let products: Product[] = [];
+    try {
+      const dbContent = await fs.readFile(dbPath, 'utf-8');
+      products = JSON.parse(dbContent);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: 'Could not read products database',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        },
+        { status: 500 }
+      );
+    }
+
+    if (products.length === 0) {
+      return NextResponse.json(
+        { error: 'Database is empty. Import products first.' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`📊 Found ${products.length} products in database`);
+
+    // Scan for PDF files
+    console.log(`🔍 Scanning for PDF files in: ${datasheetRoot}`);
+    const pdfFiles = await scanPDFsInDirectory(datasheetRoot);
+    console.log(`📄 Found ${pdfFiles.length} PDF files`);
+
+    if (pdfFiles.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'No PDF files found in datasheets directory',
+          scannedPath: datasheetRoot
+        },
+        { status: 404 }
+      );
+    }
+
+    // Match products with PDFs
+    let enriched = 0;
+    let skipped = 0;
+    const matches: PDFMatch[] = [];
+
+    for (const product of products) {
+      const match = matchProductWithPDF(product, pdfFiles, datasheetRoot);
+      matches.push(match);
+
+      // Only update if confidence meets threshold
+      if (match.matchConfidence >= minConfidence && match.pdfPath) {
+        // Update product with PDF reference
+        if (!product.data_source) {
+          product.data_source = {
+            source: 'zerez_graphql_api',
+            pdf_filename: null,
+            extraction_method: 'graphql_import',
+            confidence_level: 10,
+            parsed_at: new Date().toISOString(),
+            source_file: null
+          };
+        }
+
+        product.data_source.pdf_filename = match.pdfPath;
+        product.data_source.pdf_matched_at = new Date().toISOString();
+        product.data_source.pdf_match_confidence = match.matchConfidence;
+
+        enriched++;
+      } else {
+        skipped++;
+      }
+    }
+
+    // Write updated database back to file
+    await fs.writeFile(dbPath, JSON.stringify(products, null, 2), 'utf-8');
+
+    console.log(`✅ PDF sync complete: ${enriched} enriched, ${skipped} skipped`);
+
+    return NextResponse.json({
+      success: true,
+      total: products.length,
+      enriched,
+      skipped,
+      pdfFilesScanned: pdfFiles.length,
+      minConfidenceUsed: minConfidence,
+      matches: matches.slice(0, 100) // Return first 100 matches for UI display
+    });
+
+  } catch (error) {
+    return createErrorResponse('sync with PDF datasheets', error);
+  }
+}

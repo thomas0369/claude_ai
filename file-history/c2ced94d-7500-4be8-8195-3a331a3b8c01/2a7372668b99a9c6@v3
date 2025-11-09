@@ -1,0 +1,143 @@
+# Market Data Cache
+
+This directory stores local market data to minimize API traffic and improve performance.
+
+## Strategy
+
+- **Base timeframe:** 30 minutes (most efficient for resampling)
+- **History:** 104 days per asset (~4,992 bars - TradingView maximum)
+- **Resampling:** Create 1h, 45min, 4h, 1d from 30min base without API calls
+- **Updates:** Incremental - fetch only new bars since last update
+
+## Benefits
+
+1. **Minimize API traffic** - Fetch data once, use many times
+2. **Fast backtesting** - Local data is instant
+3. **Multiple timeframes** - One 30min cache → all higher timeframes
+4. **Incremental updates** - Only fetch new bars (e.g., last 10 bars for 5-hour gap)
+
+## Usage
+
+### Initial Population (One-time)
+
+```bash
+# Populate cache with 104 days of data for all symbols
+python scripts/update_market_data_cache.py --full-refresh
+
+# Or single symbol
+python scripts/update_market_data_cache.py --full-refresh --symbol "EUR/USD"
+```
+
+### Regular Updates (Automated)
+
+Add to crontab for hourly updates:
+
+```bash
+# Update cache every hour at minute 5
+5 * * * * cd /path/to/project && /path/to/venv/bin/python scripts/update_market_data_cache.py >> logs/cache_update.log 2>&1
+```
+
+Or run manually:
+
+```bash
+# Incremental update (fetch only new bars)
+python scripts/update_market_data_cache.py
+
+# View cache statistics
+python scripts/update_market_data_cache.py --stats
+```
+
+### Using in Code
+
+The `MultiStrategyScreener` automatically uses cache when available:
+
+```python
+from multi_strategy_screener import MultiStrategyScreener
+
+# Initialize with cache enabled (default)
+screener = MultiStrategyScreener(use_demo_data=False, use_cache=True)
+
+# Fetch data - uses cache if available, API as fallback
+df = screener.fetch_data('EUR/USD', timeframe='1h', bars=200)
+```
+
+## File Structure
+
+```
+data/market_data/
+├── EUR_USD_30min.csv       # 104 days of 30min bars (~480KB)
+├── GBP_USD_30min.csv
+├── ...
+└── cache_metadata.json     # Last update timestamps
+```
+
+## Cache Statistics
+
+```bash
+$ python scripts/update_market_data_cache.py --stats
+
+======================================================================
+📊 MARKET DATA CACHE STATISTICS
+======================================================================
+Total symbols cached: 14
+
+Details:
+Symbol          Bars Last Update           Age (h) Status
+----------------------------------------------------------------------
+EUR/USD         4992 2025-11-02T21:25:49       0.5 🟢 CURRENT
+GBP/USD         4992 2025-11-02T20:15:00       1.7 🔴 NEEDS UPDATE
+...
+======================================================================
+```
+
+## Storage Requirements
+
+- Per symbol: ~480KB (4,992 bars × 30min)
+- 14 symbols: ~6.5MB total
+- Negligible compared to API rate limits saved!
+
+## Resampling Examples
+
+From one 30min cache file, you can get:
+
+```python
+manager = DataCacheManager()
+
+# Get 1-hour bars (resampled from 30min)
+df_1h = manager.load_from_cache('EUR/USD', '1h', bars=200)
+
+# Get 45-minute bars
+df_45m = manager.load_from_cache('EUR/USD', '45min', bars=200)
+
+# Get 4-hour bars
+df_4h = manager.load_from_cache('EUR/USD', '4h', bars=200)
+
+# No API calls needed! ✅
+```
+
+## Troubleshooting
+
+### Cache miss errors
+
+If you see "Cache miss or insufficient data":
+
+1. Run full refresh: `python scripts/update_market_data_cache.py --full-refresh`
+2. Check cache stats: `python scripts/update_market_data_cache.py --stats`
+
+### Old data
+
+If cache is stale (> 1 hour old), run update:
+
+```bash
+python scripts/update_market_data_cache.py
+```
+
+### Clear cache
+
+To start fresh:
+
+```bash
+rm data/market_data/*.csv
+rm data/market_data/cache_metadata.json
+python scripts/update_market_data_cache.py --full-refresh
+```
