@@ -532,3 +532,1364 @@
 {"display":"based on the reddit article, do you have some additonal recommendation or is thomas-setup perfect now?","pastedContents":{},"timestamp":1762693626234,"project":"/home/thoma"}
 {"display":"Yes, I follow your high and medium priority recommendation. \nPlease also analyse if these tools are the best one for my setup in order to implement (in last step of all steps) to BSV blockchain\n\nVite    Fast build tool with excellent DX\nBun    Fast and modern package manager\nPreact    Latest version with all modern features\nTypeScript    Type-safe JavaScript for better development\nMantine    Comprehensive UI framework using CSS modules for high performance styling\nPreact Router    Easy route management\nAxios    Modern HTTP client\nJotai    Atomic approach to state management\nPreact Query    Data fetching, caching, synchronizing, and updating\nPreact-i18next    Translation and language state Management\nReact-Onchain https://github.com/danwag06/react-onchain","pastedContents":{},"timestamp":1762694762871,"project":"/home/thoma"}
 {"display":"have you analysed https://github.com/danwag06/react-onchain ? This is for bsv chain and fits perfect to preact","pastedContents":{},"timestamp":1762695530810,"project":"/home/thoma"}
+{"display":"push the .claude to https://github.com/thomas0369/claude_ai and create a readme about the details and the approach","pastedContents":{},"timestamp":1762696833365,"project":"/home/thoma"}
+{"display":"are there better tool as Mantine (9/10) - UI framework and Jotai (9/10) - Atomic state management that fits to my development scope?","pastedContents":{},"timestamp":1762697257678,"project":"/home/thoma"}
+{"display":"/validate-and-fix ","pastedContents":{},"timestamp":1762699063309,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/validate-and-fix ","pastedContents":{},"timestamp":1762699063348,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"sounds good, lets change the strategy to daisyui and nanostores. update the documentation and push it to github","pastedContents":{},"timestamp":1762700093180,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393496,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393569,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393591,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393610,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393638,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393659,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393685,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393705,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393725,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393750,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393769,"project":"/home/thoma"}
+{"display":"the main question is if react-onchain is working together with vue 3","pastedContents":{},"timestamp":1762700393793,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673666,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673739,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673767,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673788,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673814,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673834,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673853,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673877,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673896,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673919,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673943,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673963,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700673987,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674007,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674031,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674052,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674070,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674097,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674118,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674144,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674164,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674183,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674208,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674228,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674261,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674281,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674303,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674336,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674373,"project":"/home/thoma"}
+{"display":"I read that also Bun is a good choice for this architecture","pastedContents":{},"timestamp":1762700674443,"project":"/home/thoma"}
+{"display":"what is better for my scope? Vue 3, React or Preact with a look to the complete framework","pastedContents":{},"timestamp":1762700856363,"project":"/home/thoma"}
+{"display":"the bsv implementation is the last of the last step. Before I want also to use github gh-pages or vercel to test the app. Are there any better solutions or fits this to my approach perfectly?","pastedContents":{},"timestamp":1762701126354,"project":"/home/thoma"}
+{"display":"yes and also update the documentation, thomas-setup command and push it to github. After this I will transfer the first project to this new approach. Secure that all hooks, skills, agent and commands are working fine ","pastedContents":{},"timestamp":1762702255486,"project":"/home/thoma"}
+{"display":"/validate-and-fix ","pastedContents":{},"timestamp":1762702863594,"project":"/home/thoma"}
+{"display":"/validate-and-fix ","pastedContents":{},"timestamp":1762702863642,"project":"/home/thoma"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762704196586,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762704196635,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762704289680,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762704289724,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"2, 3, 4","pastedContents":{},"timestamp":1762704521088,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"understand .claude and git","pastedContents":{},"timestamp":1762706263124,"project":"/home/thoma"}
+{"display":"understand the github repro","pastedContents":{},"timestamp":1762706450699,"project":"/home/thoma/.claude"}
+{"display":"/dev-docs PWA for this App","pastedContents":{},"timestamp":1762706479354,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/dev-docs PWA for this App","pastedContents":{},"timestamp":1762706479400,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"I would like to have an optimal pwa setup. So next-pwa and blitz.js could be a good solution. fit this to my setup and or is there an more optimal solution?","pastedContents":{},"timestamp":1762707426677,"project":"/home/thoma/.claude"}
+{"display":"yes, lets add https://vite-pwa-org.netlify.app/ vite-plugin-pwa to our framework. ","pastedContents":{},"timestamp":1762708563301,"project":"/home/thoma/.claude"}
+{"display":"I want also to eleminate all warnings. Give me a clean code","pastedContents":{},"timestamp":1762708844675,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"check if agents, commands, skill, hooks  and subagents are doublicated. I want to have the perfect setup for claude","pastedContents":{},"timestamp":1762709376660,"project":"/home/thoma/.claude"}
+{"display":"then remove the backup file as well as doublications","pastedContents":{},"timestamp":1762709548372,"project":"/home/thoma/.claude"}
+{"display":"go","pastedContents":{},"timestamp":1762710038154,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"go","pastedContents":{},"timestamp":1762710095035,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"are all agents,commands, skills, plugins and hooks registered in claude and is the logic working as expected? E.g. auto hook","pastedContents":{},"timestamp":1762710403176,"project":"/home/thoma/.claude"}
+{"display":"check if agents, commands, skill, hooks  and subagents are doublicated. I want to have the perfect setup for claude","pastedContents":{},"timestamp":1762710638776,"project":"/home/thoma/.claude"}
+{"display":"go with all follup actions even they are non-blocking. I want a clean app","pastedContents":{},"timestamp":1762711086246,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"are all agents,commands, skills, plugins and hooks registered in claude and is the logic working as expected? E.g. auto hook","pastedContents":{},"timestamp":1762711156503,"project":"/home/thoma/.claude"}
+{"display":"update documentation, clean up and push to github. Also readme.md could be updated for github","pastedContents":{},"timestamp":1762711991298,"project":"/home/thoma/.claude"}
+{"display":"is it still working what is described here as success criteria? Claude Code is a Beast – Tips from 6 Months of Hardcore Use _ r_ClaudeAI.html","pastedContents":{},"timestamp":1762713589054,"project":"/home/thoma/.claude"}
+{"display":"dev-docs and git worktrees would be a good combination or? If yes, please come back with a plan how we could combine them to one command/skill/agent/plugin/...","pastedContents":{},"timestamp":1762713971476,"project":"/home/thoma/.claude"}
+{"display":"go","pastedContents":{},"timestamp":1762714269970,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"go","pastedContents":{},"timestamp":1762714606904,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"I like the style dev-docs command. Why not combine it? Also when I use thomas-setup automatically a new worktree should be created","pastedContents":{},"timestamp":1762717454320,"project":"/home/thoma/.claude"}
+{"display":"finalize","pastedContents":{},"timestamp":1762718304997,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"do it al","pastedContents":{},"timestamp":1762718868891,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"yes","pastedContents":{},"timestamp":1762720145285,"project":"/home/thoma/.claude"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762720534420,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762720534537,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/validate-and-fix ","pastedContents":{},"timestamp":1762720729338,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/validate-and-fix ","pastedContents":{},"timestamp":1762720729409,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/exit ","pastedContents":{},"timestamp":1762720751905,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/exit ","pastedContents":{},"timestamp":1762720751966,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/exit ","pastedContents":{},"timestamp":1762720751982,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"Wenn ich nur das command /thomas-setup eingebe, ohne eine Beschreibung hinzuzufügen, dann wird das Projekt verwendet in dem man cih gerade befindet. Der Text heißt dann Inititalisierung [Projektname]","pastedContents":{},"timestamp":1762720782117,"project":"/home/thoma/.claude"}
+{"display":"update die dokumentation und push es zu github","pastedContents":{},"timestamp":1762720995629,"project":"/home/thoma/.claude"}
+{"display":"/mcp ","pastedContents":{},"timestamp":1762721124251,"project":"/home/thoma/.claude"}
+{"display":"/mcp ","pastedContents":{},"timestamp":1762721124313,"project":"/home/thoma/.claude"}
+{"display":"/mcp ","pastedContents":{},"timestamp":1762721124341,"project":"/home/thoma/.claude"}
+{"display":" Diagnostics\n └ Currently running: unknown (2.0.19)\n └ Path: /home/thoma/.nvm/versions/node/v22.19.0/bin/node\n └ Invoked: /home/thoma/.npm-global/bin/claude\n └ Config install method: global\n └ Auto-updates enabled: default (true)\n └ Search: OK (vendor)\n\n Agent Parse Errors\n └ Failed to parse 1 agent file(s):\n   └ /home/thoma/.claude/agents/README.md: Missing required \"name\" field in frontmatter","pastedContents":{},"timestamp":1762721219483,"project":"/home/thoma/.claude"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762721223959,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762721224027,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"2","pastedContents":{},"timestamp":1762721292907,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"ja","pastedContents":{},"timestamp":1762721306839,"project":"/home/thoma/.claude"}
+{"display":" Diagnostics\n └ Currently running: unknown (2.0.19)\n └ Path: /home/thoma/.nvm/versions/node/v22.19.0/bin/node\n └ Invoked: /home/thoma/.npm-global/bin/claude\n └ Config install method: global\n └ Auto-updates enabled: default (true)\n └ Search: OK (vendor)\n\n Agent Parse Errors\n └ Failed to parse 1 agent file(s):\n   └ /home/thoma/.claude/agents/README.md: Missing required \"name\" field in frontmatter","pastedContents":{},"timestamp":1762721388911,"project":"/home/thoma/.claude"}
+{"display":"/mcp ","pastedContents":{},"timestamp":1762721451671,"project":"/home/thoma/.claude"}
+{"display":"/mcp ","pastedContents":{},"timestamp":1762721451728,"project":"/home/thoma/.claude"}
+{"display":"/mcp ","pastedContents":{},"timestamp":1762721451744,"project":"/home/thoma/.claude"}
+{"display":" Diagnostics\n └ Currently running: unknown (2.0.19)\n └ Path: /home/thoma/.nvm/versions/node/v22.19.0/bin/node\n └ Invoked: /home/thoma/.npm-global/bin/claude\n └ Config install method: global\n └ Auto-updates enabled: default (true)\n └ Search: OK (vendor)\n\n Agent Parse Errors\n └ Failed to parse 1 agent file(s):\n   └ /home/thoma/.claude/agents/README.md: Missing required \"name\" field in frontmatter","pastedContents":{},"timestamp":1762721520746,"project":"/home/thoma/.claude"}
+{"display":"/mcp ","pastedContents":{},"timestamp":1762721535945,"project":"/home/thoma/.claude"}
+{"display":"/mcp ","pastedContents":{},"timestamp":1762721536007,"project":"/home/thoma/.claude"}
+{"display":"/mcp ","pastedContents":{},"timestamp":1762721536024,"project":"/home/thoma/.claude"}
+{"display":"claude mcp","pastedContents":{},"timestamp":1762721570413,"project":"/home/thoma/.claude"}
+{"display":"/validate-and-fix ","pastedContents":{},"timestamp":1762721881915,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/validate-and-fix ","pastedContents":{},"timestamp":1762721881982,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"2","pastedContents":{},"timestamp":1762722045534,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"is it migrated now and can I test it?","pastedContents":{},"timestamp":1762722328086,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/plugin marketplace add lackeyjb/playwright-skill","pastedContents":{},"timestamp":1762722387311,"project":"/home/thoma/.claude"}
+{"display":"/plugin marketplace add lackeyjb/playwright-skill","pastedContents":{},"timestamp":1762722387368,"project":"/home/thoma/.claude"}
+{"display":"/plugin marketplace add lackeyjb/playwright-skill","pastedContents":{},"timestamp":1762722387388,"project":"/home/thoma/.claude"}
+{"display":"/plugin install playwright-skill@playwright-skill","pastedContents":{},"timestamp":1762722427757,"project":"/home/thoma/.claude"}
+{"display":"/plugin install playwright-skill@playwright-skill","pastedContents":{},"timestamp":1762722427810,"project":"/home/thoma/.claude"}
+{"display":"/plugin install playwright-skill@playwright-skill","pastedContents":{},"timestamp":1762722427830,"project":"/home/thoma/.claude"}
+{"display":"do itr","pastedContents":{},"timestamp":1762722626987,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do al","pastedContents":{},"timestamp":1762722713161,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"I added playwright skill. is it successfully installed?","pastedContents":{},"timestamp":1762722750740,"project":"/home/thoma/.claude"}
+{"display":"Is the skill used automatic or what I need to do e.g. to test an app in browser","pastedContents":{},"timestamp":1762722870870,"project":"/home/thoma/.claude"}
+{"display":"Is there also aq command? E.g. would be good to combine it with \"test, validation, verification, iterativ and autonoum\"","pastedContents":{},"timestamp":1762723080640,"project":"/home/thoma/.claude"}
+{"display":"Use /thomas-fix as command and combine it with /validate-and-fix . In optimal way, you can remove   /validate-and-fix after this","pastedContents":{},"timestamp":1762723385513,"project":"/home/thoma/.claude"}
+{"display":"what means browser testing? What is playwright testing exactly?","pastedContents":{},"timestamp":1762723478223,"project":"/home/thoma/.claude"}
+{"display":"I would like that it also tests screen flow, buttons, usability, console tracking ... is this possible and what I need to do to enable this for the command /thomas-fix ?","pastedContents":{},"timestamp":1762723793794,"project":"/home/thoma/.claude"}
+{"display":"continue with it","pastedContents":{},"timestamp":1762724210048,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"update dokumentation and push to github","pastedContents":{},"timestamp":1762724665241,"project":"/home/thoma/.claude"}
+{"display":"1","pastedContents":{},"timestamp":1762724665456,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762725027714,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762725027774,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762725204464,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762725204533,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1762725204594,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"finalize all tasks","pastedContents":{},"timestamp":1762726090111,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"2","pastedContents":{},"timestamp":1762726340692,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340757,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340791,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340807,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340823,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340844,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340861,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340877,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340896,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340912,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340927,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340949,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340966,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726340981,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341000,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341015,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341035,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341059,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341077,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341092,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341115,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341135,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341150,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341170,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341186,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341201,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341220,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341236,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341252,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341271,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341286,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341302,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341322,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341338,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341353,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341371,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341386,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341401,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341422,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341437,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341452,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341470,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341485,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341500,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341518,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341532,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341548,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341566,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341580,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341595,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341612,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341627,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341642,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341661,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341676,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341691,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341710,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341726,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341741,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341761,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341776,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341792,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341812,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341831,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341847,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341865,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341880,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341896,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341915,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341931,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341946,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341966,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341982,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726341998,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342017,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342032,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342047,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342065,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342080,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342096,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342114,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342129,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342144,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342163,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342179,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342194,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342213,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342228,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342242,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342260,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342279,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342294,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342312,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342327,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342342,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342360,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342375,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342391,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342410,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342425,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342441,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342461,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342475,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342491,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342509,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342524,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342539,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342559,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342576,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342591,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342609,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342625,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342641,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342660,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342675,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342690,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342710,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342725,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342741,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342761,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342776,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342791,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342810,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342825,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342841,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342860,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342875,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342890,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342909,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342924,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342939,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342958,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342973,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726342987,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343005,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343019,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343035,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343052,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343067,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343082,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343099,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343114,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343129,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343149,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343164,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343179,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343200,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343215,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343230,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343249,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343265,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343280,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343298,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343312,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343327,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343345,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343360,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343377,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343396,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343410,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343424,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343442,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343456,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343472,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343491,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343506,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343522,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343541,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343557,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343572,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343591,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343606,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343623,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343641,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343657,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343672,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343690,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343705,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343720,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343737,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343752,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343767,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343784,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343798,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343814,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343833,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343849,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343864,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343883,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343899,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343913,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343933,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343949,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343965,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343984,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726343998,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344013,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344035,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344050,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344065,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344083,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344098,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344116,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344136,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344151,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344166,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344185,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344200,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344215,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344233,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344249,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344264,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344281,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344297,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344313,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344333,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344348,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344364,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344384,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344399,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344414,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344433,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344449,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344464,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344483,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344499,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344514,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344540,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344563,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344585,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344606,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344621,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344636,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344654,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344669,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344683,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344703,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344718,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344732,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344752,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344766,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344782,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344802,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344818,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344832,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344851,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344867,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344882,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344902,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344917,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344932,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344952,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344968,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726344983,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345004,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345020,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345035,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345053,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345068,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345084,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345102,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345116,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345131,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345149,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345166,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345182,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345200,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345216,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345233,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345251,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345266,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345280,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345299,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345315,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345329,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345348,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345363,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345378,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345397,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345412,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345428,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345449,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345465,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345480,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345499,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345515,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345530,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345549,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345564,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345579,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345598,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345613,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345628,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345645,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345666,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345688,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345711,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345728,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345745,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345767,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345783,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345797,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345815,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345830,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345846,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345864,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345879,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345894,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345912,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345927,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345942,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345962,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345977,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726345993,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346011,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346026,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346040,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346058,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346073,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346088,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346106,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346121,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346136,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346156,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346171,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346186,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346205,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346220,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346235,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346253,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346268,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346283,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346302,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346318,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346333,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346352,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346368,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346383,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346402,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346417,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346436,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346455,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346470,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346485,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346504,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346518,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346534,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346553,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346567,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346581,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346600,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346617,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346632,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346651,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346666,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346682,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346701,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346716,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346731,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346750,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346764,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346779,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346796,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346810,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346825,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346843,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346858,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346873,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346891,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346907,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346922,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346941,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346956,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346971,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726346992,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347007,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347022,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347041,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347056,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347071,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347090,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347105,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347121,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347139,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347154,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347168,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347188,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347203,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347218,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347236,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347251,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347266,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347285,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347301,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347316,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347334,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347350,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347365,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347383,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347398,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347412,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347430,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347445,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347463,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347481,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347496,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347511,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347531,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347547,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347561,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347581,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347595,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347610,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347629,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347645,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347660,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347679,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347694,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347709,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347728,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347744,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347759,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347778,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347794,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347809,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347829,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347844,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347859,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347877,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347893,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347908,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347926,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347941,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347957,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347975,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726347990,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348005,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348024,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348039,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348058,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348080,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348094,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348109,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348127,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348142,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348161,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348181,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348195,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348210,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348229,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348244,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348258,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348277,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348292,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348308,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348326,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348341,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348356,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348375,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348390,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348406,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348423,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348438,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348454,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348473,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348488,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348504,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348522,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348538,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348555,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348575,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348590,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348605,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348624,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348639,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348653,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348672,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348687,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348704,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348723,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348738,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348753,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348772,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348786,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348801,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348819,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348834,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348849,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348870,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348885,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348900,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348919,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348934,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348949,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348968,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726348984,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349002,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349021,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349037,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349052,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349070,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349086,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349101,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349120,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349136,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349151,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349170,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349185,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349200,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349219,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349235,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349251,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349269,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349283,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349299,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349317,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349333,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349348,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349367,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349381,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349397,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349417,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349437,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349453,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349471,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349486,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349500,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349519,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349534,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349549,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349568,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349583,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349597,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349615,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349631,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349652,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349679,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349701,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349719,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349740,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349758,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349776,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349796,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349811,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349827,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349846,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349862,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349880,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349898,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349914,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349930,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349949,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349963,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349979,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726349997,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350018,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350034,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350052,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350067,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350082,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350102,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350118,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350133,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350150,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350166,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350182,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350200,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350215,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350230,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350249,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350264,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350279,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350297,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350312,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350326,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350345,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350360,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350376,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350395,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350410,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350424,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350444,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350460,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350476,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350494,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350510,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350525,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350544,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350559,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350574,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350594,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350611,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350626,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350645,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350660,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350675,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350695,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350710,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350730,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350752,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350770,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350787,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350809,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350826,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350842,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350862,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350879,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350895,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350915,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350932,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350950,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350971,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726350987,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351003,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351026,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351042,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351058,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351078,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351094,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351112,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351131,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351147,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351164,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351185,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351202,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351219,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351239,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351255,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351272,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351299,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351315,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351330,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351350,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351366,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351381,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351401,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351420,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351436,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351456,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351473,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351489,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351509,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351528,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351548,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351568,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351584,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351600,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351620,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351635,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351650,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351671,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351686,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351703,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351723,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351739,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351755,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351774,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351790,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351807,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351826,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351842,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351858,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351877,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351893,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351910,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351930,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351949,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351965,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726351985,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352002,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352018,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352038,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352054,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352070,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352090,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352105,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352120,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352139,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352155,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352176,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352201,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352217,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352233,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352253,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352268,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352284,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352304,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352319,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352336,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352355,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352371,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352387,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352406,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352423,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352439,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352458,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352474,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352490,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352511,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352527,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352542,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352562,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352578,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352593,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352613,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352631,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352647,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352666,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352681,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352698,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352718,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352734,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352750,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352768,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352783,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352798,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352819,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352835,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352852,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352872,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352888,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352904,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352923,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352940,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352956,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352977,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726352996,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353011,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353031,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353048,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353065,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353085,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353100,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353116,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353137,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353153,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353170,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353190,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353207,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353223,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353243,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353259,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353274,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353293,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353313,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353329,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353348,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353363,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353379,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353400,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353416,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353431,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353450,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353466,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353482,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353503,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353519,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353535,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353555,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353570,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353586,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353606,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353622,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353638,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353658,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353674,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353691,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353712,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353727,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353743,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353762,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353780,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353796,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353815,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353831,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353847,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353868,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353884,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353900,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353920,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353936,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353952,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353972,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726353988,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354004,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354023,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354039,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354056,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354076,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354092,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354109,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354135,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354151,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354166,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354186,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354202,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354219,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354239,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354255,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354272,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354293,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354310,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354333,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354356,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354373,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354388,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354407,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354423,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354439,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354458,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354473,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354489,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354511,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354528,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354544,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354564,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354580,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354597,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354617,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354633,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354648,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354667,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354684,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354700,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354720,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354737,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354752,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354772,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354791,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354807,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354828,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354845,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354861,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354880,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354896,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354911,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354929,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354945,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354962,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354982,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726354998,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355014,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355035,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355050,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355066,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355088,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355104,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355120,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355141,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355157,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355173,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355194,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355211,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355228,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355250,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355265,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355281,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355301,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355317,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355334,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355353,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355368,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355383,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355402,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355418,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355434,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355455,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355472,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355488,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355508,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355524,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355541,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355562,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355580,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355595,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355619,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355634,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355650,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355672,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355688,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355704,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355722,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355737,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355753,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355773,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355788,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355803,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355821,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355836,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355851,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355869,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355883,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355900,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355919,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355935,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355951,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355972,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726355989,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356005,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356024,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356039,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356055,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356075,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356090,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356106,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356127,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356142,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356160,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356180,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356196,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356211,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356230,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356246,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356262,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356285,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356300,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356316,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356337,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356353,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356369,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356390,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356407,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356422,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356441,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356456,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356472,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356492,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356507,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356522,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356541,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356556,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356573,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356593,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356609,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356631,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356657,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356675,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356691,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356709,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356724,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356739,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356758,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356776,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356791,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356812,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356828,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356844,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356864,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356880,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356895,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356914,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356930,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356946,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356965,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356981,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726356998,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357017,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357032,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357049,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357069,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357085,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357101,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357122,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357137,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357154,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357174,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357191,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357211,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357241,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357261,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357280,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357303,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357319,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357336,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357357,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357374,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357390,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357409,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357425,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357441,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357459,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357475,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357491,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357510,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357526,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357543,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357562,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357577,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357592,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357612,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357628,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357644,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357663,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357680,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357695,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357717,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357733,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357749,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357771,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357787,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357803,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357821,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357836,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357853,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357873,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357888,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357904,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357924,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357940,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357957,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357977,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726357993,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358009,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358030,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358045,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358060,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358080,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358096,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358112,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358133,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358149,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358165,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358184,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358199,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358215,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358235,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358251,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358267,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358285,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358300,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358316,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358335,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358350,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358367,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358387,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358403,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358420,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358440,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358456,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358472,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358492,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358508,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358523,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358543,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358558,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358573,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358591,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358607,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358622,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358643,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358662,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358678,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358698,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358714,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358730,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358750,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358767,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358783,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358803,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358819,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358835,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358855,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358870,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358888,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358909,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358925,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358942,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358962,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358978,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726358993,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359013,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359029,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359045,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359065,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359081,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359097,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359117,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359134,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359150,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359171,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359189,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359205,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359223,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359239,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359254,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359273,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359288,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359305,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359325,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359341,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359356,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359376,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359392,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359407,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359425,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359440,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359456,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359475,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359491,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359508,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359529,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359544,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359559,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359580,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359596,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359611,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359632,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359649,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359664,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359684,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359699,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359714,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359733,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359749,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359766,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359786,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359801,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359817,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359836,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359851,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359866,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359884,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359899,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359914,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359933,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359950,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359965,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726359984,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360000,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360016,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360036,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360053,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360068,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360087,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360103,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360118,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360136,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360151,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360165,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360184,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360199,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360214,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360233,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360248,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360263,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360281,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360296,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360310,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360328,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360342,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360358,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360381,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360396,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360412,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360431,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360446,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360461,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360480,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360494,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360510,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360530,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360546,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360561,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360581,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360596,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360611,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360631,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360646,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360662,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360681,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360696,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360712,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360734,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360750,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360766,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360786,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360801,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360815,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360835,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360850,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360864,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360884,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360900,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360915,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360934,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360950,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360965,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360983,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726360999,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361014,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361033,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361049,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361064,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361081,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361096,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361112,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361131,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361146,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361161,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361183,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361206,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361224,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361245,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361261,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361277,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361296,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361311,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361325,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361343,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2","pastedContents":{},"timestamp":1762726361359,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"following your recommendations","pastedContents":{},"timestamp":1762726588625,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"go","pastedContents":{},"timestamp":1762727208322,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"go2","pastedContents":{},"timestamp":1762727220014,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"search for optimal settings.json and settings.local.json for claude max users. There are a lot of issue and maybe other options could have to get a perfect setup","pastedContents":{},"timestamp":1762727632742,"project":"/home/thoma/.claude"}
+{"display":"add this to settings.json\n~/.claude/settings.json:\n\n  {\n    \"alwaysThinkingEnabled\": true,\n    \"spinnerTipsEnabled\": false,\n    \"env\": {\n      \"BASH_DEFAULT_TIMEOUT_MS\": \"1800000\",\n      \"BASH_MAX_TIMEOUT_MS\": \"7200000\"\n    },\n    \"permissions\": {\n      \"allow\": [\n        \"Read\",\n        \"Write(src/**)\",\n        \"Bash(git *)\",\n        \"Bash(npm *)\",\n        \"Bash(npx *)\"\n      ],\n      \"deny\": [\n        \"Read(.env*)\",\n        \"Read(secrets/**)\",\n        \"Write(.env*)\"\n      ]\n    }\n  }","pastedContents":{},"timestamp":1762728010169,"project":"/home/thoma/.claude"}
+{"display":"go forward","pastedContents":{},"timestamp":1762728115805,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"why are you waiting? Go next","pastedContents":{},"timestamp":1762728131146,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"Review your large .claude.json file to identify optimization opportunities?","pastedContents":{},"timestamp":1762728432245,"project":"/home/thoma/.claude"}
+{"display":"remove chrome-devtools mcp because iam using now playwright","pastedContents":{},"timestamp":1762728763592,"project":"/home/thoma/.claude"}
+{"display":"yes to your question \"  Would you like me to create a script to safely perform these optimizations with backups?\"","pastedContents":{},"timestamp":1762728960373,"project":"/home/thoma/.claude"}
+{"display":"go","pastedContents":{},"timestamp":1762728971257,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"1","pastedContents":{},"timestamp":1762729263200,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1762729418153,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1762729418207,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"yes","pastedContents":{},"timestamp":1762729863241,"project":"/home/thoma/.claude"}
+{"display":"continue","pastedContents":{},"timestamp":1762731244944,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"update documentation, optimize folder structure, clean up and push to github","pastedContents":{},"timestamp":1762731605108,"project":"/home/thoma/.claude"}
