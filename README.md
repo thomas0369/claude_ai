@@ -258,11 +258,92 @@ npx react-onchain deploy --version-tag "1.0.0"
 # https://ordfs.network/content/<txid>_<vout>
 ```
 
-**See:** `BSV-TECH-STACK-ANALYSIS.md`
+**See:** `BSV-TECH-STACK-ANALYSIS.md`, `DEPLOYMENT-GUIDE.md`
 
 ---
 
-### 7. **Custom Slash Commands**
+### 7. **Deployment Workflow: Vercel → BSV On-Chain**
+
+Complete deployment strategy for development, testing, and permanent on-chain deployment.
+
+**Recommended Workflow:**
+```
+Local Dev → Vercel Preview → Vercel Production → BSV On-Chain
+  (free)      (free)          (free)             (~$0.00002)
+```
+
+**Deployment Platforms:**
+
+| Platform | Rating | Use Case | Cost |
+|----------|--------|----------|------|
+| **Vercel** | 10/10 | Testing & Staging | $0/year |
+| **BSV On-Chain** | 10/10 | Permanent Releases | ~$0.00002 per deployment |
+| Cloudflare Pages | 9/10 | High Traffic | $0/year |
+| GitHub Pages | 7/10 | Simple Sites | $0/year |
+
+**Vercel (Primary Testing Platform):**
+- Zero configuration for Vite + Preact
+- Automatic preview deployments for every PR
+- Free unlimited hobby projects
+- Global CDN for fast loading
+- Environment variables per environment (testnet/mainnet)
+- Easy rollbacks
+
+**Quick Start:**
+```bash
+# Connect repository to Vercel
+# Auto-deploys on:
+# - Push to main → Production
+# - Open PR → Preview URL
+
+# Or use CLI
+vercel
+```
+
+**BSV On-Chain (Final Permanent Deployment):**
+- Permanent, censorship-resistant storage
+- Cost-effective (~$0.00002 per deployment)
+- Version history on-chain
+- Only for stable releases (v1.0.0, v2.0.0, etc.)
+
+**Deploy to BSV:**
+```bash
+# Test thoroughly in Vercel first!
+npm run build
+npx react-onchain deploy --version-tag "1.0.0"
+
+# Result: https://1satordinals.com/inscription/<txid>
+```
+
+**Versioning Strategy:**
+```
+Vercel Production: https://your-app.vercel.app
+- Always latest code
+- Frequent updates (every merge)
+- Free
+
+BSV On-Chain Stable Releases:
+- v1.0.0: https://1satordinals.com/inscription/abc...
+- v2.0.0: https://1satordinals.com/inscription/def...
+- Permanent (immutable)
+- ~$0.00002 per version
+```
+
+**Cost Analysis:**
+```
+Vercel (development + production): $0/year
+BSV deployments (10 versions):      $0.0002/year
+Custom domain (optional):           $12/year
+
+Total: $12.0002/year (with domain)
+OR $0.0002/year (using Vercel's free subdomain)
+```
+
+**See:** `DEPLOYMENT-GUIDE.md`, `BSV-TECH-STACK-ANALYSIS.md` (Deployment Strategy section)
+
+---
+
+### 8. **Custom Slash Commands**
 
 Over 30 custom commands for common workflows.
 

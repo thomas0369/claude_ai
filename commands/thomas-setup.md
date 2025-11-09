@@ -491,6 +491,254 @@ Stage (Canvas container)
 
 ---
 
+## Deployment Strategy
+
+### Recommended Workflow
+
+\`\`\`
+┌─────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  Local Dev  │ → │ Vercel Preview  │ → │ Vercel Production│ → │ BSV On-Chain    │
+│  (npm run   │    │ (PR deployment) │    │ (main branch)    │    │ (permanent)     │
+│   dev)      │    │                 │    │                  │    │                 │
+└─────────────┘    └─────────────────┘    └──────────────────┘    └─────────────────┘
+     FREE               FREE                    FREE                  ~$0.00002
+\`\`\`
+
+### Platform Comparison
+
+| Platform | Rating | Best For | Free Tier |
+|----------|--------|----------|-----------|
+| **Vercel** | 10/10 | Vite + Preact apps | Unlimited (hobby) |
+| Cloudflare Pages | 9/10 | Global distribution | Unlimited builds |
+| GitHub Pages | 7/10 | Static sites | 1 site per repo |
+| **BSV On-Chain** | 10/10 | Permanent storage | Pay per deployment (~$0.00002) |
+
+**Recommendation:** Use Vercel for development/testing → BSV for final permanent deployment
+
+### Deployment Platforms
+
+#### 1. Vercel (10/10) - Primary Platform for Testing
+
+**Why Vercel:**
+- **Zero configuration**: Auto-detects Vite projects
+- **Automatic previews**: Every PR gets a unique URL
+- **Free tier**: Unlimited hobby projects
+- **Global CDN**: Fast loading worldwide
+- **Environment variables**: Per-environment configuration
+- **Custom domains**: Free SSL certificates
+- **Perfect for Vite + Preact**: Optimized for this stack
+
+**Setup:**
+1. Connect GitHub repository to Vercel
+2. Auto-deploys on push to main (production)
+3. Auto-deploys every PR (preview URLs)
+4. Configure environment variables in Vercel dashboard
+
+**Quick Start:**
+\`\`\`bash
+# Install Vercel CLI (optional)
+npm install -g vercel
+
+# Deploy from command line
+vercel
+
+# Or connect repository at https://vercel.com/new
+\`\`\`
+
+**Configuration (vercel.json):**
+\`\`\`json
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+\`\`\`
+
+#### 2. BSV On-Chain (10/10) - Final Permanent Deployment
+
+**Why BSV On-Chain:**
+- **Permanent storage**: Censorship-resistant, immutable
+- **Cost-effective**: ~$0.00002 per deployment (pennies)
+- **Decentralized**: No hosting provider needed
+- **Version history**: Every deployment tracked on-chain
+- **Perfect for final releases**: Stable versions only
+
+**When to Deploy to BSV:**
+- App is stable and tested (use Vercel first!)
+- Ready for final release to users
+- Want permanent, censorship-resistant hosting
+- NOT for active development (use Vercel previews)
+
+**Deployment:**
+\`\`\`bash
+# Build production bundle
+npm run build
+
+# Deploy to BSV blockchain
+npx react-onchain deploy
+
+# Cost: ~$0.00002 (20 sats for typical app)
+\`\`\`
+
+**Update Strategy:**
+- Vercel Production: Always latest code (free updates)
+- BSV On-Chain: Stable releases only (v1.0.0, v2.0.0, etc.)
+- Each BSV deployment is permanent (new version = new deployment)
+
+#### 3. Alternative Platforms (Optional)
+
+**Cloudflare Pages (9/10):**
+- Unlimited bandwidth (better than Vercel for high traffic)
+- 275+ PoPs globally
+- Workers support for edge functions
+- Good for apps with heavy traffic
+
+**GitHub Pages (7/10):**
+- Free, built into GitHub
+- Works for static sites
+- No preview URLs (manual workflow)
+- Limited compared to Vercel
+
+### Deployment Workflow
+
+**Development Cycle:**
+\`\`\`bash
+# 1. Local development
+npm run dev
+
+# 2. Create feature branch
+git checkout -b feature/new-feature
+
+# 3. Push and create PR
+git push origin feature/new-feature
+gh pr create
+
+# 4. Vercel auto-deploys preview
+# Preview URL: https://your-app-git-feature-user.vercel.app
+
+# 5. Test preview, merge when ready
+gh pr merge
+
+# 6. Vercel auto-deploys to production
+# Production URL: https://your-app.vercel.app
+
+# 7. When ready for permanent on-chain deployment
+npm run build
+npx react-onchain deploy
+# On-chain URL: https://1satordinals.com/inscription/<txid>
+\`\`\`
+
+### Environment Variables
+
+**Vercel Environment Variables:**
+\`\`\`bash
+# Set in Vercel dashboard → Project Settings → Environment Variables
+
+# Production
+VITE_BSV_NETWORK=mainnet
+VITE_API_URL=https://api.whatsonchain.com/v1/bsv/main
+
+# Preview/Development
+VITE_BSV_NETWORK=testnet
+VITE_ENABLE_DEVTOOLS=true
+\`\`\`
+
+**Access in code:**
+\`\`\`typescript
+// src/config/env.ts
+export const config = {
+  bsvNetwork: import.meta.env.VITE_BSV_NETWORK || 'mainnet',
+  apiUrl: import.meta.env.VITE_API_URL,
+  enableDevTools: import.meta.env.VITE_ENABLE_DEVTOOLS === 'true',
+};
+\`\`\`
+
+### Cost Analysis
+
+**Complete deployment costs:**
+\`\`\`
+Vercel (development + production):  $0/year
+BSV deployments (10 versions):      $0.001/year
+Custom domain (optional):           $12/year
+
+Total: $12.001/year (with domain)
+OR $0.001/year (using Vercel's free domain)
+\`\`\`
+
+**Bundle size impact on BSV costs:**
+\`\`\`
+50KB app:  ~$0.00002 deployment
+100KB app: ~$0.00004 deployment
+200KB app: ~$0.00008 deployment
+\`\`\`
+
+**Our optimized stack (DaisyUI + Nanostores):**
+- 85% smaller bundles (vs Mantine + Jotai)
+- 75% cheaper BSV deployments
+- Faster loading globally
+
+### Versioning Strategy
+
+**Recommended approach:**
+\`\`\`
+Vercel Production: https://your-app.vercel.app
+- Always latest code
+- Frequent updates
+- Easy rollbacks
+
+BSV On-Chain Stable Releases:
+- v1.0.0: https://1satordinals.com/inscription/<txid1>
+- v2.0.0: https://1satordinals.com/inscription/<txid2>
+- v3.0.0: https://1satordinals.com/inscription/<txid3>
+\`\`\`
+
+**Document in README.md:**
+\`\`\`markdown
+## Live Versions
+
+**Latest (Vercel):** https://your-app.vercel.app
+
+**Stable Releases (BSV On-Chain):**
+- v1.0.0 (2025-01-15): https://1satordinals.com/inscription/abc123...
+- v2.0.0 (2025-03-01): https://1satordinals.com/inscription/def456...
+\`\`\`
+
+### Deployment Checklist
+
+**Before deploying to Vercel Production:**
+- [ ] All tests passing
+- [ ] No TypeScript errors: \`npm run build\`
+- [ ] Lighthouse score > 90
+- [ ] Bundle size < 200KB
+- [ ] Environment variables configured
+
+**Before deploying to BSV On-Chain:**
+- [ ] App stable in Vercel production (tested for 1+ week)
+- [ ] Ready for permanent release
+- [ ] Bundle optimized (< 200KB preferred)
+- [ ] BSV wallet funded (~$0.01 USD)
+- [ ] Test locally: \`npm run preview\`
+
+### Resources
+
+**Vercel:**
+- Documentation: https://vercel.com/docs
+- Vite on Vercel: https://vercel.com/docs/frameworks/vite
+- Environment Variables: https://vercel.com/docs/concepts/projects/environment-variables
+
+**BSV On-Chain:**
+- react-onchain: https://www.npmjs.com/package/react-onchain
+- 1Sat Ordinals: https://docs.1satordinals.com/
+- BSV SDK: https://docs.bsvblockchain.org/
+
+**Complete Deployment Guide:**
+See \`~/.claude/DEPLOYMENT-GUIDE.md\` for comprehensive deployment instructions.
+
+---
+
 ## Project Structure
 
 \`\`\`

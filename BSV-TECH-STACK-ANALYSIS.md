@@ -1229,24 +1229,331 @@ describe('BSV Transaction Building', () => {
 
 ---
 
-## Deployment for BSV Apps
+## Deployment Strategy for BSV Apps
 
-### Option 1: Traditional Hosting
-- Vercel, Netlify, Cloudflare Pages
-- Deploy like any Vite app
-- Connect to BSV mainnet APIs
+### Recommended Workflow: Vercel → BSV On-Chain
 
-### Option 2: Metanet (On-Chain Deployment!)
-- Deploy entire app to BSV blockchain
-- Use B:// protocol for on-chain files
-- Users load app directly from blockchain
-- Censorship-resistant
-- One-time upload fee (~$1-10 depending on app size)
+```
+┌─────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  Local Dev  │ → │ Vercel Preview  │ → │ Vercel Production│ → │ BSV On-Chain    │
+│  (npm run   │    │ (PR deployment) │    │ (main branch)    │    │ (permanent)     │
+│   dev)      │    │                 │    │                  │    │                 │
+└─────────────┘    └─────────────────┘    └──────────────────┘    └─────────────────┘
+     FREE               FREE                    FREE                  ~$0.00002
+```
 
-**Tools:**
-- **BitFS**: File system on BSV
-- **B:// protocol**: Address files on BSV
-- **Twetch**: Social platform + Metanet deployment
+### Platform Comparison
+
+| Platform | Rating | Best For | Free Tier | Use Case |
+|----------|--------|----------|-----------|----------|
+| **Vercel** | 10/10 | Testing & Staging | Unlimited (hobby) | Development, previews, production testing |
+| Cloudflare Pages | 9/10 | High traffic | Unlimited builds | Alternative to Vercel |
+| GitHub Pages | 7/10 | Static sites | 1 site per repo | Simple deployments |
+| **BSV On-Chain** | 10/10 | Permanent storage | Pay per deployment (~$0.00002) | Final stable releases |
+
+### Deployment Options
+
+#### 1. **Vercel** (10/10) - Primary Platform for Testing & Staging
+
+**Why Vercel for BSV development:**
+- **Zero configuration**: Auto-detects Vite + Preact
+- **Automatic previews**: Every PR gets unique URL for testing blockchain features
+- **Free tier**: Unlimited hobby projects
+- **Fast iteration**: Test BSV wallet integration, transactions, game logic
+- **Global CDN**: Fast loading for blockchain users worldwide
+- **Environment variables**: Different BSV networks (mainnet/testnet) per environment
+- **Easy rollbacks**: Revert to previous deployment instantly
+
+**Setup:**
+1. Connect GitHub repository to Vercel
+2. Auto-deploys on push to main (production)
+3. Auto-deploys every PR (preview URLs for testing BSV features)
+4. Configure environment variables (VITE_BSV_NETWORK, etc.)
+
+**Quick Start:**
+```bash
+# Install Vercel CLI (optional)
+npm install -g vercel
+
+# Deploy from command line
+vercel
+
+# Or connect repository at https://vercel.com/new
+```
+
+**Vercel Configuration (vercel.json):**
+```json
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+**Environment Variables for BSV:**
+```bash
+# Vercel dashboard → Project Settings → Environment Variables
+
+# Production (mainnet)
+VITE_BSV_NETWORK=mainnet
+VITE_API_URL=https://api.whatsonchain.com/v1/bsv/main
+
+# Preview/Development (testnet)
+VITE_BSV_NETWORK=testnet
+VITE_API_URL=https://api.whatsonchain.com/v1/bsv/test
+VITE_ENABLE_DEVTOOLS=true
+```
+
+**Workflow:**
+```bash
+# 1. Local development
+npm run dev
+
+# 2. Create feature branch for BSV wallet integration
+git checkout -b feature/bsv-wallet
+
+# 3. Push and create PR
+git push origin feature/bsv-wallet
+gh pr create
+
+# 4. Vercel auto-deploys preview
+# Preview URL: https://your-app-git-bsv-wallet-user.vercel.app
+
+# 5. Test BSV features in preview (testnet)
+# - Wallet connection
+# - Transaction sending
+# - UTXO management
+# - Game blockchain state
+
+# 6. Merge when ready
+gh pr merge
+
+# 7. Vercel auto-deploys to production
+# Production URL: https://your-app.vercel.app
+
+# 8. Test thoroughly in production (mainnet or testnet)
+# Keep this as the "always latest" version
+```
+
+**Cost:** $0/year (free tier)
+
+**Verdict:** ✅ **USE FOR TESTING & STAGING** - Perfect for iterating on BSV features before permanent on-chain deployment
+
+---
+
+#### 2. **BSV On-Chain via react-onchain** (10/10) - Final Permanent Deployment
+
+**Why BSV On-Chain for final releases:**
+- **Permanent storage**: Censorship-resistant, immutable
+- **Decentralized**: No hosting provider needed
+- **Cost-effective**: ~$0.00002 per deployment (pennies)
+- **Version history**: Every deployment tracked on-chain
+- **Perfect for stable releases**: v1.0.0, v2.0.0, etc.
+
+**When to Deploy to BSV:**
+- ✅ App is **stable and tested** in Vercel production
+- ✅ Ready for **permanent release** to users
+- ✅ Want **censorship-resistant** hosting
+- ❌ **NOT for active development** (use Vercel previews instead)
+
+**Deployment:**
+```bash
+# 1. Test thoroughly in Vercel production first
+# Make sure everything works with real BSV mainnet
+
+# 2. Build optimized production bundle
+npm run build
+
+# 3. Preview build locally
+npm run preview
+
+# 4. Deploy to BSV blockchain
+npx react-onchain deploy --version-tag "1.0.0" --version-description "Initial stable release"
+
+# Cost: ~$0.00002 (20 sats for typical 50KB app)
+# Output: https://1satordinals.com/inscription/<txid>
+```
+
+**Update Strategy:**
+```
+Vercel Production: https://your-app.vercel.app
+- Always latest code
+- Frequent updates (every merge to main)
+- Easy rollbacks
+- Free
+
+BSV On-Chain Stable Releases:
+- v1.0.0: https://1satordinals.com/inscription/<txid1>
+- v2.0.0: https://1satordinals.com/inscription/<txid2>
+- v3.0.0: https://1satordinals.com/inscription/<txid3>
+- Permanent (immutable)
+- New version = new deployment (~$0.00002 each)
+```
+
+**Versioning:**
+```bash
+# Deploy v1.0.0 (first stable release)
+npx react-onchain deploy --version-tag "1.0.0"
+
+# Develop new features in Vercel...
+# Test thoroughly...
+
+# Deploy v2.0.0 (major update)
+npx react-onchain deploy --version-tag "2.0.0"
+
+# Smart caching reuses unchanged files!
+# Savings: Up to 97% cost reduction on updates
+```
+
+**Cost:** ~$0.00002 per deployment (one-time, permanent)
+
+**Verdict:** ✅ **USE FOR FINAL RELEASES** - Perfect for permanent, stable versions
+
+---
+
+#### 3. Alternative Platforms (Optional)
+
+**Cloudflare Pages (9/10):**
+- Unlimited bandwidth (better than Vercel for high-traffic BSV apps)
+- 275+ PoPs globally
+- Workers support for edge functions
+- Good for apps with heavy usage
+
+**GitHub Pages (7/10):**
+- Free, built into GitHub
+- Works for static BSV apps
+- No preview URLs (manual workflow)
+- Limited compared to Vercel
+
+**Traditional Hosting (VPS, AWS, etc.):**
+- Full control but more setup
+- Not recommended for BSV apps (Vercel + on-chain is better)
+
+---
+
+### Complete Deployment Workflow Example
+
+**Scenario: Building a BSV blockchain game**
+
+```bash
+# === PHASE 1: LOCAL DEVELOPMENT ===
+git checkout -b feature/game-mechanics
+npm run dev
+# Develop game logic, test with BSV testnet locally
+
+# === PHASE 2: PREVIEW DEPLOYMENT (Vercel) ===
+git push origin feature/game-mechanics
+gh pr create
+# Vercel deploys preview: https://your-game-git-feature-user.vercel.app
+# Test with team, get feedback, iterate
+
+# === PHASE 3: PRODUCTION TESTING (Vercel) ===
+gh pr merge
+# Vercel deploys to production: https://your-game.vercel.app
+# Test with real users on BSV mainnet for 1-2 weeks
+# Fix any bugs, iterate
+
+# === PHASE 4: PERMANENT ON-CHAIN DEPLOYMENT ===
+# Once stable and proven in Vercel production:
+npm run build
+npx react-onchain deploy --version-tag "1.0.0" --version-description "First stable release"
+
+# Result:
+# - Vercel: https://your-game.vercel.app (always latest)
+# - BSV v1.0.0: https://1satordinals.com/inscription/abc123... (permanent)
+```
+
+---
+
+### Cost Analysis
+
+**Complete deployment costs for a typical BSV game:**
+
+```
+Local Development:             $0
+Vercel Previews (100/month):   $0 (free tier)
+Vercel Production:             $0 (free tier)
+BSV On-Chain (10 versions):    $0.0002 (10 deployments @ $0.00002 each)
+Custom Domain (optional):      $12/year
+
+Total: $12.0002/year (with domain)
+OR $0.0002/year (using Vercel's free subdomain)
+```
+
+**Bundle size impact on BSV costs:**
+
+```
+Old stack (Mantine + Jotai):   200KB → ~$0.00008
+New stack (DaisyUI + Nanostores): 50KB → ~$0.00002
+
+Savings per deployment: 75% cheaper
+Savings per 10 versions: $0.0006 saved
+```
+
+---
+
+### Documentation Strategy
+
+**README.md should link to both:**
+
+```markdown
+## Live Versions
+
+**Latest (Vercel):** https://your-game.vercel.app
+- Always up-to-date
+- Fast iteration
+- Easy to test new features
+
+**Stable Releases (BSV On-Chain):**
+- v1.0.0 (2025-01-15): https://1satordinals.com/inscription/abc123...
+- v2.0.0 (2025-03-01): https://1satordinals.com/inscription/def456...
+- v3.0.0 (2025-06-15): https://1satordinals.com/inscription/ghi789...
+
+**Deployment Workflow:**
+Local Dev → Vercel Preview → Vercel Production → BSV On-Chain
+```
+
+---
+
+### Deployment Checklist
+
+**Before deploying to Vercel Production:**
+- [ ] All BSV testnet tests passing
+- [ ] No TypeScript errors: `npm run build`
+- [ ] Wallet integration tested
+- [ ] Transaction sending/receiving works
+- [ ] UTXO management tested
+- [ ] Game blockchain state syncs correctly
+- [ ] Bundle size < 200KB
+
+**Before deploying to BSV On-Chain:**
+- [ ] App stable in Vercel production (tested for 1+ week minimum)
+- [ ] All BSV mainnet features tested thoroughly
+- [ ] Ready for permanent release (can't edit on-chain!)
+- [ ] Bundle optimized (< 200KB preferred, < 50KB ideal)
+- [ ] BSV wallet funded (~$0.01 USD minimum)
+- [ ] Test locally: `npm run preview`
+- [ ] Version tag ready (semantic versioning)
+
+---
+
+### Resources
+
+**Vercel:**
+- Documentation: https://vercel.com/docs
+- Vite on Vercel: https://vercel.com/docs/frameworks/vite
+- Environment Variables: https://vercel.com/docs/concepts/projects/environment-variables
+
+**BSV On-Chain:**
+- react-onchain: https://www.npmjs.com/package/react-onchain
+- 1Sat Ordinals: https://docs.1satordinals.com/
+- BSV SDK: https://docs.bsvblockchain.org/
+
+**Complete Deployment Guide:**
+See `~/.claude/DEPLOYMENT-GUIDE.md` for comprehensive deployment instructions.
 
 ---
 
