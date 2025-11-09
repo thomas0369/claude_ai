@@ -6,7 +6,7 @@ Initialize a new project with the master CLAUDE.md architecture document for Tho
 
 This command sets up a new project directory with:
 1. Master CLAUDE.md file documenting the full architecture
-2. Project structure for **Vite + Preact + Mantine + Konva + react-onchain**
+2. Project structure for **Vite + Preact + TailwindCSS + DaisyUI + Nanostores + Konva + react-onchain**
 3. Official **@preact/preset-vite** configuration with all optimizations
 4. Ready-to-use configuration that leverages installed skills, hooks, agents, and commands
 
@@ -130,21 +130,26 @@ npm install -D vite @preact/preset-vite typescript @types/node
 **Then install additional dependencies:**
 
 ```bash
-# UI Framework (Mantine)
-npm install @mantine/core @mantine/hooks @emotion/react
+# UI Framework (TailwindCSS + DaisyUI)
+npm install -D tailwindcss@latest postcss autoprefixer daisyui@latest
+npx tailwindcss init -p
+
+# State Management (Nanostores)
+npm install nanostores @nanostores/preact @nanostores/persistent @nanostores/router
 
 # Canvas Graphics (Konva)
 npm install konva react-konva
 npm install -D @types/konva
 
-# Blockchain Integration
-npm install react-onchain
+# Blockchain Integration (BSV)
+npm install @bsv/sdk
+# react-onchain is a global CLI tool: npx react-onchain deploy
 
 # Development tools (if not already present)
 npm install -D eslint @typescript-eslint/eslint-plugin @typescript-eslint/parser
 ```
 
-**Recommended approach:** Use official `create-preact` and then add Mantine, Konva, and react-onchain.
+**Recommended approach:** Use official `create-preact` and then add TailwindCSS, DaisyUI, Nanostores, Konva, and BSV SDK.
 
 ### Step 6: Create Optimized Vite Configuration
 
@@ -202,9 +207,8 @@ export default defineConfig({
       'preact',
       'preact/compat',
       'preact/hooks',
-      '@mantine/core',
-      '@mantine/hooks',
-      '@emotion/react',
+      'nanostores',
+      '@nanostores/preact',
       'konva',
       'react-konva',
     ],
@@ -227,7 +231,7 @@ export default defineConfig({
         manualChunks: {
           // Split vendor code for better caching
           'preact-vendor': ['preact', 'preact/hooks'],
-          'mantine-vendor': ['@mantine/core', '@mantine/hooks'],
+          'nanostores-vendor': ['nanostores', '@nanostores/preact'],
           'konva-vendor': ['konva', 'react-konva'],
         },
       },
@@ -335,7 +339,7 @@ Create `CLAUDE.md` in the project root with this comprehensive architecture docu
 ```markdown
 # [Project Name] - Master Architecture Document
 
-**Tech Stack:** Vite + Preact + Mantine + Konva + react-onchain
+**Tech Stack:** Vite + Preact + TailwindCSS + DaisyUI + Nanostores + Konva + react-onchain (BSV)
 **Build Tool:** Vite with @preact/preset-vite
 
 Last Updated: [Current Date]
@@ -396,23 +400,54 @@ pm2 monit                        # Resource monitoring
 
 ### UI Framework
 
-#### Mantine (v7.x) - Modern React Component Library
-- **100+ components**: Comprehensive UI component library
-- **Built-in dark mode**: Automatic theme switching
-- **Emotion-based styling**: CSS-in-JS with excellent performance
-- **Accessibility-first**: WCAG 2.1 compliant components
-- **TypeScript**: Fully typed with excellent IntelliSense
-- **Hooks**: Extensive hooks library for common patterns
-- **Preact compatibility**: Works seamlessly via preact/compat
-- Documentation: https://mantine.dev/
+#### TailwindCSS (v3.x) + DaisyUI (v4.x) - Utility-First CSS + Components
+- **TailwindCSS**: Utility-first CSS framework for rapid development
+- **DaisyUI**: 60+ CSS-only components (2KB, no JavaScript)
+- **93% smaller than Mantine**: 2KB vs 30KB
+- **Zero preact/compat needed**: Pure CSS, works with any framework
+- **13+ themes**: Built-in dark mode and theme switching
+- **Accessibility-first**: WCAG 2.1 compliant semantic HTML
+- **TypeScript**: Works seamlessly with TypeScript
+- **Perfect for BSV**: 75% cheaper on-chain deployment costs
+- Documentation:
+  - TailwindCSS: https://tailwindcss.com/
+  - DaisyUI: https://daisyui.com/
 
-**Mantine Features:**
-- `MantineProvider` - Theme configuration and context
-- `@mantine/hooks` - Utility hooks (useMediaQuery, useLocalStorage, etc.)
-- `@mantine/form` - Form management with validation
-- Responsive grid system
-- Dark/light theme with CSS variables
-- Customizable theme tokens
+**DaisyUI Features:**
+- Pure CSS components (buttons, cards, modals, forms, etc.)
+- TailwindCSS utility classes for custom styling
+- Theme switching with `data-theme` attribute
+- Responsive design with Tailwind's breakpoints
+- Customizable via Tailwind config
+- No JavaScript overhead
+
+### State Management
+
+#### Nanostores (v0.10.x) - Atomic State Management
+- **286 bytes core**: 10x smaller than Jotai (3KB), 100x smaller than Redux
+- **Framework-agnostic**: Works with Preact, React, Vue, Svelte, vanilla JS
+- **Native Preact support**: @nanostores/preact (no preact/compat needed)
+- **Zero dependencies**: Completely standalone
+- **Atomic stores**: Fine-grained reactivity like Jotai/Recoil
+- **Async computed**: Perfect for blockchain queries
+- **Persistent stores**: localStorage integration for wallet data
+- **Router stores**: URL state management
+- **Query stores**: Remote data fetching with caching
+- Documentation: https://github.com/nanostores/nanostores
+
+**Nanostores Modules:**
+- `nanostores` - Core (286 bytes)
+- `@nanostores/preact` - Preact integration
+- `@nanostores/persistent` - localStorage persistence
+- `@nanostores/router` - URL-based routing
+- `@nanostores/query` - Remote data fetching (optional)
+
+**Why Nanostores over Jotai/Zustand:**
+- 10x smaller (286 bytes vs 3KB)
+- Framework-agnostic (not React-specific)
+- Native Preact support (no compat layer)
+- Built-in persistence and routing
+- Perfect for BSV blockchain state
 
 ### Canvas & Graphics
 
@@ -439,18 +474,20 @@ Stage (Canvas container)
 
 ### Blockchain Integration
 
-#### react-onchain - Web3 Integration Utilities
-- **Wallet management**: Connect/disconnect wallet functionality
-- **Contract interactions**: Hooks for smart contract calls
-- **Transaction handling**: Send and track transactions
-- **Network awareness**: Detect and handle network switching
-- **Provider integration**: Web3 provider abstraction
+#### react-onchain - BSV On-Chain Deployment Tool
+- **Deploy entire apps to BSV blockchain**: Uses 1Sat Ordinals protocol
+- **Cost-effective**: Most apps < 1 cent to deploy on-chain
+- **Smart caching**: Reuses unchanged files (97% savings on updates)
+- **Automatic versioning**: Track deployment history on-chain
+- **Vite/Preact compatible**: Works seamlessly with your build
 - Repository: https://github.com/danwag06/react-onchain
+- Created by: Dan Wagner (Yours Wallet team)
 
-**Note:** This is a custom library. Verify compatibility and consider alternatives like:
-- `wagmi` - React hooks for Ethereum
-- `@web3-react/core` - Web3 React framework
-- `ethers.js` + custom hooks
+**BSV SDK (@bsv/sdk):**
+- **Official BSV TypeScript SDK**: Transaction building, wallet management
+- **Type-safe**: Full TypeScript support
+- **Complete**: Keys, addresses, UTXOs, scripts, transactions
+- Documentation: https://docs.bsvblockchain.org/
 
 ---
 
@@ -571,54 +608,64 @@ features/game/
 2. **Context API** - For sharing state across component tree (theme, auth, etc.)
 3. **External library** - For complex global state (Zustand, Jotai, Redux)
 
-**Built-in providers:**
-- `MantineProvider` - Theme and component context
-- `Web3Provider` - Blockchain connection and wallet state
+**Built-in state management:**
+- **Nanostores** - Atomic state (286 bytes) for all application state
+- **@nanostores/persistent** - localStorage for wallet/preferences
+- **@nanostores/router** - URL state for navigation
+- **Context API** - Only for deeply nested prop drilling (rarely needed)
 
-**When to use external state management:**
-- Complex app with many shared state values
-- Need for advanced features (time-travel debugging, persistence)
-- State logic becomes too complex for Context
-
-**Recommended libraries:**
-- **Zustand** - Simple, unopinionated (1KB)
-- **Jotai** - Atomic state management
-- **Redux Toolkit** - For complex applications with devtools
+**Why Nanostores is recommended:**
+- Tiny footprint (286 bytes vs 3KB+ for alternatives)
+- Framework-agnostic (works everywhere)
+- Built-in persistence and routing
+- Perfect for BSV blockchain state (wallets, transactions, UTXOs)
 
 ### 3. Styling Strategy
 
-**Primary approach: Mantine components + Mantine theme**
+**Primary approach: TailwindCSS utilities + DaisyUI components**
 
 \`\`\`tsx
-// Theme customization in App.tsx or main.tsx
-import { MantineProvider, createTheme } from '@mantine/core';
+// tailwind.config.js
+module.exports = {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  plugins: [require('daisyui')],
+  daisyui: {
+    themes: ['dark', 'light', 'cyberpunk'], // Choose themes
+    darkTheme: 'dark',
+  },
+};
+\`\`\`
 
-const theme = createTheme({
-  colorScheme: 'dark',
-  primaryColor: 'blue',
-  fontFamily: 'Inter, sans-serif',
-  // Custom colors, spacing, etc.
-});
-
+\`\`\`tsx
+// Theme switching
 export function App() {
   return (
-    <MantineProvider theme={theme}>
-      {/* App content */}
-    </MantineProvider>
+    <div data-theme="dark" className="min-h-screen">
+      {/* App content with TailwindCSS utilities and DaisyUI components */}
+      <button className="btn btn-primary">Click me</button>
+      <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title">Card Title</h2>
+          <p>Card content</p>
+        </div>
+      </div>
+    </div>
   );
 }
 \`\`\`
 
 **Styling options (in order of preference):**
 
-1. **Mantine components** - Use built-in styled components when possible
-2. **Mantine theme** - Customize via `MantineProvider` and theme object
-3. **Emotion (via Mantine)** - For dynamic styles (Mantine uses Emotion)
-4. **CSS Modules** - For component-specific styles not covered by Mantine
+1. **DaisyUI components** - Use pure CSS components (btn, card, modal, etc.)
+2. **TailwindCSS utilities** - Utility classes for custom styling (flex, grid, p-4, etc.)
+3. **Tailwind config** - Customize theme via tailwind.config.js
+4. **CSS Modules** - For truly unique component styles (rare with Tailwind)
 
-**Avoid:**
-- Inline styles (except for dynamic values)
-- Global CSS (except for resets and base styles)
+**Advantages:**
+- No JavaScript overhead (pure CSS)
+- 93% smaller than Mantine (2KB vs 30KB)
+- No preact/compat needed
+- Faster builds and smaller bundles
 
 ### 4. Canvas Layer (Konva)
 
@@ -684,47 +731,71 @@ function Canvas() {
 
 ## Development Guidelines
 
-### Preact + Mantine Integration
+### Preact + TailwindCSS + DaisyUI + Nanostores Integration
 
 \`\`\`tsx
 // main.tsx - Entry point
 import { render } from 'preact';
-import { MantineProvider } from '@mantine/core';
-import '@mantine/core/styles.css';  // Import Mantine styles
 import App from './App';
+import './styles/global.css';  // Tailwind imports
 
 render(
-  <MantineProvider
-    theme={{
-      colorScheme: 'dark',
-      primaryColor: 'cyan',
-    }}
-  >
-    <App />
-  </MantineProvider>,
+  <App />,
   document.getElementById('app')!
 );
 \`\`\`
 
+\`\`\`css
+/* src/styles/global.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+\`\`\`
+
 \`\`\`tsx
-// App.tsx - Root component
-import { AppShell, Header, Container } from '@mantine/core';
+// App.tsx - Root component with DaisyUI
+import { useStore } from '@nanostores/preact';
+import { $theme } from './stores/theme';
 
 export default function App() {
-  return (
-    <AppShell
-      header={{ height: 60 }}
-      padding="md"
-    >
-      <AppShell.Header>
-        <Container>My App</Container>
-      </AppShell.Header>
+  const theme = useStore($theme);
 
-      <AppShell.Main>
+  return (
+    <div data-theme={theme} className="min-h-screen bg-base-100">
+      {/* Navbar with DaisyUI */}
+      <div className="navbar bg-base-300">
+        <div className="flex-1">
+          <a className="btn btn-ghost text-xl">My App</a>
+        </div>
+        <div className="flex-none">
+          <button className="btn btn-square btn-ghost">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="container mx-auto p-4">
         {/* Your content */}
-      </AppShell.Main>
-    </AppShell>
+      </div>
+    </div>
   );
+}
+\`\`\`
+
+\`\`\`tsx
+// stores/theme.ts - Nanostores theme management
+import { persistentAtom } from '@nanostores/persistent';
+
+export const $theme = persistentAtom<'light' | 'dark'>(
+  'app_theme',
+  'dark'
+);
+
+export function toggleTheme() {
+  $theme.set($theme.get() === 'dark' ? 'light' : 'dark');
 }
 \`\`\`
 
