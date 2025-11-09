@@ -6,9 +6,10 @@ Initialize a new project with the master CLAUDE.md architecture document for Tho
 
 This command sets up a new project directory with:
 1. Master CLAUDE.md file documenting the full architecture
-2. Project structure for **Vite + Preact + TailwindCSS + DaisyUI + Nanostores + Konva + react-onchain**
+2. Project structure for **Vite + Preact + TailwindCSS + DaisyUI + Nanostores + Konva + vite-plugin-pwa + react-onchain**
 3. Official **@preact/preset-vite** configuration with all optimizations
-4. Ready-to-use configuration that leverages installed skills, hooks, agents, and commands
+4. **Progressive Web App (PWA)** support via vite-plugin-pwa
+5. Ready-to-use configuration that leverages installed skills, hooks, agents, and commands
 
 ## Instructions for Claude
 
@@ -141,6 +142,9 @@ npm install nanostores @nanostores/preact @nanostores/persistent @nanostores/rou
 npm install konva react-konva
 npm install -D @types/konva
 
+# Progressive Web App (PWA)
+npm install -D vite-plugin-pwa @vite-pwa/assets-generator
+
 # Blockchain Integration (BSV)
 npm install @bsv/sdk
 # react-onchain is a global CLI tool: npx react-onchain deploy
@@ -159,6 +163,7 @@ Create `vite.config.ts` with official **@preact/preset-vite** configuration:
 // vite.config.ts
 import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   plugins: [
@@ -183,6 +188,85 @@ export default defineConfig({
       //   plugins: [],
       //   presets: [],
       // },
+    }),
+
+    // ===== Progressive Web App (PWA) =====
+    VitePWA({
+      registerType: 'prompt',  // User-controlled updates (better for apps with forms)
+      includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.png'],
+
+      manifest: {
+        name: 'My PWA App',
+        short_name: 'MyApp',
+        description: 'A Progressive Web Application',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
+        icons: [
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ]
+      },
+
+      workbox: {
+        // Minimal precaching - only app shell
+        globPatterns: ['**/*.{js,css,html}'],
+
+        // Runtime caching strategies
+        runtimeCaching: [
+          {
+            // Images - cache first
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images',
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 30 * 24 * 60 * 60 // 30 days
+              }
+            }
+          },
+          {
+            // BSV on-chain assets - cache aggressively (immutable)
+            urlPattern: /^https:\/\/bico\.media\/tx\/.*/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'bsv-onchain-assets',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 365 * 24 * 60 * 60 // 1 year
+              }
+            }
+          }
+        ]
+      },
+
+      // Optional: PWA Assets Generator integration
+      pwaAssets: {
+        config: true  // Reads pwa-assets.config.ts if present
+      },
+
+      // Development mode PWA support (optional)
+      devOptions: {
+        enabled: false,  // Set to true to test PWA in development
+        type: 'module'
+      }
     })
   ],
 

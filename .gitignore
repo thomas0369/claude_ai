@@ -52,3 +52,13 @@ Thumbs.db
 *.tmp
 *.temp
 *.log
+
+# Claude Code runtime directories (session-specific)
+debug/
+file-history/
+projects/
+statsig/
+memory-bank/
+logs/
+reports/
+screenshots/
