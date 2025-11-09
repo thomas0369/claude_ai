@@ -1,3 +1,8 @@
+---
+# This is documentation, not an agent
+type: documentation
+---
+
 # Agents
 
 Specialized agents for complex, multi-step tasks.
