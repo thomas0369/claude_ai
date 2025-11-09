@@ -100,6 +100,84 @@
 
 ---
 
+#### 2b. **Vue 3 Alternative** ⚠️
+**Rating: 8/10 - Good Alternative, but not optimal for BSV**
+
+**Why Vue 3 is good:**
+- **~35KB bundle** (much better than React's 40KB, but not as small as Preact's 3KB)
+- **Composition API** - Modern, composable patterns similar to React hooks
+- **Excellent TypeScript support** - Full type safety
+- **Single-file components** - Clean, organized code structure
+- **Reactive system** - Built-in reactivity (no useState needed)
+- **Large ecosystem** - Many plugins and libraries
+- **Great documentation** - Excellent learning resources
+
+**Why it's not optimal for BSV:**
+- **10x larger than Preact**: 35KB vs 3KB
+  - Costs more to deploy on-chain (~35 sats vs ~3 sats)
+  - Slower load times for users on mobile/low bandwidth
+  - Higher storage costs on BSV blockchain
+- **Different ecosystem**: Can't use React libraries (Konva ecosystem is React-first)
+- **No react-konva**: Would need vue-konva or vanilla Konva integration
+
+**BSV-specific considerations:**
+
+**Bundle size impact:**
+```
+Preact:  3KB   → ~3 sats on-chain   → ~$0.0000012
+Vue 3:   35KB  → ~35 sats on-chain  → ~$0.000014
+Difference: 32KB (10x larger, 10x more expensive)
+```
+
+**For a typical game app:**
+```
+With Preact: ~50KB total  → ~$0.00002 deployment
+With Vue 3:  ~82KB total  → ~$0.000033 deployment
+Extra cost:  ~$0.000013 per deployment (60% more expensive)
+```
+
+**When Vue 3 makes sense:**
+- ✅ If you're already a Vue expert (learning curve matters)
+- ✅ If you need Vue-specific libraries unavailable for Preact
+- ✅ If bundle size is not critical (traditional hosting, not on-chain)
+- ✅ If you prefer Vue's template syntax over JSX
+
+**When Preact is better (for BSV):**
+- ✅ Smallest possible bundle size (critical for on-chain deployment)
+- ✅ Need to use React ecosystem (react-konva, react-query)
+- ✅ Want lowest on-chain deployment costs
+- ✅ Fast load times for global users on slow connections
+
+**Vue 3 + BSV Example:**
+```typescript
+// Vue 3 with Composition API + Nanostores
+<script setup lang="ts">
+import { useStore } from '@nanostores/vue';
+import { $wallet, $balance } from '@/stores/wallet';
+
+const wallet = useStore($wallet);
+const balance = useStore($balance);
+</script>
+
+<template>
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title">BSV Wallet</h2>
+      <p>Address: {{ wallet?.address }}</p>
+      <p>Balance: {{ balance }} satoshis</p>
+    </div>
+  </div>
+</template>
+```
+
+**Note:** Nanostores works with Vue 3 via @nanostores/vue, which is one of its key advantages as a framework-agnostic state management solution.
+
+**Verdict for BSV:** ⚠️ **USE PREACT INSTEAD** - While Vue 3 is an excellent framework, Preact's 3KB size makes it significantly better for BSV on-chain deployment. Vue 3's extra 32KB costs 10x more to deploy on-chain and provides slower load times for blockchain users.
+
+**Exception:** If you're already deeply invested in the Vue ecosystem and bundle size is not a primary concern, Vue 3 + Nanostores + TailwindCSS/DaisyUI would still work well for BSV, just with higher deployment costs.
+
+---
+
 #### 3. **TypeScript** ✅
 **Rating: 10/10 - Essential**
 
@@ -1178,12 +1256,13 @@ describe('BSV Transaction Building', () => {
 |-----------|--------|---------|
 | Vite | 10/10 | ✅ Perfect |
 | Bun | 9/10 | ✅ Excellent |
-| Preact | 10/10 | ✅ Perfect |
+| **Preact** | **10/10** | ✅ **Perfect** (3KB, 10x smaller than Vue, React-compatible) |
+| Vue 3 (Alternative) | 8/10 | ⚠️ Good but 10x larger (35KB vs 3KB) |
 | TypeScript | 10/10 | ✅ Essential |
 | **TailwindCSS + DaisyUI** | **10/10** | ✅ **Perfect** (2KB, 93% smaller than Mantine) |
 | Preact Router | 7/10 | ✅ Good (consider Wouter) |
 | Axios | 7/10 | ⚠️ Optional: Replace with ky or fetch() |
-| **Nanostores** | **10/10** | ✅ **Perfect** (286 bytes, 10x smaller than Jotai, framework-agnostic) |
+| **Nanostores** | **10/10** | ✅ **Perfect** (286 bytes, works with Preact/Vue/React) |
 | Preact Query | 10/10 | ✅ Perfect |
 | Preact-i18next | 8/10 | ✅ Good |
 | Konva | 10/10 | ✅ Perfect for games |
