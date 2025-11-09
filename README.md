@@ -336,7 +336,83 @@ When worktree is merged to main, `.dev/` is automatically removed (it's in .giti
 
 ---
 
-### 7. **BSV Blockchain Integration**
+### 7. **Thomas-Fix: Autonomous Testing & Validation**
+
+**NEW!** Comprehensive autonomous testing with Playwright integration.
+
+The `/thomas-fix` command runs an iterative test-validate-fix cycle until all checks pass:
+
+**What it does:**
+1. **Code Validation** - Lint, type-check, tests, build
+2. **Automatic Fixing** - Parallel agents fix issues
+3. **Browser Testing** - Playwright tests in real browser:
+   - Screen flow testing (navigation paths)
+   - Button functionality (all buttons tested)
+   - Form usability (input validation, submission)
+   - Console tracking (errors, warnings, exceptions)
+   - Accessibility (a11y, keyboard nav, ARIA)
+   - Responsive design (desktop, tablet, mobile)
+4. **Iteration** - Repeats until everything passes
+
+**Usage:**
+```bash
+# Simply run - it does everything automatically
+/thomas-fix
+
+# Automatically:
+# ✅ Validates code (finds 15 linting errors, 8 type errors)
+# ✅ Fixes issues (parallel agents)
+# ✅ Opens browser and tests your app
+# ✅ Tests navigation, buttons, forms, console
+# ✅ Checks accessibility
+# ✅ Takes screenshots (saved to /tmp/)
+# ✅ Reports findings
+# ✅ Repeats until all pass
+```
+
+**Features:**
+- **Autonomous** - Runs without intervention
+- **Comprehensive** - Code + browser testing
+- **Visual** - Watch browser test in real-time
+- **Safe** - Creates checkpoints before changes
+- **Parallel** - Multiple agents for speed
+- **Adaptive** - Detects project type
+
+**Results:**
+```
+📊 Thomas Fix Summary
+✅ Fixed 15 linting errors
+✅ Fixed 8 TypeScript errors
+✅ Screen flows tested: 8 pages
+✅ Buttons tested: 15 (13 working, 2 errors)
+✅ Forms tested: 2 (validation working)
+✅ Console: 3 errors found and logged
+✅ Accessibility: 2 issues (missing alt text)
+
+📁 Screenshots: /tmp/thomas-fix-*.png
+💾 Console log: /tmp/thomas-fix-console-log.json
+```
+
+**Customize:**
+Create `.thomas-fix.json` in project root:
+```json
+{
+  "playwrightTests": {
+    "screenFlows": true,
+    "buttons": true,
+    "forms": true,
+    "consoleTracking": true,
+    "accessibility": true,
+    "responsive": true
+  }
+}
+```
+
+**See:** `commands/thomas-fix.md`
+
+---
+
+### 8. **BSV Blockchain Integration**
 
 Complete BSV blockchain development support.
 
@@ -365,7 +441,7 @@ npx react-onchain deploy --version-tag "1.0.0"
 
 ---
 
-### 8. **Deployment Workflow: Vercel → BSV On-Chain**
+### 9. **Deployment Workflow: Vercel → BSV On-Chain**
 
 Complete deployment strategy for development, testing, and permanent on-chain deployment.
 
@@ -446,12 +522,13 @@ OR $0.0002/year (using Vercel's free subdomain)
 
 ---
 
-### 9. **Custom Slash Commands**
+### 10. **Custom Slash Commands**
 
 Over 30 custom commands for common workflows.
 
 **Key commands:**
 - `/thomas-setup [name]` - Scaffold Vite+Preact+BSV app
+- `/thomas-fix` - **NEW!** Autonomous test-validate-fix with Playwright
 - `/code-review [target]` - Multi-aspect code review
 - `/research <question>` - Deep research with parallel agents
 - `/spec:create <description>` - Generate specification
@@ -461,13 +538,12 @@ Over 30 custom commands for common workflows.
 - `/git:status` - Analyze git state
 - `/checkpoint:create [desc]` - Git stash checkpoint
 - `/dev-docs [feature]` - Create dev docs
-- `/validate-and-fix` - Run quality checks + auto-fix
 
 **See:** `commands/` directory
 
 ---
 
-### 10. **Specialized Agents**
+### 11. **Specialized Agents**
 
 50+ specialized agents for deep expertise.
 
@@ -488,7 +564,7 @@ Agents are auto-invoked by commands or can be used directly via Task tool.
 
 ---
 
-### 11. **Hooks System**
+### 12. **Hooks System**
 
 Powerful automation via pre/post hooks.
 
@@ -525,7 +601,7 @@ Powerful automation via pre/post hooks.
 
 ---
 
-### 12. **Memory Bank System**
+### 13. **Memory Bank System**
 
 Long-term project memory across sessions.
 
