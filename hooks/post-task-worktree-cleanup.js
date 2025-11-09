@@ -57,8 +57,29 @@ export default async function postTaskWorktreeCleanup({ task, result, projectPat
     }
     
     console.log('✅ Worktree clean and committed');
-    
-    return { 
+
+    // Update .dev/tasks.md if it exists
+    const devTasksPath = join(projectPath, '.dev', 'tasks.md');
+    if (existsSync(devTasksPath)) {
+      try {
+        const { readFileSync, writeFileSync } = require('fs');
+        const tasksContent = readFileSync(devTasksPath, 'utf-8');
+
+        // Update timestamp
+        const today = new Date().toISOString().split('T')[0];
+        const updatedContent = tasksContent.replace(
+          /## Last Updated\n.*/,
+          `## Last Updated\n${today}`
+        );
+
+        writeFileSync(devTasksPath, updatedContent);
+        console.log('✅ Updated .dev/tasks.md timestamp');
+      } catch (error) {
+        console.log('⚠️  Could not update .dev/tasks.md');
+      }
+    }
+
+    return {
       success: true,
       autoCommitted: !!status,
       branch: currentBranch

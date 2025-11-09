@@ -1,4 +1,22 @@
 {
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "1800000",
+    "BASH_MAX_TIMEOUT_MS": "7200000"
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write(src/**)",
+      "Bash(git:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)"
+    ],
+    "deny": [
+      "Read(.env*)",
+      "Read(secrets/**)",
+      "Write(.env*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -128,5 +146,10 @@
         ]
       }
     ]
-  }
+  },
+  "enabledPlugins": {
+    "playwright-skill@playwright-skill": true
+  },
+  "spinnerTipsEnabled": false,
+  "alwaysThinkingEnabled": true
 }

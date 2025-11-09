@@ -58,7 +58,16 @@ debug/
 file-history/
 projects/
 statsig/
-memory-bank/
 logs/
 reports/
 screenshots/
+
+# User data
+.claude.json
+history.jsonl
+
+# Optimization backups (optional - can commit for safety)
+# backups/*.backup
+
+# Dev-docs (worktree-specific, local only)
+.dev/

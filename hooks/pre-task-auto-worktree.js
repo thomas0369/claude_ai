@@ -104,10 +104,33 @@ export default async function preTaskAutoWorktree({ task, projectPath }) {
       });
       
       console.log(`✅ Worktree created successfully!`);
-      
+
       // Change to worktree directory
       process.chdir(worktreePath);
       console.log(`✅ Switched to worktree: ${worktreePath}`);
+
+      // Create .dev/ skeleton
+      const devPath = join(worktreePath, '.dev');
+      if (!existsSync(devPath)) {
+        console.log(`\n📝 Creating .dev/ skeleton...`);
+
+        try {
+          const { mkdirSync, writeFileSync } = require('fs');
+          mkdirSync(devPath, { recursive: true });
+
+          const today = new Date().toISOString().split('T')[0];
+
+          writeFileSync(join(devPath, 'plan.md'), `# ${taskDesc}\n\n**Created:** ${today}\n**Branch:** ${branchName}\n**Status:** In Progress\n\n## Overview\n\n[To be filled by /dev-docs command]\n\n## Last Updated\n${today}\n`);
+
+          writeFileSync(join(devPath, 'context.md'), `# Context: ${taskDesc}\n\n**Created:** ${today}\n**Branch:** ${branchName}\n\n## Key Files\n\n[To be filled]\n\n## Decisions\n\n[To be filled]\n\n## Last Updated\n${today}\n`);
+
+          writeFileSync(join(devPath, 'tasks.md'), `# Tasks: ${taskDesc}\n\n**Created:** ${today}\n**Branch:** ${branchName}\n**Progress:** 0/0\n\n## Todo\n\n- [ ] [Tasks to be filled]\n\n## Last Updated\n${today}\n`);
+
+          console.log(`✅ Created .dev/ skeleton`);
+        } catch (error) {
+          console.log(`⚠️  Could not create .dev/ skeleton: ${error.message}`);
+        }
+      }
       
       // Install dependencies if package.json exists
       if (existsSync(join(worktreePath, 'package.json'))) {
