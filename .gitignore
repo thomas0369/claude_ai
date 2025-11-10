@@ -68,8 +68,12 @@ memory-bank/
 .claude.json
 history.jsonl
 
-# Optimization backups (optional - can commit for safety)
-# backups/*.backup
+# Backup files (never commit)
+*.backup
+*.backup-*
+*.bak
+backups/
+*.old
 
 # Dev-docs (worktree-specific, local only)
 .dev/
