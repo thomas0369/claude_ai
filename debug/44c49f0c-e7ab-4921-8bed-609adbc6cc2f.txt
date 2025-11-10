@@ -1,7 +1,0 @@
-[DEBUG] Watching for changes in setting files /home/thoma/.claude/settings.json, /mnt/c/Workspace/C&I BESS/.claude/settings.json, /mnt/c/Workspace/C&I BESS/.claude/settings.local.json...
-[DEBUG] Writing to temp file: /home/thoma/.claude.json.tmp.34848.1762641293120
-[DEBUG] Preserving file permissions: 100600
-[DEBUG] Temp file written successfully, size: 1441326 bytes
-[DEBUG] Applied original permissions to temp file
-[DEBUG] Renaming /home/thoma/.claude.json.tmp.34848.1762641293120 to /home/thoma/.claude.json
-[DEBUG] File /home/thoma/.claude.json written atomically

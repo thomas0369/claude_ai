@@ -13,8 +13,18 @@ Run an autonomous, iterative cycle of validation, fixing, and browser testing un
 This command combines:
 1. **Code validation** (lint, type-check, tests, build)
 2. **Automatic fixing** (parallel agents for efficiency)
-3. **Browser testing** (Playwright integration for UI validation)
+3. **Browser testing** (Playwright integration for UI validation with mandatory server health checks)
 4. **Iteration** (repeats until everything passes)
+
+**Key Feature - Autonomous Server Management:**
+- **Fully autonomous**: No manual server management required
+- **Auto-starts dev server** if not running (detects npm scripts: dev, start, serve, etc.)
+- **Health checks existing servers** and kills/restarts unresponsive ones
+- **Graceful cleanup**: Automatically stops servers started by the command
+- **Retry logic**: Exponential backoff with up to 15 health check attempts
+- **Port scanning**: Automatically finds servers on common ports (3000, 5173, 8080, etc.)
+- **Never blocks progress**: Gracefully skips browser tests if server can't be started
+- **Command succeeds** if code validation passes, regardless of browser test status
 
 ## Process Flow
 
@@ -38,18 +48,27 @@ This command combines:
                            ↓
 ┌─────────────────────────────────────────────────────────┐
 │  PHASE 3: Browser Testing (Playwright)                  │
-│  ├─ Auto-detect running dev servers                     │
-│  ├─ Write custom Playwright tests to /tmp               │
+│  ├─ AUTONOMOUS SERVER MANAGEMENT:                       │
+│  │  ├─ Detect dev script from package.json              │
+│  │  ├─ Check for running servers on common ports        │
+│  │  ├─ Decision tree:                                   │
+│  │  │  ├─ Server healthy → Use it                       │
+│  │  │  ├─ Server unresponsive → Kill & restart          │
+│  │  │  └─ No server → Start automatically               │
+│  │  ├─ Health check with exponential backoff (15 tries) │
+│  │  └─ Auto-cleanup after tests complete                │
+│  ├─ Write custom Playwright tests to /tmp (if server OK)│
 │  ├─ Test key user flows (responsive, forms, etc.)       │
 │  ├─ Take screenshots for visual verification            │
-│  └─ Report browser issues found                         │
+│  └─ Report browser issues found or skip status          │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
 │  PHASE 4: Iteration Decision                            │
-│  ├─ All checks pass + browser tests pass? → DONE        │
+│  ├─ Code validation pass + browser pass/skip? → DONE    │
 │  ├─ Issues found? → Return to PHASE 2                   │
 │  └─ Max iterations reached? → Report remaining issues   │
+│  Note: Browser tests skipped = acceptable (code valid)  │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -154,9 +173,326 @@ npm run lint && npm run typecheck && npm run test && npm run build
 
 ### PHASE 3: Browser Testing with Playwright
 
+#### 3.0 Autonomous Server Management
+**CRITICAL**: Browser tests require a healthy dev server. This phase autonomously manages the dev server lifecycle.
+
+```bash
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# PHASE 3.0: AUTONOMOUS SERVER MANAGEMENT
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🖥️  AUTONOMOUS SERVER MANAGEMENT"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Initialize variables
+SERVER_STARTED_BY_THOMAS=false
+SERVER_PID=""
+SERVER_URL=""
+SKIP_BROWSER_TESTS=false
+
+# ─────────────────────────────────────────────────────────────
+# STEP 1: Detect dev server script from package.json
+# ─────────────────────────────────────────────────────────────
+echo "🔍 Step 1: Detecting dev server command..."
+
+if [ -f "package.json" ]; then
+  # Try common dev script names
+  DEV_SCRIPT=""
+
+  if jq -e '.scripts.dev' package.json > /dev/null 2>&1; then
+    DEV_SCRIPT="npm run dev"
+    echo "  ✅ Found: npm run dev"
+  elif jq -e '.scripts.start' package.json > /dev/null 2>&1; then
+    DEV_SCRIPT="npm start"
+    echo "  ✅ Found: npm start"
+  elif jq -e '.scripts."start:dev"' package.json > /dev/null 2>&1; then
+    DEV_SCRIPT="npm run start:dev"
+    echo "  ✅ Found: npm run start:dev"
+  elif jq -e '.scripts.serve' package.json > /dev/null 2>&1; then
+    DEV_SCRIPT="npm run serve"
+    echo "  ✅ Found: npm run serve"
+  else
+    echo "  ⚠️  No dev server script found in package.json"
+    DEV_SCRIPT=""
+  fi
+else
+  echo "  ⚠️  No package.json found"
+  DEV_SCRIPT=""
+fi
+
+# ─────────────────────────────────────────────────────────────
+# STEP 2: Detect currently running dev servers
+# ─────────────────────────────────────────────────────────────
+echo ""
+echo "🔍 Step 2: Detecting running dev servers..."
+
+# Check common dev server ports
+COMMON_PORTS=(3000 3001 5000 5173 8000 8080 4200 4173)
+RUNNING_SERVER_PORT=""
+RUNNING_SERVER_PID=""
+
+for port in "${COMMON_PORTS[@]}"; do
+  if lsof -i :$port -t > /dev/null 2>&1; then
+    RUNNING_SERVER_PID=$(lsof -i :$port -t | head -1)
+    RUNNING_SERVER_PORT=$port
+    echo "  ✅ Found running server on port $port (PID: $RUNNING_SERVER_PID)"
+    break
+  fi
+done
+
+if [ -z "$RUNNING_SERVER_PORT" ]; then
+  echo "  ℹ️  No running dev servers detected on common ports"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# STEP 3: Health check function
+# ─────────────────────────────────────────────────────────────
+check_server_health() {
+  local url=$1
+  local max_attempts=15
+  local attempt=1
+  local wait_time=2
+
+  echo "  🔍 Checking server health at $url..."
+
+  while [ $attempt -le $max_attempts ]; do
+    if [ $attempt -gt 1 ]; then
+      echo "     Attempt $attempt/$max_attempts..."
+    fi
+
+    # Try to reach the server
+    if curl -s -f -o /dev/null --max-time 5 "$url" 2>/dev/null; then
+      echo "     ✅ Server is healthy and responding!"
+      return 0
+    fi
+
+    if [ $attempt -lt $max_attempts ]; then
+      echo "     ⏳ Server not ready, waiting ${wait_time}s..."
+      sleep $wait_time
+    fi
+
+    # Exponential backoff (2s, 4s, 8s, 16s, max 30s)
+    wait_time=$((wait_time * 2))
+    if [ $wait_time -gt 30 ]; then
+      wait_time=30
+    fi
+
+    attempt=$((attempt + 1))
+  done
+
+  echo "     ❌ Server not responding after $max_attempts attempts"
+  return 1
+}
+
+# ─────────────────────────────────────────────────────────────
+# STEP 4: Decision tree - Kill, restart, or start server
+# ─────────────────────────────────────────────────────────────
+echo ""
+echo "🤖 Step 3: Autonomous server management decision..."
+echo ""
+
+if [ -n "$RUNNING_SERVER_PORT" ]; then
+  # Server is running - check if it's healthy
+  SERVER_URL="http://localhost:$RUNNING_SERVER_PORT"
+
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  Scenario: Server already running on port $RUNNING_SERVER_PORT"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  if check_server_health "$SERVER_URL"; then
+    echo ""
+    echo "  ✅ Existing server is healthy - will use it"
+    echo "  🔗 URL: $SERVER_URL"
+    SKIP_BROWSER_TESTS=false
+  else
+    echo ""
+    echo "  ⚠️  Existing server is not responding - killing and restarting..."
+    echo ""
+
+    # Kill the unresponsive server
+    echo "  🔪 Killing process $RUNNING_SERVER_PID..."
+    kill -9 $RUNNING_SERVER_PID 2>/dev/null || true
+    sleep 2
+
+    # Verify it's dead
+    if lsof -i :$RUNNING_SERVER_PORT -t > /dev/null 2>&1; then
+      echo "  ⚠️  Port $RUNNING_SERVER_PORT still in use, forcing cleanup..."
+      lsof -i :$RUNNING_SERVER_PORT -t | xargs kill -9 2>/dev/null || true
+      sleep 2
+    fi
+
+    echo "  ✅ Old server killed"
+    echo ""
+
+    # Start new server
+    if [ -n "$DEV_SCRIPT" ]; then
+      echo "  🚀 Starting fresh dev server..."
+      echo "  📝 Command: $DEV_SCRIPT"
+      echo ""
+
+      # Start server in background
+      $DEV_SCRIPT > /tmp/thomas-fix-server.log 2>&1 &
+      SERVER_PID=$!
+      SERVER_STARTED_BY_THOMAS=true
+
+      echo "  ✅ Server started (PID: $SERVER_PID)"
+      echo "  📋 Logs: /tmp/thomas-fix-server.log"
+      echo ""
+
+      # Wait and health check
+      sleep 3
+
+      if check_server_health "$SERVER_URL"; then
+        echo ""
+        echo "  🎉 New server is healthy and ready!"
+        SKIP_BROWSER_TESTS=false
+      else
+        echo ""
+        echo "  ❌ New server failed to start properly"
+        echo "  📋 Check logs: cat /tmp/thomas-fix-server.log"
+        echo ""
+        echo "  ⏭️  Skipping browser tests..."
+        SKIP_BROWSER_TESTS=true
+
+        # Kill the failed server
+        if [ -n "$SERVER_PID" ]; then
+          kill -9 $SERVER_PID 2>/dev/null || true
+        fi
+      fi
+    else
+      echo "  ❌ Cannot restart - no dev script found"
+      echo "  ⏭️  Skipping browser tests..."
+      SKIP_BROWSER_TESTS=true
+    fi
+  fi
+
+else
+  # No server running - start one
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  Scenario: No server running"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  if [ -n "$DEV_SCRIPT" ]; then
+    echo "  🚀 Starting dev server autonomously..."
+    echo "  📝 Command: $DEV_SCRIPT"
+    echo ""
+
+    # Start server in background
+    $DEV_SCRIPT > /tmp/thomas-fix-server.log 2>&1 &
+    SERVER_PID=$!
+    SERVER_STARTED_BY_THOMAS=true
+
+    echo "  ✅ Server started (PID: $SERVER_PID)"
+    echo "  📋 Logs: /tmp/thomas-fix-server.log"
+    echo ""
+
+    # Determine likely port based on package.json or defaults
+    if grep -q "vite" package.json 2>/dev/null; then
+      LIKELY_PORT=5173
+    elif grep -q "react-scripts" package.json 2>/dev/null; then
+      LIKELY_PORT=3000
+    elif grep -q "next" package.json 2>/dev/null; then
+      LIKELY_PORT=3000
+    else
+      LIKELY_PORT=3000
+    fi
+
+    SERVER_URL="http://localhost:$LIKELY_PORT"
+    echo "  🔍 Expected URL: $SERVER_URL"
+    echo "  ⏳ Waiting for server to be ready..."
+    echo ""
+
+    # Wait for server to start
+    sleep 5
+
+    if check_server_health "$SERVER_URL"; then
+      echo ""
+      echo "  🎉 Server is healthy and ready!"
+      SKIP_BROWSER_TESTS=false
+    else
+      # Try other common ports
+      echo ""
+      echo "  🔍 Server not responding on port $LIKELY_PORT, trying other ports..."
+
+      for alt_port in 3000 3001 5000 5173 8000 8080; do
+        if [ "$alt_port" != "$LIKELY_PORT" ]; then
+          ALT_URL="http://localhost:$alt_port"
+          echo "     Trying $ALT_URL..."
+
+          if curl -s -f -o /dev/null --max-time 3 "$ALT_URL" 2>/dev/null; then
+            echo "     ✅ Found server at $ALT_URL!"
+            SERVER_URL=$ALT_URL
+            SKIP_BROWSER_TESTS=false
+            break
+          fi
+        fi
+      done
+
+      if [ "$SKIP_BROWSER_TESTS" != "false" ]; then
+        echo ""
+        echo "  ❌ Server failed to start properly"
+        echo "  📋 Check logs: cat /tmp/thomas-fix-server.log"
+        echo ""
+        echo "  ⏭️  Skipping browser tests..."
+        SKIP_BROWSER_TESTS=true
+
+        # Kill the failed server
+        if [ -n "$SERVER_PID" ]; then
+          kill -9 $SERVER_PID 2>/dev/null || true
+        fi
+      fi
+    fi
+  else
+    echo "  ❌ Cannot start server - no dev script found in package.json"
+    echo "  ℹ️  Supported script names: dev, start, start:dev, serve"
+    echo ""
+    echo "  ⏭️  Skipping browser tests..."
+    SKIP_BROWSER_TESTS=true
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────
+# STEP 5: Final status
+# ─────────────────────────────────────────────────────────────
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📊 SERVER MANAGEMENT SUMMARY"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+if [ "$SKIP_BROWSER_TESTS" == "false" ]; then
+  echo "  ✅ Status: Server ready for testing"
+  echo "  🔗 URL: $SERVER_URL"
+
+  if [ "$SERVER_STARTED_BY_THOMAS" == "true" ]; then
+    echo "  🤖 Started by: Thomas Fix (autonomous)"
+    echo "  🔢 PID: $SERVER_PID"
+    echo "  📋 Logs: /tmp/thomas-fix-server.log"
+    echo ""
+    echo "  ℹ️  Server will be cleaned up after browser tests complete"
+  else
+    echo "  🔗 Using: Existing server"
+    echo "  ℹ️  Server will remain running after tests"
+  fi
+else
+  echo "  ⏭️  Status: Browser tests will be skipped"
+  echo "  ℹ️  Reason: Could not start or connect to dev server"
+  echo "  ✅ Code validation will still proceed"
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+```
+
 #### 3.1 Server Detection
-If dev servers were detected in Phase 1, proceed with browser testing.
-If no servers found, ask user if they want to start one or skip browser tests.
+Browser tests will only run if the dev server is healthy and responding.
+All tests are automatically skipped if the server is unavailable.
 
 #### 3.2 Write Playwright Tests
 Create custom test scripts in `/tmp/playwright-test-*.js`:
@@ -245,79 +581,490 @@ const TARGET_URL = 'http://localhost:3000';
 ```
 
 #### 3.3 Execute Tests
+**IMPORTANT**: Only execute tests if dev server health check passed.
+
 ```bash
-SKILL_DIR=~/.claude/plugins/marketplaces/playwright-skill/skills/playwright-skill
-cd $SKILL_DIR && node run.js /tmp/playwright-test-thomas-fix-responsive.js
-cd $SKILL_DIR && node run.js /tmp/playwright-test-thomas-fix-smoke.js
+# Conditional execution based on server availability
+if [ "$SKIP_BROWSER_TESTS" == "true" ]; then
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "⏭️  BROWSER TESTS SKIPPED"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "Reason: Dev server is not running or not responding"
+  echo "Code validation completed successfully."
+  echo ""
+  echo "To run browser tests:"
+  echo "  1. Start your dev server: npm run dev"
+  echo "  2. Re-run: /thomas-fix"
+  echo ""
+else
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "🎭 RUNNING BROWSER TESTS"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  SKILL_DIR=~/.claude/plugins/marketplaces/playwright-skill/skills/playwright-skill
+
+  # Update test scripts with detected SERVER_URL
+  sed -i "s|const TARGET_URL = .*|const TARGET_URL = '$SERVER_URL';|g" /tmp/playwright-test-thomas-fix-*.js
+
+  # Execute all browser tests
+  echo "📱 Running responsive design tests..."
+  cd $SKILL_DIR && node run.js /tmp/playwright-test-thomas-fix-responsive.js
+
+  echo ""
+  echo "💨 Running smoke tests..."
+  cd $SKILL_DIR && node run.js /tmp/playwright-test-thomas-fix-smoke.js
+
+  # Execute additional tests if they exist
+  if [ -f /tmp/playwright-test-screen-flows.js ]; then
+    echo ""
+    echo "🔀 Running screen flow tests..."
+    cd $SKILL_DIR && node run.js /tmp/playwright-test-screen-flows.js
+  fi
+
+  if [ -f /tmp/playwright-test-buttons.js ]; then
+    echo ""
+    echo "🔘 Running button functionality tests..."
+    cd $SKILL_DIR && node run.js /tmp/playwright-test-buttons.js
+  fi
+
+  if [ -f /tmp/playwright-test-forms.js ]; then
+    echo ""
+    echo "📝 Running form usability tests..."
+    cd $SKILL_DIR && node run.js /tmp/playwright-test-forms.js
+  fi
+
+  if [ -f /tmp/playwright-test-console-tracking.js ]; then
+    echo ""
+    echo "🔍 Running console tracking tests..."
+    cd $SKILL_DIR && node run.js /tmp/playwright-test-console-tracking.js
+  fi
+
+  if [ -f /tmp/playwright-test-accessibility.js ]; then
+    echo ""
+    echo "♿ Running accessibility tests..."
+    cd $SKILL_DIR && node run.js /tmp/playwright-test-accessibility.js
+  fi
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "✅ BROWSER TESTS COMPLETED"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  # ─────────────────────────────────────────────────────────────
+  # CLEANUP: Kill server if started by thomas-fix
+  # ─────────────────────────────────────────────────────────────
+  if [ "$SERVER_STARTED_BY_THOMAS" == "true" ] && [ -n "$SERVER_PID" ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🧹 CLEANING UP SERVER"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  🔪 Stopping server (PID: $SERVER_PID)..."
+
+    # Kill the server process
+    kill -15 $SERVER_PID 2>/dev/null || true
+    sleep 2
+
+    # Check if it's still running
+    if kill -0 $SERVER_PID 2>/dev/null; then
+      echo "  ⚠️  Server still running, force killing..."
+      kill -9 $SERVER_PID 2>/dev/null || true
+      sleep 1
+    fi
+
+    # Verify it's dead
+    if kill -0 $SERVER_PID 2>/dev/null; then
+      echo "  ⚠️  Warning: Could not kill server process $SERVER_PID"
+    else
+      echo "  ✅ Server stopped successfully"
+    fi
+
+    echo "  📋 Server logs saved to: /tmp/thomas-fix-server.log"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+  fi
+fi
 ```
 
 #### 3.4 Analyze Results
-Review:
-- Screenshots in `/tmp/thomas-fix-*.png`
-- Console output for errors
-- Any failures or visual issues
+**Conditional analysis based on test execution:**
+
+```bash
+if [ "$SKIP_BROWSER_TESTS" == "false" ]; then
+  echo "📊 Analyzing browser test results..."
+  echo ""
+
+  # Review screenshots
+  SCREENSHOT_COUNT=$(ls -1 /tmp/thomas-fix-*.png 2>/dev/null | wc -l)
+  echo "  📸 Screenshots captured: $SCREENSHOT_COUNT"
+  if [ $SCREENSHOT_COUNT -gt 0 ]; then
+    echo "  📁 Screenshots saved to: /tmp/thomas-fix-*.png"
+  fi
+
+  # Review console log if it exists
+  if [ -f /tmp/thomas-fix-console-log.json ]; then
+    echo "  📋 Console log: /tmp/thomas-fix-console-log.json"
+
+    # Extract error counts from console log
+    ERROR_COUNT=$(jq '.errors | length' /tmp/thomas-fix-console-log.json 2>/dev/null || echo "0")
+    WARNING_COUNT=$(jq '.warnings | length' /tmp/thomas-fix-console-log.json 2>/dev/null || echo "0")
+
+    if [ "$ERROR_COUNT" -gt 0 ]; then
+      echo "  ❌ Console errors found: $ERROR_COUNT"
+    else
+      echo "  ✅ No console errors"
+    fi
+
+    if [ "$WARNING_COUNT" -gt 0 ]; then
+      echo "  ⚠️  Console warnings: $WARNING_COUNT"
+    fi
+  fi
+
+  echo ""
+  echo "Review the following for issues:"
+  echo "  - Screenshots in /tmp/thomas-fix-*.png"
+  echo "  - Console output for errors"
+  echo "  - Visual inconsistencies or broken layouts"
+  echo ""
+else
+  echo "📊 Browser test analysis skipped (no tests were run)"
+  echo ""
+fi
+```
 
 ### PHASE 4: Iteration & Decision
 
 #### 4.1 Evaluation Criteria
-```
-ALL PASS Criteria:
-✅ Lint: no errors
-✅ Type-check: no errors
-✅ Tests: all passing
-✅ Build: successful
-✅ Browser: no console errors, responsive works, key flows functional
+```bash
+# Code validation criteria (always checked)
+CODE_VALIDATION_PASS=true
+
+if [ "$LINT_ERRORS" -gt 0 ]; then CODE_VALIDATION_PASS=false; fi
+if [ "$TYPECHECK_ERRORS" -gt 0 ]; then CODE_VALIDATION_PASS=false; fi
+if [ "$TEST_FAILURES" -gt 0 ]; then CODE_VALIDATION_PASS=false; fi
+if [ "$BUILD_ERRORS" -gt 0 ]; then CODE_VALIDATION_PASS=false; fi
+
+# Browser testing criteria (only if tests were run)
+BROWSER_TESTS_PASS=true
+if [ "$SKIP_BROWSER_TESTS" == "false" ]; then
+  # Check browser test results
+  if [ -f /tmp/thomas-fix-console-log.json ]; then
+    BROWSER_ERRORS=$(jq '.errors | length' /tmp/thomas-fix-console-log.json 2>/dev/null || echo "0")
+    if [ "$BROWSER_ERRORS" -gt 0 ]; then
+      BROWSER_TESTS_PASS=false
+    fi
+  fi
+fi
+
+# Overall evaluation
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📊 EVALUATION SUMMARY"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "Code Validation:"
+echo "  Lint: $([ $LINT_ERRORS -eq 0 ] && echo '✅ Pass' || echo "❌ $LINT_ERRORS error(s)")"
+echo "  Type-check: $([ $TYPECHECK_ERRORS -eq 0 ] && echo '✅ Pass' || echo "❌ $TYPECHECK_ERRORS error(s)")"
+echo "  Tests: $([ $TEST_FAILURES -eq 0 ] && echo '✅ Pass' || echo "❌ $TEST_FAILURES failure(s)")"
+echo "  Build: $([ $BUILD_ERRORS -eq 0 ] && echo '✅ Pass' || echo "❌ $BUILD_ERRORS error(s)")"
+echo ""
+
+if [ "$SKIP_BROWSER_TESTS" == "false" ]; then
+  echo "Browser Testing:"
+  echo "  Console errors: $([ $BROWSER_ERRORS -eq 0 ] && echo '✅ None' || echo "❌ $BROWSER_ERRORS found")"
+  echo "  Responsive design: ✅ Tested"
+  echo "  Smoke tests: ✅ Completed"
+  echo ""
+else
+  echo "Browser Testing:"
+  echo "  Status: ⏭️  Skipped (no dev server)"
+  echo "  Note: Code validation completed successfully"
+  echo "  Recommendation: Start dev server and re-run for full validation"
+  echo ""
+fi
 ```
 
+**Pass Criteria:**
+- **Code Validation MUST Pass**: Lint, type-check, tests, build all passing
+- **Browser Tests**: Optional (skipped if no dev server, but recommended)
+
+The command considers success if:
+1. ✅ All code validation passes AND browser tests pass (if run)
+2. ✅ All code validation passes AND browser tests were skipped (dev server unavailable)
+
+The command fails only if:
+1. ❌ Any code validation check fails
+
 #### 4.2 Iteration Logic
-```python
-if all_checks_pass and browser_tests_pass:
-    print("🎉 All checks passed!")
-    create_checkpoint()
-    show_summary()
-    exit(0)
-elif iteration < MAX_ITERATIONS:
-    print(f"🔄 Issues found. Starting iteration {iteration + 1}...")
-    goto PHASE_2
-else:
-    print("⚠️ Max iterations reached. Manual intervention needed.")
-    show_remaining_issues()
-    exit(1)
+```bash
+# Determine overall success
+OVERALL_SUCCESS=false
+
+if [ "$CODE_VALIDATION_PASS" == "true" ]; then
+  if [ "$SKIP_BROWSER_TESTS" == "true" ]; then
+    # Code validation passed, browser tests skipped (acceptable)
+    OVERALL_SUCCESS=true
+    echo "✅ Code validation complete (browser tests skipped)"
+  elif [ "$BROWSER_TESTS_PASS" == "true" ]; then
+    # Both code validation and browser tests passed (ideal)
+    OVERALL_SUCCESS=true
+    echo "🎉 All checks passed!"
+  else
+    # Code validation passed but browser tests failed (needs iteration)
+    OVERALL_SUCCESS=false
+    echo "⚠️  Code validation passed but browser tests have issues"
+  fi
+else
+  # Code validation failed (needs iteration)
+  OVERALL_SUCCESS=false
+  echo "❌ Code validation failed"
+fi
+
+# Iteration decision
+if [ "$OVERALL_SUCCESS" == "true" ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "🎉 THOMAS FIX COMPLETE"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  # Create success checkpoint
+  git stash push -u -m "thomas-fix success: $(date +%Y%m%d-%H%M%S)"
+
+  # Show summary (see section 4.3)
+  exit 0
+
+elif [ $ITERATION -lt $MAX_ITERATIONS ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "🔄 STARTING ITERATION $((ITERATION + 1))/$MAX_ITERATIONS"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  # Return to PHASE 2 with updated issue list
+  ITERATION=$((ITERATION + 1))
+  goto PHASE_2
+
+else
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "⚠️  MAX ITERATIONS REACHED"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "Manual intervention needed for remaining issues:"
+  echo ""
+
+  # Show remaining issues
+  if [ $LINT_ERRORS -gt 0 ]; then echo "  ❌ Lint errors: $LINT_ERRORS"; fi
+  if [ $TYPECHECK_ERRORS -gt 0 ]; then echo "  ❌ Type-check errors: $TYPECHECK_ERRORS"; fi
+  if [ $TEST_FAILURES -gt 0 ]; then echo "  ❌ Test failures: $TEST_FAILURES"; fi
+  if [ $BUILD_ERRORS -gt 0 ]; then echo "  ❌ Build errors: $BUILD_ERRORS"; fi
+  if [ "$SKIP_BROWSER_TESTS" == "false" ] && [ $BROWSER_ERRORS -gt 0 ]; then
+    echo "  ❌ Browser console errors: $BROWSER_ERRORS"
+  fi
+
+  echo ""
+  echo "Recommendations:"
+  echo "  1. Review the errors above and fix manually"
+  echo "  2. Use specialized agents for complex issues"
+  echo "  3. Consider architectural changes if needed"
+  echo "  4. Re-run /thomas-fix after manual fixes"
+  echo ""
+
+  exit 1
+fi
 ```
 
 **MAX_ITERATIONS**: Default 3 (configurable)
 
+**Key Changes:**
+- Browser tests are now **optional** for success
+- Command succeeds if code validation passes, even if browser tests were skipped
+- Command only fails if code validation has errors
+- Iteration continues only for actual failures, not for skipped tests
+
 #### 4.3 Final Summary
-```markdown
-## Thomas Fix Summary
+```bash
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 THOMAS FIX SUMMARY"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "Duration: $DURATION"
+echo "Iterations: $ITERATION"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Phase 1: Discovery"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  Linting: $INITIAL_LINT_ERRORS errors found"
+echo "  Type-checking: $INITIAL_TYPECHECK_ERRORS errors found"
+echo "  Tests: $INITIAL_TEST_FAILURES failing"
+echo "  Build: $INITIAL_BUILD_ERRORS errors, $INITIAL_BUILD_WARNINGS warnings"
 
-**Duration:** 5m 32s
-**Iterations:** 2
+if [ "$SKIP_BROWSER_TESTS" == "false" ]; then
+  echo "  Dev server: $SERVER_URL (healthy)"
+else
+  echo "  Dev server: Not detected or not responding"
+fi
 
-### Phase 1: Discovery
-- Linting: 15 errors found
-- Type-checking: 8 errors found
-- Tests: 2 failing
-- Build: 3 warnings
-- Dev server: http://localhost:3000 (detected)
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Phase 2: Fixes Applied"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-### Phase 2: Fixes Applied
-✅ Fixed 15 linting errors (parallel agents)
-✅ Fixed 8 TypeScript errors (typescript-type-expert)
-✅ Fixed 2 failing tests (testing-expert)
-✅ Resolved 3 build warnings
+if [ $LINT_ERRORS_FIXED -gt 0 ]; then
+  echo "  ✅ Fixed $LINT_ERRORS_FIXED linting error(s)"
+fi
 
-### Phase 3: Browser Testing
-✅ Responsive design: Desktop, Tablet, Mobile
-✅ Smoke test: Page loads, no console errors
-✅ Screenshots saved to /tmp/thomas-fix-*.png
+if [ $TYPECHECK_ERRORS_FIXED -gt 0 ]; then
+  echo "  ✅ Fixed $TYPECHECK_ERRORS_FIXED TypeScript error(s)"
+fi
 
-### Final Status
-🎉 ALL CHECKS PASSED!
+if [ $TEST_FAILURES_FIXED -gt 0 ]; then
+  echo "  ✅ Fixed $TEST_FAILURES_FIXED test failure(s)"
+fi
 
-**Files Modified:** 12
-**Agents Used:** 3 (linting-expert, typescript-type-expert, testing-expert)
-**Checkpoints Created:** 2
+if [ $BUILD_ERRORS_FIXED -gt 0 ]; then
+  echo "  ✅ Fixed $BUILD_ERRORS_FIXED build error(s)"
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Phase 3: Browser Testing"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+if [ "$SKIP_BROWSER_TESTS" == "true" ]; then
+  echo "  ⏭️  Browser tests skipped (no dev server)"
+  echo "  ℹ️  Recommendation: Start dev server and re-run for complete validation"
+else
+  echo "  ✅ Responsive design: Desktop, Tablet, Mobile"
+  echo "  ✅ Smoke test: Page loads, no console errors"
+  echo "  ✅ Screen flows: Navigation tested"
+  echo "  ✅ Button functionality: Interactions verified"
+  echo "  ✅ Form usability: Input validation tested"
+  echo "  ✅ Console tracking: $BROWSER_ERRORS error(s), $BROWSER_WARNINGS warning(s)"
+  echo "  ✅ Accessibility: Checked"
+  echo "  📸 Screenshots saved to /tmp/thomas-fix-*.png"
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Final Status"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+if [ "$OVERALL_SUCCESS" == "true" ]; then
+  if [ "$SKIP_BROWSER_TESTS" == "true" ]; then
+    echo "  ✅ CODE VALIDATION PASSED"
+    echo "  ℹ️  Browser tests skipped (no dev server detected)"
+    echo ""
+    echo "  To complete full validation:"
+    echo "    1. Start dev server: npm run dev"
+    echo "    2. Re-run: /thomas-fix"
+  else
+    echo "  🎉 ALL CHECKS PASSED!"
+    echo "  ✅ Code validation: Complete"
+    echo "  ✅ Browser testing: Complete"
+  fi
+else
+  echo "  ❌ VALIDATION INCOMPLETE"
+  echo "  See details above for remaining issues"
+fi
+
+echo ""
+echo "Files Modified: $FILES_MODIFIED"
+echo "Agents Used: $AGENTS_USED"
+echo "Checkpoints Created: $CHECKPOINTS_CREATED"
+echo ""
+```
+
+**Example Output (Dev Server Available):**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 THOMAS FIX SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Duration: 5m 32s
+Iterations: 2
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 1: Discovery
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Linting: 15 errors found
+  Type-checking: 8 errors found
+  Tests: 2 failing
+  Build: 3 warnings
+  Dev server: http://localhost:3000 (healthy)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 2: Fixes Applied
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅ Fixed 15 linting error(s)
+  ✅ Fixed 8 TypeScript error(s)
+  ✅ Fixed 2 test failure(s)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 3: Browser Testing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅ Responsive design: Desktop, Tablet, Mobile
+  ✅ Smoke test: Page loads, no console errors
+  ✅ Screenshots saved to /tmp/thomas-fix-*.png
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Final Status
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🎉 ALL CHECKS PASSED!
+  ✅ Code validation: Complete
+  ✅ Browser testing: Complete
+
+Files Modified: 12
+Agents Used: 3
+Checkpoints Created: 2
+```
+
+**Example Output (No Dev Server):**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 THOMAS FIX SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Duration: 3m 45s
+Iterations: 1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 1: Discovery
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Linting: 10 errors found
+  Type-checking: 5 errors found
+  Tests: All passing
+  Build: Successful
+  Dev server: Not detected or not responding
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 2: Fixes Applied
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅ Fixed 10 linting error(s)
+  ✅ Fixed 5 TypeScript error(s)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 3: Browser Testing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ⏭️  Browser tests skipped (no dev server)
+  ℹ️  Recommendation: Start dev server and re-run for complete validation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Final Status
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅ CODE VALIDATION PASSED
+  ℹ️  Browser tests skipped (no dev server detected)
+
+  To complete full validation:
+    1. Start dev server: npm run dev
+    2. Re-run: /thomas-fix
+
+Files Modified: 8
+Agents Used: 2
+Checkpoints Created: 1
 ```
 
 ## Usage Examples
@@ -339,15 +1086,19 @@ Runs the complete autonomous cycle with default settings.
 
 ### Integration with Development Workflow
 ```bash
-# During active development
-npm run dev  # Start dev server
-/thomas-fix  # Autonomous validation + testing
+# During active development - server starts automatically!
+/thomas-fix  # Autonomous server management + validation + testing
 
-# Before committing
-/thomas-fix  # Ensure everything passes
+# Before committing - no manual setup needed
+/thomas-fix  # Starts server, runs all checks, cleans up
 
-# After refactoring
-/thomas-fix  # Verify no regressions
+# After refactoring - completely hands-free
+/thomas-fix  # Verify no regressions (server managed autonomously)
+
+# Working on a running project - uses existing server
+# (If server is already running, thomas-fix detects and uses it)
+npm run dev  # Your dev server (optional)
+/thomas-fix  # Will use your existing server
 ```
 
 ## Advanced Features
@@ -1088,15 +1839,73 @@ Create `.thomas-fix.json` in project root:
 
 ## Troubleshooting
 
-### Issue: Dev server not detected
+### Issue: Browser tests skipped (dev server failed to start)
+**Symptom:**
+```
+❌ Server failed to start properly
+📋 Check logs: cat /tmp/thomas-fix-server.log
+⏭️  Skipping browser tests...
+```
+
 **Solution:**
 ```bash
-# Manually start dev server first
-npm run dev
+# Check the server logs for errors
+cat /tmp/thomas-fix-server.log
 
-# Then run thomas-fix
+# Common causes and fixes:
+# 1. Port already in use
+lsof -i :3000  # Check what's using the port
+kill -9 <PID>  # Kill the process
+
+# 2. Missing dependencies
+npm install
+
+# 3. No dev script in package.json
+# Add to package.json:
+{
+  "scripts": {
+    "dev": "vite" // or your dev server command
+  }
+}
+
+# Then re-run thomas-fix
 /thomas-fix
 ```
+
+**Why this happens:**
+- The command automatically tries to start the dev server from package.json
+- If it can't find a dev script or the script fails, browser tests are skipped
+- Code validation still completes successfully
+- Check /tmp/thomas-fix-server.log for details
+
+### Issue: Server detected but not responding
+**Symptom:**
+```
+⚠️  DEV SERVER NOT RESPONDING
+A dev server was detected at http://localhost:3000 but it's not responding.
+```
+
+**Solution:**
+```bash
+# Check if server is actually running
+curl http://localhost:3000
+
+# If not responding, restart the server
+# Kill the old process
+pkill -f "npm.*dev"
+
+# Start fresh
+npm run dev
+
+# Re-run thomas-fix
+/thomas-fix
+```
+
+**Why this happens:**
+- The server process exists but is not responding to HTTP requests
+- Server is still starting up (wait a moment and retry)
+- Server crashed or is in an error state
+- Wrong port detected (check your package.json scripts)
 
 ### Issue: Playwright tests fail
 **Solution:**
@@ -1104,6 +1913,9 @@ npm run dev
 # Check Playwright installation
 cd ~/.claude/plugins/marketplaces/playwright-skill/skills/playwright-skill
 npm run setup
+
+# Verify browser installation
+npx playwright install
 
 # Re-run thomas-fix
 /thomas-fix
@@ -1174,6 +1986,15 @@ npx react-onchain deploy       # Deploy to BSV
 - **Safe**: Creates checkpoints before changes, easy rollback
 - **Parallel**: Uses multiple agents for maximum efficiency
 - **Adaptive**: Detects project type and runs appropriate tests
+- **Autonomous Server Management**: Complete hands-free dev server lifecycle
+  - Auto-detects dev script from package.json (dev, start, serve, etc.)
+  - Starts dev server automatically if not running
+  - Health checks existing servers and kills/restarts unresponsive ones
+  - Automatically cleans up servers started by the command
+  - Port scanning across common ports (3000, 3001, 5000, 5173, 8000, 8080, 4200, 4173)
+  - Exponential backoff retry logic (up to 15 attempts, max 30s wait)
+  - Gracefully skips browser tests if server can't be started (no failures)
+  - Server logs saved to /tmp/thomas-fix-server.log for debugging
 
 ## Comparison with /validate-and-fix
 
@@ -1185,7 +2006,9 @@ npx react-onchain deploy       # Deploy to BSV
 | Iteration | ❌ (manual) | ✅ (autonomous) |
 | Checkpoints | ✅ | ✅ |
 | Parallel agents | ✅ | ✅ |
-| Dev server detection | ❌ | ✅ |
+| Dev server management | ❌ | ✅ (auto-start/kill/cleanup) |
+| Server health checking | ❌ | ✅ (with retry logic) |
 | Visual verification | ❌ | ✅ (screenshots) |
+| Hands-free operation | ❌ | ✅ (fully autonomous) |
 
-**Result:** /thomas-fix is a superset of /validate-and-fix with autonomous iteration and browser testing.
+**Result:** /thomas-fix is a superset of /validate-and-fix with autonomous iteration, browser testing, and complete dev server lifecycle management.

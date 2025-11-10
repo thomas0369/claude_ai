@@ -61,6 +61,8 @@ statsig/
 logs/
 reports/
 screenshots/
+memory-bank/
+.claude/
 
 # User data
 .claude.json

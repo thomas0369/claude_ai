@@ -338,59 +338,106 @@ When worktree is merged to main, `.dev/` is automatically removed (it's in .giti
 
 ### 7. **Thomas-Fix: Autonomous Testing & Validation**
 
-**NEW!** Comprehensive autonomous testing with Playwright integration.
+**NEW!** Comprehensive autonomous testing with Playwright integration and **complete dev server lifecycle management**.
 
-The `/thomas-fix` command runs an iterative test-validate-fix cycle until all checks pass:
+The `/thomas-fix` command runs an iterative test-validate-fix cycle until all checks pass - now **fully hands-free** with automatic server management:
 
 **What it does:**
 1. **Code Validation** - Lint, type-check, tests, build
 2. **Automatic Fixing** - Parallel agents fix issues
-3. **Browser Testing** - Playwright tests in real browser:
+3. **Autonomous Server Management** - **NEW!**
+   - Auto-detects dev script from package.json (dev, start, serve, etc.)
+   - Starts dev server automatically if not running
+   - Health checks existing servers and kills/restarts unresponsive ones
+   - Auto-cleans up servers after tests complete
+   - Port scanning across common ports (3000, 5173, 8080, etc.)
+   - Exponential backoff retry logic (up to 15 attempts)
+4. **Browser Testing** - Playwright tests in real browser:
    - Screen flow testing (navigation paths)
    - Button functionality (all buttons tested)
    - Form usability (input validation, submission)
    - Console tracking (errors, warnings, exceptions)
    - Accessibility (a11y, keyboard nav, ARIA)
    - Responsive design (desktop, tablet, mobile)
-4. **Iteration** - Repeats until everything passes
+5. **Iteration** - Repeats until everything passes
 
 **Usage:**
 ```bash
-# Simply run - it does everything automatically
+# Simply run - it does EVERYTHING automatically (including server!)
 /thomas-fix
 
 # Automatically:
+# ✅ Detects "npm run dev" in package.json
+# ✅ Starts dev server automatically (if needed)
+# ✅ Health checks with retry logic
 # ✅ Validates code (finds 15 linting errors, 8 type errors)
 # ✅ Fixes issues (parallel agents)
 # ✅ Opens browser and tests your app
 # ✅ Tests navigation, buttons, forms, console
 # ✅ Checks accessibility
 # ✅ Takes screenshots (saved to /tmp/)
+# ✅ Cleans up (stops server if started by thomas-fix)
 # ✅ Reports findings
 # ✅ Repeats until all pass
 ```
 
 **Features:**
-- **Autonomous** - Runs without intervention
+- **Fully Autonomous** - Zero manual intervention required
+- **Complete Server Lifecycle** - Auto-start, health check, cleanup
 - **Comprehensive** - Code + browser testing
 - **Visual** - Watch browser test in real-time
 - **Safe** - Creates checkpoints before changes
 - **Parallel** - Multiple agents for speed
 - **Adaptive** - Detects project type
+- **Smart Restart** - Kills and restarts unresponsive servers
+- **Graceful Cleanup** - Only kills servers it started
 
 **Results:**
 ```
-📊 Thomas Fix Summary
-✅ Fixed 15 linting errors
-✅ Fixed 8 TypeScript errors
-✅ Screen flows tested: 8 pages
-✅ Buttons tested: 15 (13 working, 2 errors)
-✅ Forms tested: 2 (validation working)
-✅ Console: 3 errors found and logged
-✅ Accessibility: 2 issues (missing alt text)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 THOMAS FIX SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📁 Screenshots: /tmp/thomas-fix-*.png
-💾 Console log: /tmp/thomas-fix-console-log.json
+Duration: 5m 32s
+Iterations: 2
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 1: Discovery
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Linting: 15 errors found
+  Type-checking: 8 errors found
+  Tests: 2 failing
+  Dev server: http://localhost:3000 (started autonomously)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 2: Fixes Applied
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅ Fixed 15 linting errors
+  ✅ Fixed 8 TypeScript errors
+  ✅ Fixed 2 test failures
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 3: Browser Testing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅ Server: Started and managed autonomously
+  ✅ Screen flows: 8 pages tested
+  ✅ Buttons: 15 tested (13 working, 2 errors)
+  ✅ Forms: 2 tested (validation working)
+  ✅ Console: 3 errors found and logged
+  ✅ Accessibility: 2 issues (missing alt text)
+  📸 Screenshots saved to /tmp/thomas-fix-*.png
+  🧹 Server cleanup: Stopped successfully
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Final Status
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🎉 ALL CHECKS PASSED!
+  ✅ Code validation: Complete
+  ✅ Browser testing: Complete
+
+Files Modified: 12
+Server: Managed autonomously (started & stopped)
+Logs: /tmp/thomas-fix-server.log
 ```
 
 **Customize:**
@@ -528,7 +575,7 @@ Over 30 custom commands for common workflows.
 
 **Key commands:**
 - `/thomas-setup [name]` - Scaffold Vite+Preact+BSV app
-- `/thomas-fix` - **NEW!** Autonomous test-validate-fix with Playwright
+- `/thomas-fix` - **NEW!** Autonomous test-validate-fix with Playwright + full server lifecycle management
 - `/code-review [target]` - Multi-aspect code review
 - `/research <question>` - Deep research with parallel agents
 - `/spec:create <description>` - Generate specification
