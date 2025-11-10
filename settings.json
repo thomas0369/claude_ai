@@ -100,6 +100,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.claude/hooks/auto-stop-keepalive.sh"
+          },
+          {
+            "type": "command",
             "command": "claudekit-hooks run typecheck-project"
           },
           {
@@ -133,6 +137,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.claude/hooks/auto-start-keepalive.sh"
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/skill-activation-prompt.sh"
           },
           {
@@ -151,5 +159,5 @@
     "playwright-skill@playwright-skill": true
   },
   "spinnerTipsEnabled": false,
-  "alwaysThinkingEnabled": true
+  "alwaysThinkingEnabled": false
 }

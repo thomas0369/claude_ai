@@ -770,33 +770,45 @@ cp ~/.claude/settings.json ~/.claude/settings.local.json
 
 ## 📖 Documentation
 
-### Core Documentation
+**All documentation is organized in the [docs/](./docs/) directory for easy navigation.**
 
-- **[THOMAS-QUICK-START.md](./THOMAS-QUICK-START.md)** - Fast onboarding guide
-- **[THOMAS-SETUP-OPTIMIZATIONS.md](./THOMAS-SETUP-OPTIMIZATIONS.md)** - thomas-setup v2.0 improvements
-- **[THOMAS-SETUP-SAFETY.md](./THOMAS-SETUP-SAFETY.md)** - Safety features & guardrails
-- **[BSV-TECH-STACK-ANALYSIS.md](./BSV-TECH-STACK-ANALYSIS.md)** - BSV blockchain integration guide
-- **[PM2-SETUP.md](./PM2-SETUP.md)** - PM2 process management
-- **[PWA-INTEGRATION-GUIDE.md](./PWA-INTEGRATION-GUIDE.md)** - Progressive Web App integration (NEW!)
-- **[PWA_SOLUTIONS_ANALYSIS_2025.md](./PWA_SOLUTIONS_ANALYSIS_2025.md)** - PWA solution comparison (NEW!)
+### Quick Links
 
-### Infrastructure Audit Reports (2025-01-09)
+- **[Documentation Index](./docs/README.md)** - Complete documentation overview with systematic organization
 
-- **[INFRASTRUCTURE-AUDIT-REPORT.md](./INFRASTRUCTURE-AUDIT-REPORT.md)** - Complete audit of 94 infrastructure files
-- **[REGISTRATION-VERIFICATION-REPORT.md](./REGISTRATION-VERIFICATION-REPORT.md)** - Verification that all components are registered and working
-- **[REGISTRATION-AND-CONSOLIDATION-REPORT.md](./REGISTRATION-AND-CONSOLIDATION-REPORT.md)** - Project consolidation analysis and execution
-- **[CONSOLIDATION-COMPLETE.md](./CONSOLIDATION-COMPLETE.md)** - Summary of infrastructure optimization
+### User Guides
 
-### Skills Documentation
+1. **[Quick Start](./docs/guides/01-quick-start.md)** - Fast onboarding guide
+2. **[Setup Optimizations](./docs/guides/02-setup-optimizations.md)** - thomas-setup v2.0 improvements
+3. **[Setup Safety](./docs/guides/03-setup-safety.md)** - Safety features & guardrails
+4. **[Deployment](./docs/guides/04-deployment.md)** - Vercel and BSV on-chain deployment
+5. **[PM2 Setup](./docs/guides/05-pm2-setup.md)** - PM2 process management
+6. **[PWA Integration](./docs/guides/06-pwa-integration.md)** - Progressive Web App integration
+7. **[Optimization](./docs/guides/07-optimization.md)** - Performance optimization strategies
+8. **[Keep-Alive System](./docs/guides/08-keep-alive-system.md)** - Automatic timeout prevention
 
-- **[skills/README.md](./skills/README.md)** - Skills system overview
-- **[skills/skill-developer/SKILL.md](./skills/skill-developer/SKILL.md)** - How to create skills
-- **[skills/frontend-dev-guidelines/SKILL.md](./skills/frontend-dev-guidelines/SKILL.md)** - Frontend patterns
-- **[skills/backend-dev-guidelines/SKILL.md](./skills/backend-dev-guidelines/SKILL.md)** - Backend patterns
+### Tech Stack Analysis
 
-### Agents Documentation
+1. **[BSV Analysis](./docs/tech-stack/01-bsv-analysis.md)** - BSV blockchain integration guide
+2. **[UI & State Alternatives](./docs/tech-stack/02-ui-state-alternatives.md)** - Mantine vs DaisyUI, Jotai vs Nanostores
+3. **[PWA Solutions 2025](./docs/tech-stack/03-pwa-solutions-2025.md)** - PWA solution comparison
 
-- **[agents/README.md](./agents/README.md)** - Agents system overview
+### Infrastructure Documentation
+
+1. **[Dev-Docs Worktree Plan](./docs/infrastructure/01-dev-docs-worktree-plan.md)** - Worktree integration planning
+2. **[Worktree Enhancement](./docs/infrastructure/02-worktree-enhancement.md)** - Worktree system improvements
+
+### Audit Reports (Historical)
+
+1. **[Infrastructure Audit](./docs/reports/01-infrastructure-audit.md)** - Complete audit of 94 infrastructure files
+2. **[Registration Verification](./docs/reports/02-registration-verification.md)** - Component registration verification
+3. **[Registration & Consolidation](./docs/reports/03-registration-consolidation.md)** - Project consolidation analysis
+4. **[Consolidation Complete](./docs/reports/04-consolidation-complete.md)** - Infrastructure optimization summary
+
+### System Documentation
+
+- **[Skills System](./skills/README.md)** - Skills system overview and creation guide
+- **[Agents System](./agents/README.md)** - Agents system overview and available agents
 
 ### Commands Documentation
 

@@ -23,6 +23,7 @@ User-facing documentation for getting started and using the infrastructure:
 5. **[PM2 Setup](guides/05-pm2-setup.md)** - PM2 process management
 6. **[PWA Integration](guides/06-pwa-integration.md)** - Progressive Web App integration
 7. **[Optimization Guide](guides/07-optimization.md)** - Performance optimization strategies
+8. **[Keep-Alive System](guides/08-keep-alive-system.md)** - Automatic timeout prevention
 
 ## Tech Stack
 

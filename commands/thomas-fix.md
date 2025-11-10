@@ -83,7 +83,7 @@ First, discover what validation commands are available:
 3. Look for common patterns:
    - Linting: `lint`, `eslint`, `lint:fix`
    - Type checking: `typecheck`, `type-check`, `tsc`
-   - Testing: `test`, `test:unit`, `jest`
+   - Testing: `test`, `test:unit`, `test:vitest`, `vitest`, `jest`
    - Formatting: `format`, `prettier`
    - Build: `build`, `compile`
 4. Check README.md for validation instructions
