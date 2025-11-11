@@ -13,8 +13,8 @@ Run an autonomous, iterative cycle of validation, fixing, and browser testing un
 This command combines:
 1. **Code validation** (lint, type-check, tests, build)
 2. **Automatic fixing** (parallel agents for efficiency)
-3. **Browser testing** (Playwright integration for UI validation with mandatory server health checks)
-4. **Iteration** (repeats until everything passes)
+3. **Browser testing** (Playwright integration for UI validation) - **Required**
+4. **Iteration** (repeats until all checks pass)
 
 **Key Feature - Autonomous Server Management:**
 - **Fully autonomous**: No manual server management required
@@ -23,8 +23,8 @@ This command combines:
 - **Graceful cleanup**: Automatically stops servers started by the command
 - **Retry logic**: Exponential backoff with up to 15 health check attempts
 - **Port scanning**: Automatically finds servers on common ports (3000, 5173, 8080, etc.)
-- **Never blocks progress**: Gracefully skips browser tests if server can't be started
-- **Command succeeds** if code validation passes, regardless of browser test status
+- **Smart failure handling**: Browser tests required when server available, skipped only if server unavailable
+- **Command succeeds** when code validation AND browser tests both pass (or browser tests properly skipped)
 
 ## Process Flow
 
@@ -65,10 +65,11 @@ This command combines:
                            ↓
 ┌─────────────────────────────────────────────────────────┐
 │  PHASE 4: Iteration Decision                            │
-│  ├─ Code validation pass + browser pass/skip? → DONE    │
-│  ├─ Issues found? → Return to PHASE 2                   │
+│  ├─ Code pass + browser pass (or skip)? → DONE          │
+│  ├─ Code pass + browser fail? → Fix browser issues      │
+│  ├─ Code fail? → Return to PHASE 2                      │
 │  └─ Max iterations reached? → Report remaining issues   │
-│  Note: Browser tests skipped = acceptable (code valid)  │
+│  Note: Browser tests required when server available     │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -608,43 +609,96 @@ else
   # Update test scripts with detected SERVER_URL
   sed -i "s|const TARGET_URL = .*|const TARGET_URL = '$SERVER_URL';|g" /tmp/playwright-test-thomas-fix-*.js
 
-  # Execute all browser tests
+  # Track browser test failures
+  BROWSER_TEST_FAILURES=0
+  BROWSER_TESTS_RUN=0
+
+  # Execute all browser tests with failure tracking
   echo "📱 Running responsive design tests..."
-  cd $SKILL_DIR && node run.js /tmp/playwright-test-thomas-fix-responsive.js
+  if cd $SKILL_DIR && node run.js /tmp/playwright-test-thomas-fix-responsive.js; then
+    echo "  ✅ Responsive tests passed"
+    BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+  else
+    echo "  ❌ Responsive tests failed"
+    BROWSER_TEST_FAILURES=$((BROWSER_TEST_FAILURES + 1))
+    BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+  fi
 
   echo ""
   echo "💨 Running smoke tests..."
-  cd $SKILL_DIR && node run.js /tmp/playwright-test-thomas-fix-smoke.js
+  if cd $SKILL_DIR && node run.js /tmp/playwright-test-thomas-fix-smoke.js; then
+    echo "  ✅ Smoke tests passed"
+    BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+  else
+    echo "  ❌ Smoke tests failed"
+    BROWSER_TEST_FAILURES=$((BROWSER_TEST_FAILURES + 1))
+    BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+  fi
 
   # Execute additional tests if they exist
   if [ -f /tmp/playwright-test-screen-flows.js ]; then
     echo ""
     echo "🔀 Running screen flow tests..."
-    cd $SKILL_DIR && node run.js /tmp/playwright-test-screen-flows.js
+    if cd $SKILL_DIR && node run.js /tmp/playwright-test-screen-flows.js; then
+      echo "  ✅ Screen flow tests passed"
+      BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+    else
+      echo "  ❌ Screen flow tests failed"
+      BROWSER_TEST_FAILURES=$((BROWSER_TEST_FAILURES + 1))
+      BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+    fi
   fi
 
   if [ -f /tmp/playwright-test-buttons.js ]; then
     echo ""
     echo "🔘 Running button functionality tests..."
-    cd $SKILL_DIR && node run.js /tmp/playwright-test-buttons.js
+    if cd $SKILL_DIR && node run.js /tmp/playwright-test-buttons.js; then
+      echo "  ✅ Button tests passed"
+      BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+    else
+      echo "  ❌ Button tests failed"
+      BROWSER_TEST_FAILURES=$((BROWSER_TEST_FAILURES + 1))
+      BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+    fi
   fi
 
   if [ -f /tmp/playwright-test-forms.js ]; then
     echo ""
     echo "📝 Running form usability tests..."
-    cd $SKILL_DIR && node run.js /tmp/playwright-test-forms.js
+    if cd $SKILL_DIR && node run.js /tmp/playwright-test-forms.js; then
+      echo "  ✅ Form tests passed"
+      BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+    else
+      echo "  ❌ Form tests failed"
+      BROWSER_TEST_FAILURES=$((BROWSER_TEST_FAILURES + 1))
+      BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+    fi
   fi
 
   if [ -f /tmp/playwright-test-console-tracking.js ]; then
     echo ""
     echo "🔍 Running console tracking tests..."
-    cd $SKILL_DIR && node run.js /tmp/playwright-test-console-tracking.js
+    if cd $SKILL_DIR && node run.js /tmp/playwright-test-console-tracking.js; then
+      echo "  ✅ Console tracking tests passed"
+      BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+    else
+      echo "  ❌ Console tracking tests failed"
+      BROWSER_TEST_FAILURES=$((BROWSER_TEST_FAILURES + 1))
+      BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+    fi
   fi
 
   if [ -f /tmp/playwright-test-accessibility.js ]; then
     echo ""
     echo "♿ Running accessibility tests..."
-    cd $SKILL_DIR && node run.js /tmp/playwright-test-accessibility.js
+    if cd $SKILL_DIR && node run.js /tmp/playwright-test-accessibility.js; then
+      echo "  ✅ Accessibility tests passed"
+      BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+    else
+      echo "  ❌ Accessibility tests failed"
+      BROWSER_TEST_FAILURES=$((BROWSER_TEST_FAILURES + 1))
+      BROWSER_TESTS_RUN=$((BROWSER_TESTS_RUN + 1))
+    fi
   fi
 
   echo ""
@@ -750,12 +804,19 @@ if [ "$BUILD_ERRORS" -gt 0 ]; then CODE_VALIDATION_PASS=false; fi
 # Browser testing criteria (only if tests were run)
 BROWSER_TESTS_PASS=true
 if [ "$SKIP_BROWSER_TESTS" == "false" ]; then
-  # Check browser test results
+  # Check browser test execution failures
+  if [ "$BROWSER_TEST_FAILURES" -gt 0 ]; then
+    BROWSER_TESTS_PASS=false
+  fi
+
+  # Also check console errors from the console tracking test
   if [ -f /tmp/thomas-fix-console-log.json ]; then
     BROWSER_ERRORS=$(jq '.errors | length' /tmp/thomas-fix-console-log.json 2>/dev/null || echo "0")
     if [ "$BROWSER_ERRORS" -gt 0 ]; then
       BROWSER_TESTS_PASS=false
     fi
+  else
+    BROWSER_ERRORS=0
   fi
 fi
 
@@ -773,9 +834,12 @@ echo ""
 
 if [ "$SKIP_BROWSER_TESTS" == "false" ]; then
   echo "Browser Testing:"
-  echo "  Console errors: $([ $BROWSER_ERRORS -eq 0 ] && echo '✅ None' || echo "❌ $BROWSER_ERRORS found")"
-  echo "  Responsive design: ✅ Tested"
-  echo "  Smoke tests: ✅ Completed"
+  echo "  Tests run: $BROWSER_TESTS_RUN"
+  echo "  Tests passed: $((BROWSER_TESTS_RUN - BROWSER_TEST_FAILURES))"
+  echo "  Tests failed: $BROWSER_TEST_FAILURES"
+  if [ -f /tmp/thomas-fix-console-log.json ]; then
+    echo "  Console errors: $([ $BROWSER_ERRORS -eq 0 ] && echo '✅ None' || echo "❌ $BROWSER_ERRORS found")"
+  fi
   echo ""
 else
   echo "Browser Testing:"
@@ -788,14 +852,16 @@ fi
 
 **Pass Criteria:**
 - **Code Validation MUST Pass**: Lint, type-check, tests, build all passing
-- **Browser Tests**: Optional (skipped if no dev server, but recommended)
+- **Browser Tests MUST Pass (when available)**: If server can be started, browser tests must pass
 
 The command considers success if:
-1. ✅ All code validation passes AND browser tests pass (if run)
-2. ✅ All code validation passes AND browser tests were skipped (dev server unavailable)
+1. ✅ All code validation passes AND browser tests pass
+2. ✅ All code validation passes AND browser tests properly skipped (server unavailable)
 
-The command fails only if:
-1. ❌ Any code validation check fails
+The command fails if:
+1. ❌ Any code validation check fails (lint, type-check, tests, or build)
+2. ❌ Browser tests fail (when server is available and tests are run)
+3. ❌ Browser tests cannot start despite server being available
 
 #### 4.2 Iteration Logic
 ```bash
@@ -803,18 +869,20 @@ The command fails only if:
 OVERALL_SUCCESS=false
 
 if [ "$CODE_VALIDATION_PASS" == "true" ]; then
+  # Code validation passed - now check browser tests
   if [ "$SKIP_BROWSER_TESTS" == "true" ]; then
-    # Code validation passed, browser tests skipped (acceptable)
+    # Code validation passed, browser tests properly skipped (acceptable - server unavailable)
     OVERALL_SUCCESS=true
-    echo "✅ Code validation complete (browser tests skipped)"
+    echo "✅ Code validation complete (browser tests skipped - no dev server)"
   elif [ "$BROWSER_TESTS_PASS" == "true" ]; then
     # Both code validation and browser tests passed (ideal)
     OVERALL_SUCCESS=true
     echo "🎉 All checks passed!"
   else
-    # Code validation passed but browser tests failed (needs iteration)
+    # Code validation passed but browser tests FAILED (needs iteration)
     OVERALL_SUCCESS=false
-    echo "⚠️  Code validation passed but browser tests have issues"
+    echo "❌ Browser tests failed (code validation passed)"
+    echo "   Browser test failures require fixing - iterating..."
   fi
 else
   # Code validation failed (needs iteration)
@@ -853,24 +921,37 @@ else
   echo "⚠️  MAX ITERATIONS REACHED"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
-  echo "Manual intervention needed for remaining issues:"
+  echo "Manual intervention needed for remaining code validation issues:"
   echo ""
 
-  # Show remaining issues
+  # Show remaining issues (CODE VALIDATION + BROWSER TESTS)
   if [ $LINT_ERRORS -gt 0 ]; then echo "  ❌ Lint errors: $LINT_ERRORS"; fi
   if [ $TYPECHECK_ERRORS -gt 0 ]; then echo "  ❌ Type-check errors: $TYPECHECK_ERRORS"; fi
   if [ $TEST_FAILURES -gt 0 ]; then echo "  ❌ Test failures: $TEST_FAILURES"; fi
   if [ $BUILD_ERRORS -gt 0 ]; then echo "  ❌ Build errors: $BUILD_ERRORS"; fi
-  if [ "$SKIP_BROWSER_TESTS" == "false" ] && [ $BROWSER_ERRORS -gt 0 ]; then
-    echo "  ❌ Browser console errors: $BROWSER_ERRORS"
+
+  # Show browser test issues (required when server available)
+  if [ "$SKIP_BROWSER_TESTS" == "false" ] && [ "$BROWSER_TESTS_PASS" == "false" ]; then
+    echo ""
+    echo "Browser test failures:"
+    if [ "$BROWSER_TEST_FAILURES" -gt 0 ]; then
+      echo "  ❌ Test execution failures: $BROWSER_TEST_FAILURES"
+    fi
+    if [ "$BROWSER_ERRORS" -gt 0 ]; then
+      echo "  ❌ Console errors: $BROWSER_ERRORS"
+    fi
   fi
 
   echo ""
   echo "Recommendations:"
   echo "  1. Review the errors above and fix manually"
   echo "  2. Use specialized agents for complex issues"
-  echo "  3. Consider architectural changes if needed"
-  echo "  4. Re-run /thomas-fix after manual fixes"
+  echo "  3. For browser test failures, check:"
+  echo "     - Test script errors in test output above"
+  echo "     - Browser console errors in /tmp/thomas-fix-console-log.json"
+  echo "     - Screenshots in /tmp/thomas-fix-*.png for visual issues"
+  echo "  4. Consider architectural changes if needed"
+  echo "  5. Re-run /thomas-fix after manual fixes"
   echo ""
 
   exit 1
@@ -879,11 +960,11 @@ fi
 
 **MAX_ITERATIONS**: Default 3 (configurable)
 
-**Key Changes:**
-- Browser tests are now **optional** for success
-- Command succeeds if code validation passes, even if browser tests were skipped
-- Command only fails if code validation has errors
-- Iteration continues only for actual failures, not for skipped tests
+**Key Behavior:**
+- Browser tests are **required** when server is available
+- Browser tests are **skipped** only when server cannot be started
+- Command succeeds when code validation AND browser tests both pass (or browser tests properly skipped)
+- Iteration continues until all checks pass or max iterations reached
 
 #### 4.3 Final Summary
 ```bash
@@ -1982,10 +2063,16 @@ npx react-onchain deploy       # Deploy to BSV
 
 - **Autonomous**: Runs without user intervention (except CRITICAL issues)
 - **Iterative**: Automatically re-runs until all checks pass or max iterations
-- **Comprehensive**: Code validation + browser testing in one command
+- **Comprehensive**: Code validation + mandatory browser testing in one command
 - **Safe**: Creates checkpoints before changes, easy rollback
 - **Parallel**: Uses multiple agents for maximum efficiency
 - **Adaptive**: Detects project type and runs appropriate tests
+- **Mandatory Browser Testing**: Browser tests required when server available
+  - Success requires both code validation AND browser tests passing
+  - Browser tests skipped only when dev server unavailable (graceful fallback)
+  - Tracks test execution failures (script crashes, exceptions)
+  - Tracks console errors from running tests
+  - Provides detailed failure reporting with screenshots
 - **Autonomous Server Management**: Complete hands-free dev server lifecycle
   - Auto-detects dev script from package.json (dev, start, serve, etc.)
   - Starts dev server automatically if not running
@@ -1993,7 +2080,7 @@ npx react-onchain deploy       # Deploy to BSV
   - Automatically cleans up servers started by the command
   - Port scanning across common ports (3000, 3001, 5000, 5173, 8000, 8080, 4200, 4173)
   - Exponential backoff retry logic (up to 15 attempts, max 30s wait)
-  - Gracefully skips browser tests if server can't be started (no failures)
+  - Server start failures don't block success (browser tests skipped)
   - Server logs saved to /tmp/thomas-fix-server.log for debugging
 
 ## Comparison with /validate-and-fix
