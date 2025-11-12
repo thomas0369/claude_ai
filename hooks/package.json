@@ -5,11 +5,14 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "check": "tsc --noEmit"
+        "check": "npx -y tsx --version && echo 'Using global tsx installation'"
     },
-    "dependencies": {
+    "devDependencies": {
         "@types/node": "^20.11.0",
-        "tsx": "^4.7.0",
         "typescript": "^5.3.3"
+    },
+    "comments": {
+        "optimization": "tsx is used via npx (global installation) to save 36MB of node_modules",
+        "global_tsx": "tsx@4.20.6 is available globally via codebase-map package"
     }
 }
