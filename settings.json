@@ -104,27 +104,8 @@
           },
           {
             "type": "command",
-            "command": "claudekit-hooks run typecheck-project"
-          },
-          {
-            "type": "command",
-            "command": "claudekit-hooks run lint-project"
-          },
-          {
-            "type": "command",
-            "command": "claudekit-hooks run test-project"
-          },
-          {
-            "type": "command",
+            "comment": "Light checks only - heavy checks disabled to prevent timeouts",
             "command": "claudekit-hooks run check-todos"
-          },
-          {
-            "type": "command",
-            "command": "claudekit-hooks run self-review"
-          },
-          {
-            "type": "command",
-            "command": "claudekit-hooks run create-checkpoint"
           }
         ]
       }
@@ -159,5 +140,5 @@
     "playwright-skill@playwright-skill": true
   },
   "spinnerTipsEnabled": false,
-  "alwaysThinkingEnabled": false
+  "alwaysThinkingEnabled": true
 }

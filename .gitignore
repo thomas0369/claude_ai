@@ -52,6 +52,8 @@ Thumbs.db
 *.tmp
 *.temp
 *.log
+.last-interaction-timestamp
+hooks/*.original
 
 # Claude Code runtime directories (session-specific)
 debug/

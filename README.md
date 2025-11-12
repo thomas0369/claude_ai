@@ -603,6 +603,7 @@ Over 30 custom commands for common workflows.
 - **Build Tools:** vite-expert, webpack-expert
 - **Code Quality:** refactoring-expert, code-review-expert, linting-expert
 - **Research:** research-expert, web-research-specialist
+- **Blockchain:** blockchain-bsv (Bitcoin SV expert)
 
 **Usage:**
 Agents are auto-invoked by commands or can be used directly via Task tool.
@@ -1125,13 +1126,18 @@ MIT License - See [LICENSE](./LICENSE) for details.
 
 - [ ] BSV blockchain skill (bsv-blockchain-guidelines)
 - [ ] Konva game development skill
-- [ ] More specialized agents (game-developer, blockchain-expert)
 - [ ] Enhanced checkpoint system (auto-checkpoint before risky operations)
 - [ ] Integration tests for hooks
 - [ ] Video tutorials for setup
 - [ ] VSCode extension for thomas-setup
 
-### Recently Completed (2025-01-09)
+### Recently Completed (2025-11-13)
+
+- [x] **Blockchain BSV Agent** - Complete Bitcoin SV blockchain expert agent (DONE)
+- [x] **Keep-Alive System** - Automatic timeout prevention with auto-start hooks (DONE)
+- [x] **Hook Debug System** - Complete hook error transparency and debugging (DONE)
+
+### Previously Completed (2025-01-09)
 
 - [x] **PWA Integration** - vite-plugin-pwa added to thomas-setup (DONE)
 - [x] **Infrastructure Audit** - 100% deduplication achieved (DONE)
@@ -1170,4 +1176,4 @@ MIT License - See [LICENSE](./LICENSE) for details.
 
 **Powered by Claude Code + Preact + BSV Blockchain**
 
-**Last Updated:** 2025-11-09
+**Last Updated:** 2025-11-13
