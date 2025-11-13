@@ -1,9 +1,37 @@
-# Claude Code Infrastructure Optimization Plan
+# Claude Code Infrastructure Optimization Plan (Phases 2-4)
+
+**Status:** 💭 SPECULATIVE - Design Exercise Only
+**Location:** `docs/ideas/` - Not active implementation
+**Philosophy:** Build when it hurts, not when it might
+
+---
+
+## ⚠️ Why This is in Ideas/
+
+**Phase 1 Shipped:** ✅ 99.6% hooks reduction, auto-generated docs
+**Current Pain:** None measured yet
+**This Document:** Detailed plans for hypothetical future problems
+
+**Reddit Approach Says:**
+- ❌ Don't design Phase 2-4 before shipping Phase 1
+- ✅ Ship Phase 1 → Use it → Find real pain → Fix that
+- ❌ Don't optimize theoretical problems
+
+**Promote to infrastructure/ when:**
+- Hooks actually feel slow (measured > 1s per edit)
+- Tokens actually problematic (sessions hitting limits)
+- Agent loading actually slow (measured > 10s)
+
+**Until then:** Reference only, don't implement
+
+---
+
+# Original Plan Below (Phases 2-4)
 
 **Goal:** Faster, more error-robust, and token-efficient Claude Code infrastructure
 
 **Created:** 2025-11-13
-**Status:** Planning Phase
+**Status:** Speculative Design
 
 ---
 

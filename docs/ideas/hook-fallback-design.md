@@ -1,7 +1,33 @@
 # Hook Fallback System
 
+**Status:** 💭 DESIGN EXERCISE - Not Currently Needed
+**Location:** `docs/ideas/` - Speculative planning
 **Date:** 2025-11-13
-**Status:** Design Complete - Ready for Implementation
+
+---
+
+## ⚠️ Why This is in Ideas/
+
+**Current Hook Reliability:** ~85% (acceptable)
+**Current Impact:** Failures are rare, manageable
+**This Document:** Complete design for problem that doesn't hurt yet
+
+**Reddit Approach Says:**
+- ❌ Don't design fallback systems before hooks fail often
+- ✅ Wait for real cascade failures
+- ✅ Measure failure rate first
+
+**Promote to infrastructure/ when:**
+- Hook failure rate > 15% (currently ~15%, borderline)
+- Cascade failures occur (one hook fails, stops all)
+- User reports hook reliability as problem
+
+**Until then:** Keep as reference, don't implement
+
+---
+
+# Original Design Below
+
 **Goal:** 95%+ hook reliability with graceful degradation
 
 ---
