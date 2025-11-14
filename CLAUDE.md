@@ -1,261 +1,110 @@
-# Claude Code - Global Configuration & Workflows
+# Claude Code - Global Configuration
 
-## Core Principles
+## Core Philosophy
 
-### 1. Test-First Development (MANDATORY)
+### Test-First Development (MANDATORY)
 - **AFTER EVERY CODE CHANGE**: Run `/thomas-fix`
 - **UI Changes**: MUST test in browser with Playwright
 - **Runtime Errors**: Fix immediately, don't proceed with other tasks
 - **No Speculation**: No "continue" without concrete action plan
 
-### 2. Error-Zero-Tolerance
-```bash
-# If you see ANY of these:
-- Runtime Error → /thomas-fix IMMEDIATELY
-- Console Error → /thomas-fix IMMEDIATELY
-- Failed Test → Fix before continuing
-- Build Error → Stop and fix
+### Error-Zero-Tolerance
+**If you see ANY of these**: Runtime Error, Console Error, Failed Test, Build Error → `/thomas-fix` IMMEDIATELY
 
-# NEVER:
-- Ignore console errors
-- Skip browser validation
-- Commit without /thomas-fix passing
-```
+**NEVER**: Ignore console errors, skip browser validation, commit without `/thomas-fix` passing
 
-### 3. Quality Gates
+### Quality Gates
 Every code change must pass:
-1. ✅ Lint (automatic via hooks)
-2. ✅ TypeScript type-check
-3. ✅ Unit tests
-4. ✅ Browser tests (Playwright)
-5. ✅ Build successful
+1. Lint (automatic via hooks)
+2. TypeScript type-check
+3. Unit tests
+4. Browser tests (Playwright)
+5. Build successful
 
-## Common Workflows
+## Tech Stack
 
-### Frontend Development
+**Frontend**: Preact (3KB) + Vite
+**Styling**: TailwindCSS + DaisyUI (2KB CSS-only)
+**State**: Nanostores (286 bytes)
+**Forms**: Preact Signals (1KB) + Zod (8KB)
+**Data**: TanStack Query
+**Canvas**: Konva
+**Blockchain**: BSV + 1Sat Ordinals
+**Testing**: Vitest + Playwright
+
+**→ Detailed patterns in `frontend-dev-guidelines` skill (auto-activated on .tsx/.jsx/.css files)**
+
+## Workflows
+
+**Frontend**: Edit → `/thomas-fix` → Review `/tmp/thomas-fix-*.png` → `/git:commit`
+**API**: Write route → `/auth-route-tester` → `/thomas-fix` → `/git:commit`
+**Bug Fix**: Reproduce → Fix → `/thomas-fix` → Check console.json → `/git:commit`
+
+## Dev Docs Workflow
+
+### Starting Large Tasks
+When planning complex work:
 ```bash
-# Standard workflow
-1. Make UI changes
-2. /thomas-fix (auto: lint → typecheck → test → build → browser test)
-3. Review screenshots in /tmp/thomas-fix-*.png
-4. Fix any issues found
-5. /git:commit
+# Initialize task
+~/.claude/scripts/dev-task-init.sh <task-name> [project-dir]
 
-# Quick iteration (dev server running)
-1. Make change
-2. /thomas-fix (will use existing dev server)
-3. Repeat
+# Creates:
+dev/active/<task-name>/
+  <task-name>-plan.md      # Implementation plan
+  <task-name>-context.md   # Decisions & key files
+  <task-name>-tasks.md     # Checklist
+
+# During work: Update context.md with decisions
+# When done: Move to dev/completed/
 ```
 
-### API/Backend Development
-```bash
-# Route implementation
-1. Write route
-2. /auth-route-tester (test auth + functionality)
-3. /thomas-fix (code validation)
-4. /git:commit
-
-# Database changes
-1. Update schema/migrations
-2. Test with actual data
-3. /thomas-fix
-```
-
-### Bug Fixing
-```bash
-# ALWAYS:
-1. Reproduce bug in browser (if UI)
-2. Fix issue
-3. /thomas-fix (verify fix + no regressions)
-4. Check console log: /tmp/thomas-fix-console-log.json
-5. Review screenshots
-6. /git:commit
-```
-
-## Project-Specific Patterns
-
-### Tech Stack
-- **Frontend**: React/Preact + Vite
-- **UI Library**: shadcn/ui (Radix UI primitives)
-- **Styling**: Tailwind CSS
-- **State**: Zustand for global state
-- **Forms**: React Hook Form + Zod validation
-- **Testing**: Vitest (units) + Playwright (E2E)
-- **Auth**: Keycloak with cookie-based sessions
-
-### Common Errors & Solutions
-
-#### 1. Select.Item Error
-```typescript
-// ❌ WRONG (empty value)
-<Select.Item value="">None</Select.Item>
-
-// ✅ CORRECT
-<Select.Item value="none">None</Select.Item>
-```
-
-#### 2. Form Validation
-```typescript
-// ALWAYS use Zod schemas
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8)
-})
-```
-
-#### 3. API Routes Auth
-```typescript
-// All API routes MUST check auth
-import { requireAuth } from '@/lib/auth'
-
-export async function POST(req: Request) {
-  const user = await requireAuth(req)
-  // ... route logic
-}
-```
-
-## Available Commands
-
-### Development
-- `/thomas-fix` - Full autonomous validation + testing cycle
-- `/dev-docs <task>` - Create strategic plan with task breakdown
-- `/dev-docs-update` - Update documentation before context compaction
-
-### Testing
-- `/auth-route-tester` - Test authenticated routes
-- `/route-research-for-testing` - Map edited routes & launch tests
-
-### Code Quality
-- `/code-review <what>` - Multi-aspect code review with parallel agents
-- `/create-command` - Create custom slash commands
-
-### Git Operations
-- `/git:commit` - Smart commit with repo style detection
-- `/git:status` - Analyze git status with insights
-- `/git:push` - Safe push with checks
-- `/git:checkout <branch>` - Smart branch creation
-
-### Utilities
-- `/checkpoint:create [desc]` - Create rollback point
-- `/checkpoint:restore <num>` - Restore to checkpoint
-- `/research <question>` - Deep research with citations
-
-## Error Logging & Monitoring
-
-### View Error Stats
-```bash
-# Last 24 hours
-~/.claude/hooks/error-logger.sh stats
-
-# Last week
-~/.claude/hooks/error-logger.sh stats 168
-
-# Cleanup old logs (keep 7 days)
-~/.claude/hooks/error-logger.sh cleanup
-```
-
-### Log Files
-- **Errors**: `~/.claude/logs/errors.jsonl`
-- **Hook Performance**: `~/.claude/logs/performance.jsonl`
-- **Hook Debug**: `~/.claude/logs/hooks.log`
-
-### Common Patterns in Logs
-```bash
-# Find most common errors
-jq -r '.type' ~/.claude/logs/errors.jsonl | sort | uniq -c | sort -rn
-
-# Find slowest hooks
-jq -r 'select(.duration_ms > 1000) | [.hook, .duration_ms] | @tsv' ~/.claude/logs/performance.jsonl
-
-# Recent failures
-tail -20 ~/.claude/logs/hooks.log | grep WARNING
-```
+Prevents Claude from "losing the plot" on multi-step tasks.
 
 ## Development Rules
 
-### DO:
-- ✅ Run `/thomas-fix` after every change
-- ✅ Check browser console for errors
-- ✅ Review Playwright screenshots
-- ✅ Use TypeScript strict mode
-- ✅ Write tests for new features
-- ✅ Document complex logic
-- ✅ Use existing components from shadcn/ui
+**DO**: `/thomas-fix` after changes, browser console check, TypeScript strict, DaisyUI classes, Nanostores for state
+**DON'T**: Skip validation, ignore errors, use `any` type, inline large SVGs, hardcode URLs, use React (use Preact)
 
-### DON'T:
-- ❌ Skip browser validation
-- ❌ Ignore TypeScript errors
-- ❌ Commit with failing tests
-- ❌ Use `any` type
-- ❌ Inline large SVGs (use components)
-- ❌ Hardcode URLs (use env vars)
-- ❌ Skip error handling
+## Agent Usage
 
-## Performance Optimization
+**Use Task tool for exploration**: `subagent_type=Explore` for "where is X?" queries
+**Delegate to specialists**: Let agents handle multi-step searches vs direct tool calls
+**Parallel execution**: Batch independent operations in single message
 
-### Hook Performance
-All hooks now use safe-hook-wrapper.sh:
-- ⏱️ 5s timeout (prevents hanging)
-- 📊 Performance logging
-- 🛡️ Non-blocking errors
-- 📝 Detailed error logs
+→ See `~/.claude/AGENTS.md` for detailed agent selection guidelines
 
-### Reduced Hooks
-**Before**: 11 hooks per edit/write
-**After**: 2 hooks per edit/write
-**Savings**: ~82% reduction in hook overhead
+## Auto-Activation Systems
 
-### Smart Caching
-- TypeScript checks cached per session
-- Build commands cached per repo
-- Skill suggestions deduplicated
+### Skills Auto-Activation (PreToolUse)
+Detects file types and suggests relevant skills:
+- **Frontend files** (.tsx, .jsx, .css, .html) → `frontend-dev-guidelines`
+- **Backend files** (server/api/route*.ts/js) → `backend-dev-guidelines`
+- Skills loaded only when needed for token efficiency
 
-## Troubleshooting
+### Error Auto-Triage (PostToolUse)
+Detects errors in tool output and routes to specialists:
+- **TypeScript errors** → `typescript-type-expert`
+- **Build failures** → `vite-expert`
+- **Test failures** → `vitest-testing-expert`
+- **Database errors** → `database-expert`
+- **React/Preact errors** → `react-expert`
+- **Unknown errors** → `triage-expert`
 
-### Hook Errors
-```bash
-# Check recent hook issues
-tail -50 ~/.claude/logs/hooks.log
+Errors logged to `~/.claude/logs/errors.jsonl` with timestamp, type, and recommended expert
 
-# View error details
-cat ~/.claude/logs/errors.jsonl | jq -r 'select(.type=="hook_failure")'
+## Performance & Monitoring
 
-# Performance issues?
-~/.claude/hooks/error-logger.sh stats | grep "Slowest"
-```
+**Hooks**: Skills auto-activation + error auto-triage + file-guard + post-tracker
+**Logs**: `~/.claude/logs/*.jsonl` - Auto-cleanup daily at 3am
+**Error Stats**: `~/.claude/hooks/error-logger.sh stats`
+**Browser Tests**: `/tmp/thomas-fix-*.png` screenshots
+**Console Logs**: `/tmp/thomas-fix-console-log.json`
 
-### Browser Test Failures
-```bash
-# View screenshots
-ls -lh /tmp/thomas-fix-*.png
+## Project-Specific Setup
 
-# Check console errors
-cat /tmp/thomas-fix-console-log.json | jq '.errors'
+For each project, create:
+- `<project>/.claude/CLAUDE.md` - Project quirks, commands, architecture pointer
+- `<project>/PROJECT_KNOWLEDGE.md` - Architecture & integration details
+- `<project>/TROUBLESHOOTING.md` - Common issues & solutions
 
-# View server logs (if thomas-fix started server)
-cat /tmp/thomas-fix-server.log
-```
-
-### Timeout Issues
-```bash
-# Increase bash timeout if needed
-/config:bash-timeout 30m project
-
-# Check for hanging hooks
-ps aux | grep claude | grep hook
-```
-
-## Best Practices Summary
-
-1. **Never skip /thomas-fix** - It's your safety net
-2. **Browser = Source of Truth** - Always verify in browser
-3. **Errors = Stop Signal** - Fix immediately, don't accumulate
-4. **Tests = Documentation** - Write them, maintain them
-5. **Logs = Insights** - Check them regularly for patterns
-6. **Hooks = Helpers** - They shouldn't block you (safe-wrapper ensures this)
-
----
-
-*Last updated: 2025-01-14*
-*Hook optimization: 82% overhead reduction*
-*Error logging: Fully instrumented*
+Template: `~/.claude/templates/PROJECT-CLAUDE-TEMPLATE.md`

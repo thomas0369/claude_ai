@@ -267,6 +267,26 @@ if (isLoading) {
 
 ---
 
+### ⚡ Preact + DaisyUI Patterns
+
+**Ultra-Lightweight Stack:**
+- Preact (3KB) vs React (40KB)
+- DaisyUI (2KB CSS-only) vs Component libraries
+- Nanostores (286 bytes) vs Zustand/Redux
+- Preact Signals + Zod (9KB) vs React Hook Form (53KB)
+
+**Covered Topics:**
+- Preact component patterns
+- DaisyUI CSS-only components
+- Nanostores atomic state
+- Forms with Preact Signals + Zod
+- TanStack Query with Preact
+- BSV blockchain integration
+
+**[📖 Complete Guide: resources/preact-patterns.md](resources/preact-patterns.md)**
+
+---
+
 ### 📚 Complete Examples
 
 **Full working examples:**
