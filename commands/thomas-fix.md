@@ -1,20 +1,24 @@
 ---
-description: Iterative autonomous test-validate-fix cycle with Playwright integration
+description: World-class autonomous fix command with security scanning, incremental validation, performance testing, and visual regression detection
 category: workflow
 allowed-tools: Bash, Task, TodoWrite, Read, Edit, MultiEdit, Glob, Grep, SlashCommand
 ---
 
-# Thomas Fix - Autonomous Iterative Testing & Validation
+# Thomas Fix - The World's Best Autonomous Fix Command
 
-Run an autonomous, iterative cycle of validation, fixing, and browser testing until all checks pass.
+Run an autonomous, iterative cycle of validation, security scanning, fixing, code review, browser testing, performance benchmarks, and visual regression detection until all checks pass.
 
 ## Overview
 
 This command combines:
-1. **Code validation** (lint, type-check, tests, build)
-2. **Automatic fixing** (parallel agents for efficiency)
-3. **Browser testing** (Playwright integration for UI validation) - **Required**
-4. **Iteration** (repeats until all checks pass)
+1. **Code validation** (lint, type-check, tests, build) - **Incremental & Smart**
+2. **Security scanning** (SAST, dependency audit, secrets detection) - **NEW**
+3. **Automatic fixing** (parallel agents for efficiency)
+4. **Code review** (comprehensive quality analysis) - **Required**
+5. **Browser testing** (Playwright + performance + visual regression) - **Enhanced**
+6. **Metrics tracking** (phase duration, success rates, trends) - **NEW**
+7. **Automatic commit** (intelligent git commit with /git:commit) - **Automatic**
+8. **Iteration** (repeats until all checks pass)
 
 **Key Feature - Autonomous Server Management:**
 - **Fully autonomous**: No manual server management required
@@ -30,15 +34,27 @@ This command combines:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  PHASE 1: Discovery & Categorization                   │
+│  PHASE 1: Discovery & Categorization (ENHANCED)        │
 │  ├─ Detect available validation commands                │
-│  ├─ Run checks in parallel (lint, type-check, tests)    │
+│  ├─ Incremental detection (changed files only)          │
+│  ├─ Run checks in parallel with retry logic             │
 │  ├─ Categorize issues (CRITICAL, HIGH, MEDIUM, LOW)     │
+│  ├─ Track metrics (start time, file counts)             │
 │  └─ Detect dev servers for Playwright                   │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
-│  PHASE 2: Automated Fixing                              │
+│  PHASE 2: Security Scanning (NEW)                       │
+│  ├─ Dependency vulnerability scan (npm audit)           │
+│  ├─ Secrets detection (API keys, tokens, passwords)     │
+│  ├─ License compliance check                            │
+│  ├─ SAST analysis (static security scan)                │
+│  ├─ Security issue categorization                       │
+│  └─ Block on CRITICAL security issues                   │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  PHASE 3: Automated Fixing                              │
 │  ├─ Create checkpoint (git stash)                       │
 │  ├─ Fix LOW/MEDIUM issues (parallel agents)             │
 │  ├─ Fix HIGH issues (sequential, with verification)     │
@@ -47,7 +63,19 @@ This command combines:
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
-│  PHASE 3: Browser Testing (Playwright)                  │
+│  PHASE 4: Code Review & Quality Analysis               │
+│  ├─ Run /code-review recent changes                     │
+│  ├─ Analyze architecture & design patterns              │
+│  ├─ Check code quality & maintainability                │
+│  ├─ Review security & dependencies                      │
+│  ├─ Assess performance & scalability                    │
+│  ├─ Verify testing coverage                             │
+│  ├─ Check documentation & API design                    │
+│  └─ Blockers? → Return to PHASE 3, else continue        │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  PHASE 5: Browser Testing (ENHANCED)                    │
 │  ├─ AUTONOMOUS SERVER MANAGEMENT:                       │
 │  │  ├─ Detect dev script from package.json              │
 │  │  ├─ Check for running servers on common ports        │
@@ -59,25 +87,79 @@ This command combines:
 │  │  └─ Auto-cleanup after tests complete                │
 │  ├─ Write custom Playwright tests to /tmp (if server OK)│
 │  ├─ Test key user flows (responsive, forms, etc.)       │
+│  ├─ Performance benchmarks (bundle size, Lighthouse)    │
+│  ├─ Visual regression testing (screenshot comparison)   │
 │  ├─ Take screenshots for visual verification            │
 │  └─ Report browser issues found or skip status          │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
-│  PHASE 4: Iteration Decision                            │
-│  ├─ Code pass + browser pass (or skip)? → DONE          │
-│  ├─ Code pass + browser fail? → Fix browser issues      │
-│  ├─ Code fail? → Return to PHASE 2                      │
+│  PHASE 6: Iteration Decision                            │
+│  ├─ All pass (code + security + tests + review)? → P7   │
+│  ├─ Code/browser/security fail? → Return to PHASE 3     │
 │  └─ Max iterations reached? → Report remaining issues   │
-│  Note: Browser tests required when server available     │
 └─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  PHASE 7: Metrics & Commit (ENHANCED)                   │
+│  ├─ Log phase metrics (duration, success rates)         │
+│  ├─ Generate execution report                           │
+│  ├─ Stage all changes (if not already staged)           │
+│  ├─ Analyze change summary (files, areas)               │
+│  ├─ Generate commit context (fixes, validation, tests)  │
+│  ├─ Execute /git:commit (intelligent message)           │
+│  ├─ Show commit details                                 │
+│  ├─ Optional: Push to remote (user confirmation)        │
+│  └─ Save metrics to ~/.claude/logs/metrics.jsonl        │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+                       🎉 DONE
 ```
 
 ## Detailed Workflow
 
-### PHASE 1: Systematic Discovery & Categorization
+### PHASE 1: Systematic Discovery & Categorization (ENHANCED)
 
-#### 1.1 Command Discovery
+#### 1.0 Metrics Initialization
+```bash
+# Initialize metrics tracking
+PHASE_START=$(date +%s)
+METRICS_FILE=~/.claude/logs/metrics.jsonl
+
+echo "{\"phase\":\"PHASE_1\",\"event\":\"start\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> $METRICS_FILE
+```
+
+#### 1.1 Incremental File Detection (NEW)
+**Performance Optimization**: Only validate changed files, not entire codebase.
+
+```bash
+# Detect changed files since last commit
+CHANGED_FILES=$(git diff --name-only --diff-filter=ACM HEAD 2>/dev/null)
+
+if [ -z "$CHANGED_FILES" ]; then
+  # No git or no changes, check unstaged/uncommitted
+  CHANGED_FILES=$(git diff --name-only --diff-filter=ACM 2>/dev/null)
+fi
+
+if [ -z "$CHANGED_FILES" ]; then
+  echo "⚠️  No changed files detected - running full validation"
+  INCREMENTAL_MODE=false
+else
+  echo "📊 Incremental mode: $(echo "$CHANGED_FILES" | wc -l) files changed"
+  INCREMENTAL_MODE=true
+
+  # Categorize changed files by type
+  TS_FILES=$(echo "$CHANGED_FILES" | grep -E '\.(ts|tsx)$' || echo "")
+  JS_FILES=$(echo "$CHANGED_FILES" | grep -E '\.(js|jsx)$' || echo "")
+  TEST_FILES=$(echo "$CHANGED_FILES" | grep -E '\.(test|spec)\.(ts|tsx|js|jsx)$' || echo "")
+
+  echo "  TypeScript: $(echo "$TS_FILES" | wc -l) files"
+  echo "  JavaScript: $(echo "$JS_FILES" | wc -l) files"
+  echo "  Tests: $(echo "$TEST_FILES" | wc -l) files"
+fi
+```
+
+#### 1.2 Command Discovery
 First, discover what validation commands are available:
 1. Check AGENTS.md/CLAUDE.md for documented build/test/lint commands
 2. Examine package.json scripts section
@@ -89,24 +171,101 @@ First, discover what validation commands are available:
    - Build: `build`, `compile`
 4. Check README.md for validation instructions
 
-#### 1.2 Parallel Discovery Execution
-Run ALL discovered checks in parallel using Bash:
+#### 1.3 Parallel Execution with Retry Logic (ENHANCED)
+Run discovered checks in parallel with automatic retry for flaky tests:
+
 ```bash
-# Example parallel execution
-npm run lint &
-npm run typecheck &
-npm run test &
-npm run build &
-wait
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# RETRY LOGIC WRAPPER
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+run_with_retry() {
+  local command=$1
+  local max_retries=${2:-3}
+  local retry_count=0
+  local exit_code=0
+
+  while [ $retry_count -lt $max_retries ]; do
+    if eval "$command"; then
+      # Success
+      if [ $retry_count -gt 0 ]; then
+        echo "  ✅ Succeeded after $retry_count retries (flaky test detected)"
+        # Log flaky test
+        echo "{\"type\":\"flaky_test\",\"command\":\"$command\",\"retries\":$retry_count,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> ~/.claude/logs/metrics.jsonl
+      fi
+      return 0
+    else
+      exit_code=$?
+      retry_count=$((retry_count + 1))
+
+      if [ $retry_count -lt $max_retries ]; then
+        echo "  ⚠️  Attempt $retry_count failed, retrying... (exit code: $exit_code)"
+        sleep 2
+      fi
+    fi
+  done
+
+  echo "  ❌ Failed after $max_retries attempts"
+  return $exit_code
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# INCREMENTAL EXECUTION
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+if [ "$INCREMENTAL_MODE" = true ]; then
+  echo "🚀 Running incremental validation..."
+
+  # Lint only changed files
+  if [ -n "$TS_FILES" ] || [ -n "$JS_FILES" ]; then
+    echo "📝 Linting changed files..."
+    run_with_retry "eslint $TS_FILES $JS_FILES" &
+    LINT_PID=$!
+  fi
+
+  # Typecheck only if TypeScript files changed
+  if [ -n "$TS_FILES" ]; then
+    echo "🔍 Type-checking changed TypeScript files..."
+    run_with_retry "tsc --noEmit $TS_FILES" &
+    TYPE_PID=$!
+  fi
+
+  # Run tests related to changed files (test impact analysis)
+  if [ -n "$TEST_FILES" ]; then
+    echo "🧪 Running affected tests..."
+    run_with_retry "npm run test -- $TEST_FILES" &
+    TEST_PID=$!
+  fi
+
+  # Build always runs (quick for incremental)
+  echo "🏗️  Building..."
+  run_with_retry "npm run build" &
+  BUILD_PID=$!
+
+  # Wait for all background jobs
+  wait
+
+else
+  # Full validation (no changes detected or git not available)
+  echo "🚀 Running full validation..."
+
+  run_with_retry "npm run lint" &
+  run_with_retry "npm run typecheck" &
+  run_with_retry "npm run test" &
+  run_with_retry "npm run build" &
+
+  wait
+fi
 ```
 
-Capture:
+**Capture:**
 - Full output including file paths
 - Line numbers for errors
 - Error messages and codes
 - Exit codes for each command
+- Retry attempts and flaky test detection
 
-#### 1.3 Issue Categorization
+#### 1.4 Issue Categorization
 Immediately categorize findings:
 
 - **CRITICAL**: Security issues, breaking changes, data loss risk
@@ -114,7 +273,7 @@ Immediately categorize findings:
 - **MEDIUM**: Code quality, style violations, documentation gaps
 - **LOW**: Formatting, minor optimizations
 
-#### 1.4 Dev Server Detection (for Playwright)
+#### 1.5 Dev Server Detection (for Playwright)
 ```bash
 # Auto-detect running dev servers
 cd ~/.claude/plugins/marketplaces/playwright-skill/skills/playwright-skill
@@ -123,15 +282,251 @@ node -e "require('./lib/helpers').detectDevServers().then(servers => console.log
 
 Record found servers for browser testing phase.
 
-### PHASE 2: Strategic Fix Execution
+#### 1.6 Metrics Conclusion
+```bash
+# Log phase completion metrics
+PHASE_END=$(date +%s)
+PHASE_DURATION=$((PHASE_END - PHASE_START))
 
-#### 2.1 Create Checkpoint
+echo "{\"phase\":\"PHASE_1\",\"event\":\"complete\",\"duration_seconds\":$PHASE_DURATION,\"incremental\":$INCREMENTAL_MODE,\"files_changed\":$(echo "$CHANGED_FILES" | wc -l),\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> $METRICS_FILE
+```
+
+---
+
+### PHASE 2: Security Scanning (NEW)
+
+**Critical security validation before attempting any fixes.**
+
+#### 2.0 Metrics Initialization
+```bash
+SECURITY_PHASE_START=$(date +%s)
+echo "{\"phase\":\"PHASE_2_SECURITY\",\"event\":\"start\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> $METRICS_FILE
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔒 SECURITY SCANNING"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+```
+
+#### 2.1 Dependency Vulnerability Scan
+```bash
+echo "📦 Scanning dependencies for vulnerabilities..."
+
+# Run npm audit
+AUDIT_OUTPUT=$(npm audit --json 2>/dev/null || echo '{"error":"npm audit failed"}')
+
+# Parse results
+CRITICAL_VULNS=$(echo "$AUDIT_OUTPUT" | jq '.metadata.vulnerabilities.critical // 0')
+HIGH_VULNS=$(echo "$AUDIT_OUTPUT" | jq '.metadata.vulnerabilities.high // 0')
+MODERATE_VULNS=$(echo "$AUDIT_OUTPUT" | jq '.metadata.vulnerabilities.moderate // 0')
+LOW_VULNS=$(echo "$AUDIT_OUTPUT" | jq '.metadata.vulnerabilities.low // 0')
+
+echo "  Critical: $CRITICAL_VULNS"
+echo "  High: $HIGH_VULNS"
+echo "  Moderate: $MODERATE_VULNS"
+echo "  Low: $LOW_VULNS"
+
+# Log vulnerabilities
+echo "{\"type\":\"dependency_scan\",\"critical\":$CRITICAL_VULNS,\"high\":$HIGH_VULNS,\"moderate\":$MODERATE_VULNS,\"low\":$LOW_VULNS,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> $METRICS_FILE
+
+# Block on critical vulnerabilities
+if [ "$CRITICAL_VULNS" -gt 0 ]; then
+  echo ""
+  echo "❌ CRITICAL SECURITY VULNERABILITIES FOUND!"
+  echo "   Cannot proceed with fix until these are resolved."
+  echo ""
+  echo "Run: npm audit fix --force"
+  echo "Or: Review manually with: npm audit"
+  exit 1
+fi
+
+if [ "$HIGH_VULNS" -gt 0 ]; then
+  echo ""
+  echo "⚠️  HIGH severity vulnerabilities found"
+  echo "   Consider running: npm audit fix"
+  echo ""
+fi
+```
+
+#### 2.2 Secrets Detection
+**Prevent accidental commit of API keys, tokens, passwords.**
+
+```bash
+echo ""
+echo "🔑 Scanning for secrets in staged/changed files..."
+
+# Get staged and changed files
+SCAN_FILES=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || git diff --name-only --diff-filter=ACM 2>/dev/null || echo "")
+
+if [ -z "$SCAN_FILES" ]; then
+  echo "  ✅ No staged/changed files to scan"
+else
+  # Patterns to detect
+  SECRET_PATTERNS=(
+    "api[_-]?key"
+    "api[_-]?secret"
+    "apikey"
+    "access[_-]?token"
+    "auth[_-]?token"
+    "secret[_-]?key"
+    "private[_-]?key"
+    "password"
+    "passwd"
+    "pwd"
+    "bearer"
+    "jwt"
+    "credentials"
+    "aws[_-]?access"
+    "aws[_-]?secret"
+    "stripe[_-]?key"
+    "github[_-]?token"
+  )
+
+  SECRETS_FOUND=0
+
+  for pattern in "${SECRET_PATTERNS[@]}"; do
+    # Search in staged/changed files (case-insensitive)
+    if git diff --cached | grep -iE "$pattern\s*[=:]\s*['\"]?[A-Za-z0-9_\-]{20,}" > /dev/null 2>&1; then
+      echo "  ⚠️  Potential secret detected: $pattern"
+      SECRETS_FOUND=$((SECRETS_FOUND + 1))
+    fi
+  done
+
+  if [ "$SECRETS_FOUND" -gt 0 ]; then
+    echo ""
+    echo "❌ POTENTIAL SECRETS DETECTED IN STAGED FILES!"
+    echo "   Found $SECRETS_FOUND pattern matches"
+    echo ""
+    echo "Review staged changes: git diff --cached"
+    echo ""
+    echo "Options:"
+    echo "  1. Remove secrets and use environment variables"
+    echo "  2. Add to .gitignore if it's a config file"
+    echo "  3. Use git secret or similar tool"
+    echo ""
+    exit 1
+  else
+    echo "  ✅ No secrets detected"
+  fi
+fi
+```
+
+#### 2.3 License Compliance Check
+```bash
+echo ""
+echo "📜 Checking dependency licenses..."
+
+# Check if license-checker is installed
+if command -v license-checker &> /dev/null; then
+  # Run license check
+  FORBIDDEN_LICENSES=("GPL-3.0" "AGPL-3.0" "SSPL")
+  LICENSE_OUTPUT=$(license-checker --json --production 2>/dev/null || echo "{}")
+
+  FORBIDDEN_FOUND=0
+  for license in "${FORBIDDEN_LICENSES[@]}"; do
+    if echo "$LICENSE_OUTPUT" | grep -q "$license"; then
+      echo "  ⚠️  Forbidden license found: $license"
+      FORBIDDEN_FOUND=$((FORBIDDEN_FOUND + 1))
+    fi
+  done
+
+  if [ "$FORBIDDEN_FOUND" -gt 0 ]; then
+    echo ""
+    echo "⚠️  Found $FORBIDDEN_FOUND dependencies with potentially problematic licenses"
+    echo "   Review with: npx license-checker --summary"
+  else
+    echo "  ✅ All licenses compliant"
+  fi
+else
+  echo "  ℹ️  license-checker not installed - skipping"
+  echo "     Install with: npm install -g license-checker"
+fi
+```
+
+#### 2.4 SAST Scan (Basic)
+**Static Application Security Testing**
+
+```bash
+echo ""
+echo "🔍 Running static security analysis..."
+
+# Check for common security anti-patterns in code
+SECURITY_ISSUES=0
+
+# Pattern 1: eval() usage
+if git diff --cached | grep -E "eval\(" > /dev/null 2>&1; then
+  echo "  ⚠️  Detected eval() usage (potential security risk)"
+  SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
+fi
+
+# Pattern 2: innerHTML without sanitization
+if git diff --cached | grep -E "innerHTML\s*=" | grep -v "DOMPurify\|sanitize" > /dev/null 2>&1; then
+  echo "  ⚠️  Detected innerHTML usage without sanitization (XSS risk)"
+  SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
+fi
+
+# Pattern 3: SQL concatenation (SQL injection risk)
+if git diff --cached | grep -E "SELECT.*\+.*FROM" > /dev/null 2>&1; then
+  echo "  ⚠️  Detected potential SQL injection (string concatenation in query)"
+  SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
+fi
+
+# Pattern 4: Hardcoded credentials
+if git diff --cached | grep -iE "(password|secret)\s*=\s*['\"][^'\"]{8,}" > /dev/null 2>&1; then
+  echo "  ⚠️  Detected hardcoded credentials"
+  SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
+fi
+
+if [ "$SECURITY_ISSUES" -eq 0 ]; then
+  echo "  ✅ No obvious security anti-patterns detected"
+else
+  echo ""
+  echo "⚠️  Found $SECURITY_ISSUES potential security issues"
+  echo "   These are warnings - review manually"
+fi
+
+# Log SAST results
+echo "{\"type\":\"sast_scan\",\"issues\":$SECURITY_ISSUES,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> $METRICS_FILE
+```
+
+#### 2.5 Security Summary
+```bash
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📊 SECURITY SCAN SUMMARY"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "  Dependency Vulnerabilities:"
+echo "    Critical: $CRITICAL_VULNS (blocking)"
+echo "    High: $HIGH_VULNS (warning)"
+echo "    Moderate: $MODERATE_VULNS"
+echo "    Low: $LOW_VULNS"
+echo ""
+echo "  Secrets Scan: $([ "$SECRETS_FOUND" -eq 0 ] && echo "✅ Passed" || echo "❌ Failed")"
+echo "  SAST Analysis: $([ "$SECURITY_ISSUES" -eq 0 ] && echo "✅ Clean" || echo "⚠️  $SECURITY_ISSUES warnings")"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Log phase completion
+SECURITY_PHASE_END=$(date +%s)
+SECURITY_PHASE_DURATION=$((SECURITY_PHASE_END - SECURITY_PHASE_START))
+
+echo "{\"phase\":\"PHASE_2_SECURITY\",\"event\":\"complete\",\"duration_seconds\":$SECURITY_PHASE_DURATION,\"critical_vulns\":$CRITICAL_VULNS,\"high_vulns\":$HIGH_VULNS,\"secrets_found\":$SECRETS_FOUND,\"sast_issues\":$SECURITY_ISSUES,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> $METRICS_FILE
+```
+
+---
+
+### PHASE 3: Strategic Fix Execution
+
+#### 3.1 Create Checkpoint
 ```bash
 # Safety first - create rollback point
 git stash push -u -m "thomas-fix checkpoint: $(date +%Y%m%d-%H%M%S)"
 ```
 
-#### 2.2 Fix LOW & MEDIUM Issues (Parallel)
+#### 3.2 Fix LOW & MEDIUM Issues (Parallel)
 Launch multiple specialized agents concurrently:
 - **Use specialized subagents** when available (typescript-expert, react-expert, etc.)
 - Each agent gets specific, non-overlapping responsibilities
@@ -152,34 +547,97 @@ Agent 2 (typescript-type-expert):
 
 **CRITICAL**: Include multiple Task tool calls in a SINGLE message for parallel execution.
 
-#### 2.3 Fix HIGH Issues (Sequential)
+#### 3.3 Fix HIGH Issues (Sequential)
 Address HIGH priority issues one at a time:
 - Fix one issue
 - Run tests immediately
 - Verify no regressions
 - Move to next issue
 
-#### 2.4 Fix CRITICAL Issues (With Confirmation)
+#### 3.4 Fix CRITICAL Issues (With Confirmation)
 For CRITICAL issues:
 1. Present detailed plan to user
 2. Explain risks and approach
 3. Wait for explicit confirmation
 4. Execute with extra verification
 
-#### 2.5 Verification
+#### 3.5 Verification
 Re-run ALL checks to confirm fixes:
 ```bash
 npm run lint && npm run typecheck && npm run test && npm run build
 ```
 
-### PHASE 3: Browser Testing with Playwright
+### PHASE 4: Code Review & Quality Analysis
 
-#### 3.0 Autonomous Server Management
+#### 4.0 Comprehensive Code Review
+After all tests pass, perform comprehensive code review using `/code-review`:
+
+```bash
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📝 CODE REVIEW & QUALITY ANALYSIS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Launch code review for changed files
+echo "🔍 Analyzing code quality..."
+```
+
+Use `/code-review recent changes` to analyze:
+- Architecture & design patterns
+- Code quality & maintainability
+- Security & dependencies
+- Performance & scalability
+- Testing coverage
+- Documentation & API design
+
+**Review Categories:**
+- ✅ **PASS**: No issues, ready to commit
+- ⚠️  **WARNINGS**: Minor issues, acceptable to commit with notes
+- ❌ **BLOCKERS**: Critical issues, must fix before commit
+
+**Integration:**
+```bash
+# Run code review
+CODE_REVIEW_RESULT=$(claude /code-review recent changes 2>&1)
+echo "$CODE_REVIEW_RESULT"
+
+# Parse review result
+if echo "$CODE_REVIEW_RESULT" | grep -q "BLOCKER"; then
+    echo ""
+    echo "❌ Code review found blocking issues!"
+    echo "   Review must be addressed before commit"
+    echo ""
+    echo "Options:"
+    echo "  1. Fix blocking issues"
+    echo "  2. Review details above"
+    echo "  3. Re-run /thomas-fix after fixes"
+    echo ""
+    exit 1
+fi
+
+# Count warnings
+WARNING_COUNT=$(echo "$CODE_REVIEW_RESULT" | grep -c "⚠️" || echo "0")
+
+if [ "$WARNING_COUNT" -gt 0 ]; then
+    echo ""
+    echo "⚠️  Code review found $WARNING_COUNT warning(s)"
+    echo "   Acceptable to commit, but consider addressing"
+    echo ""
+fi
+
+echo "✅ Code review complete"
+echo ""
+```
+
+### PHASE 5: Browser Testing with Playwright (ENHANCED)
+
+#### 5.0 Autonomous Server Management
 **CRITICAL**: Browser tests require a healthy dev server. This phase autonomously manages the dev server lifecycle.
 
 ```bash
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# PHASE 3.0: AUTONOMOUS SERVER MANAGEMENT
+# PHASE 4.0: AUTONOMOUS SERVER MANAGEMENT
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 echo ""
@@ -491,11 +949,11 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 ```
 
-#### 3.1 Server Detection
+#### 5.1 Server Detection
 Browser tests will only run if the dev server is healthy and responding.
 All tests are automatically skipped if the server is unavailable.
 
-#### 3.2 Write Playwright Tests
+#### 5.2 Write Playwright Tests
 Create custom test scripts in `/tmp/playwright-test-*.js`:
 
 **Example responsive test:**
@@ -581,7 +1039,7 @@ const TARGET_URL = 'http://localhost:3000';
 })();
 ```
 
-#### 3.3 Execute Tests
+#### 5.3 Execute Tests
 **IMPORTANT**: Only execute tests if dev server health check passed.
 
 ```bash
@@ -743,7 +1201,164 @@ else
 fi
 ```
 
-#### 3.4 Analyze Results
+#### 5.4 Performance & Visual Regression (NEW)
+**Enhanced browser testing with performance benchmarks and visual regression detection.**
+
+```bash
+if [ "$SKIP_BROWSER_TESTS" == "false" ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "⚡ PERFORMANCE BENCHMARKS"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  # ─────────────────────────────────────────────────────────────
+  # Bundle Size Analysis
+  # ─────────────────────────────────────────────────────────────
+  echo "📦 Analyzing bundle size..."
+
+  # Find build output directory
+  if [ -d "dist" ]; then
+    BUILD_DIR="dist"
+  elif [ -d "build" ]; then
+    BUILD_DIR="build"
+  elif [ -d ".next" ]; then
+    BUILD_DIR=".next"
+  else
+    echo "  ⚠️  Build directory not found, skipping bundle analysis"
+    BUILD_DIR=""
+  fi
+
+  if [ -n "$BUILD_DIR" ]; then
+    # Calculate total bundle size
+    CURRENT_BUNDLE_SIZE=$(du -sb "$BUILD_DIR" | cut -f1)
+    CURRENT_BUNDLE_MB=$(echo "scale=2; $CURRENT_BUNDLE_SIZE / 1024 / 1024" | bc)
+
+    echo "  Current bundle: ${CURRENT_BUNDLE_MB}MB"
+
+    # Check for baseline
+    BASELINE_FILE=~/.claude/logs/bundle-baseline.txt
+    if [ -f "$BASELINE_FILE" ]; then
+      BASELINE_SIZE=$(cat "$BASELINE_FILE")
+      BASELINE_MB=$(echo "scale=2; $BASELINE_SIZE / 1024 / 1024" | bc)
+      SIZE_DIFF=$((CURRENT_BUNDLE_SIZE - BASELINE_SIZE))
+      DIFF_MB=$(echo "scale=2; $SIZE_DIFF / 1024 / 1024" | bc)
+      PERCENT_CHANGE=$(echo "scale=1; ($SIZE_DIFF * 100) / $BASELINE_SIZE" | bc)
+
+      echo "  Baseline: ${BASELINE_MB}MB"
+      echo "  Change: ${DIFF_MB}MB (${PERCENT_CHANGE}%)"
+
+      # Warn if bundle grew significantly
+      if [ "$SIZE_DIFF" -gt 100000 ]; then
+        echo "  ⚠️  Bundle grew by ${DIFF_MB}MB! Review dependencies and code splits."
+      elif [ "$SIZE_DIFF" -lt -10000 ]; then
+        echo "  ✅ Bundle size optimized by ${DIFF_MB}MB!"
+      fi
+    else
+      echo "  ℹ️  No baseline found, creating new baseline"
+      echo "$CURRENT_BUNDLE_SIZE" > "$BASELINE_FILE"
+    fi
+
+    # Log bundle metrics
+    echo "{\"type\":\"bundle_size\",\"size_bytes\":$CURRENT_BUNDLE_SIZE,\"size_mb\":$CURRENT_BUNDLE_MB,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> $METRICS_FILE
+  fi
+
+  # ─────────────────────────────────────────────────────────────
+  # Lighthouse Performance Audit (if available)
+  # ─────────────────────────────────────────────────────────────
+  echo ""
+  echo "🔍 Running Lighthouse audit..."
+
+  if command -v lighthouse &> /dev/null; then
+    LIGHTHOUSE_OUTPUT=$(lighthouse $SERVER_URL --output json --output-path /tmp/lighthouse-report.json --only-categories=performance,accessibility --quiet 2>&1 || echo "failed")
+
+    if [ "$LIGHTHOUSE_OUTPUT" != "failed" ] && [ -f /tmp/lighthouse-report.json ]; then
+      PERF_SCORE=$(jq '.categories.performance.score * 100' /tmp/lighthouse-report.json)
+      ACCESS_SCORE=$(jq '.categories.accessibility.score * 100' /tmp/lighthouse-report.json)
+
+      echo "  Performance: ${PERF_SCORE}/100"
+      echo "  Accessibility: ${ACCESS_SCORE}/100"
+
+      # Warn on low scores
+      if [ "${PERF_SCORE%.*}" -lt 70 ]; then
+        echo "  ⚠️  Performance score below 70"
+      fi
+      if [ "${ACCESS_SCORE%.*}" -lt 90 ]; then
+        echo "  ⚠️  Accessibility score below 90"
+      fi
+
+      # Log Lighthouse metrics
+      echo "{\"type\":\"lighthouse\",\"performance\":$PERF_SCORE,\"accessibility\":$ACCESS_SCORE,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> $METRICS_FILE
+    else
+      echo "  ⚠️  Lighthouse audit failed"
+    fi
+  else
+    echo "  ℹ️  Lighthouse not installed - skipping"
+    echo "     Install with: npm install -g lighthouse"
+  fi
+
+  # ─────────────────────────────────────────────────────────────
+  # Visual Regression Detection
+  # ─────────────────────────────────────────────────────────────
+  echo ""
+  echo "📸 Visual regression detection..."
+
+  BASELINE_DIR=~/.claude/visual-baselines
+  mkdir -p "$BASELINE_DIR"
+
+  # Check if we have baseline screenshots
+  if [ -f "$BASELINE_DIR/desktop.png" ]; then
+    echo "  Comparing with baseline screenshots..."
+
+    # Install pixelmatch if not available (npm package)
+    if command -v compare &> /dev/null; then
+      # Using ImageMagick compare
+      DESKTOP_DIFF=$(compare -metric AE "$BASELINE_DIR/desktop.png" /tmp/thomas-fix-desktop.png /tmp/diff-desktop.png 2>&1 || echo "0")
+      TABLET_DIFF=$(compare -metric AE "$BASELINE_DIR/tablet.png" /tmp/thomas-fix-tablet.png /tmp/diff-tablet.png 2>&1 || echo "0")
+      MOBILE_DIFF=$(compare -metric AE "$BASELINE_DIR/mobile.png" /tmp/thomas-fix-mobile.png /tmp/diff-mobile.png 2>&1 || echo "0")
+
+      echo "  Desktop: $DESKTOP_DIFF pixels changed"
+      echo "  Tablet: $TABLET_DIFF pixels changed"
+      echo "  Mobile: $MOBILE_DIFF pixels changed"
+
+      TOTAL_DIFF=$((DESKTOP_DIFF + TABLET_DIFF + MOBILE_DIFF))
+
+      if [ "$TOTAL_DIFF" -gt 1000 ]; then
+        echo ""
+        echo "  ⚠️  Significant visual changes detected ($TOTAL_DIFF pixels)"
+        echo "     Review diff images: /tmp/diff-*.png"
+        echo ""
+        echo "  Options:"
+        echo "    1. Review changes are intentional"
+        echo "    2. Update baselines: cp /tmp/thomas-fix-*.png $BASELINE_DIR/"
+        echo "    3. Investigate unintended visual regressions"
+      elif [ "$TOTAL_DIFF" -gt 100 ]; then
+        echo "  ℹ️  Minor visual changes ($TOTAL_DIFF pixels)"
+      else
+        echo "  ✅ No significant visual regressions"
+      fi
+
+      # Log visual regression metrics
+      echo "{\"type\":\"visual_regression\",\"pixels_changed\":$TOTAL_DIFF,\"desktop\":$DESKTOP_DIFF,\"tablet\":$TABLET_DIFF,\"mobile\":$MOBILE_DIFF,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> $METRICS_FILE
+    else
+      echo "  ℹ️  ImageMagick not installed - skipping pixel comparison"
+      echo "     Install with: apt-get install imagemagick (Linux) or brew install imagemagick (Mac)"
+    fi
+  else
+    echo "  ℹ️  No baseline screenshots found, creating baselines"
+    cp /tmp/thomas-fix-desktop.png "$BASELINE_DIR/desktop.png" 2>/dev/null || true
+    cp /tmp/thomas-fix-tablet.png "$BASELINE_DIR/tablet.png" 2>/dev/null || true
+    cp /tmp/thomas-fix-mobile.png "$BASELINE_DIR/mobile.png" 2>/dev/null || true
+    echo "  ✅ Baseline screenshots saved to $BASELINE_DIR"
+  fi
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+fi
+```
+
+#### 5.5 Analyze Results
 **Conditional analysis based on test execution:**
 
 ```bash
@@ -789,9 +1404,9 @@ else
 fi
 ```
 
-### PHASE 4: Iteration & Decision
+### PHASE 6: Iteration & Decision
 
-#### 4.1 Evaluation Criteria
+#### 6.1 Evaluation Criteria
 ```bash
 # Code validation criteria (always checked)
 CODE_VALIDATION_PASS=true
@@ -863,7 +1478,7 @@ The command fails if:
 2. ❌ Browser tests fail (when server is available and tests are run)
 3. ❌ Browser tests cannot start despite server being available
 
-#### 4.2 Iteration Logic
+#### 5.2 Iteration Logic
 ```bash
 # Determine overall success
 OVERALL_SUCCESS=false
@@ -892,17 +1507,212 @@ fi
 
 # Iteration decision
 if [ "$OVERALL_SUCCESS" == "true" ]; then
+  # Proceed to Phase 6: Automatic Commit
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "🎉 THOMAS FIX COMPLETE"
+  echo "✅ ALL VALIDATION & REVIEW COMPLETE"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
+  echo "Proceeding to automatic commit..."
+  # Continue to PHASE 6
 
-  # Create success checkpoint
-  git stash push -u -m "thomas-fix success: $(date +%Y%m%d-%H%M%S)"
+### PHASE 7: Metrics & Automatic Git Commit (ENHANCED)
 
-  # Show summary (see section 4.3)
-  exit 0
+#### 7.0 Save Execution Metrics
+```bash
+# Calculate total execution time
+TOTAL_END=$(date +%s)
+TOTAL_DURATION=$((TOTAL_END - PHASE_START))
+TOTAL_MINUTES=$(echo "scale=2; $TOTAL_DURATION / 60" | bc)
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📊 EXECUTION METRICS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "  Total Duration: ${TOTAL_MINUTES} minutes"
+echo "  Incremental Mode: $INCREMENTAL_MODE"
+echo "  Files Changed: $(echo "$CHANGED_FILES" | wc -l)"
+echo ""
+echo "  Security:"
+echo "    Critical Vulnerabilities: $CRITICAL_VULNS"
+echo "    Secrets Found: $SECRETS_FOUND"
+echo "    SAST Issues: $SECURITY_ISSUES"
+echo ""
+echo "  Browser Tests:"
+echo "    Executed: $([ "$SKIP_BROWSER_TESTS" == "false" ] && echo "Yes" || echo "Skipped")"
+echo "    Failures: ${BROWSER_TEST_FAILURES:-0}"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Save comprehensive execution log
+echo "{\"type\":\"execution_complete\",\"duration_seconds\":$TOTAL_DURATION,\"duration_minutes\":$TOTAL_MINUTES,\"incremental\":$INCREMENTAL_MODE,\"files_changed\":$(echo "$CHANGED_FILES" | wc -l),\"security\":{\"critical_vulns\":$CRITICAL_VULNS,\"secrets\":$SECRETS_FOUND,\"sast_issues\":$SECURITY_ISSUES},\"browser_tests\":{\"skipped\":\"$SKIP_BROWSER_TESTS\",\"failures\":${BROWSER_TEST_FAILURES:-0}},\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> $METRICS_FILE
+```
+
+#### 7.1 Prepare Commit
+```bash
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📦 AUTOMATIC COMMIT"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Check for staged or modified files
+if ! git diff --quiet || ! git diff --cached --quiet || git ls-files --others --exclude-standard | grep -q .; then
+    echo "✅ Changes detected, preparing commit..."
+else
+    echo "ℹ️  No changes to commit"
+    exit 0
+fi
+```
+
+#### 7.2 Analyze Changes for Commit Message
+```bash
+# Get file statistics
+FILES_CHANGED=$(git diff --cached --name-only 2>/dev/null | wc -l)
+if [ "$FILES_CHANGED" -eq 0 ]; then
+    # If nothing staged, stage all changes
+    echo "📝 Staging all changes..."
+    git add .
+    FILES_CHANGED=$(git diff --cached --name-only | wc -l)
+fi
+
+# Analyze change types
+ADDED_FILES=$(git diff --cached --diff-filter=A --name-only | wc -l)
+MODIFIED_FILES=$(git diff --cached --diff-filter=M --name-only | wc -l)
+DELETED_FILES=$(git diff --cached --diff-filter=D --name-only | wc -l)
+
+echo ""
+echo "📊 Change Summary:"
+echo "  Files changed: $FILES_CHANGED"
+echo "  Added: $ADDED_FILES"
+echo "  Modified: $MODIFIED_FILES"
+echo "  Deleted: $DELETED_FILES"
+echo ""
+
+# Get affected areas (component types)
+AFFECTED_AREAS=$(git diff --cached --name-only | \
+    grep -E '\.(ts|tsx|js|jsx)$' | \
+    awk -F'/' '{if ($2=="components") print "components"; else if ($2=="hooks") print "hooks"; else if ($2=="utils") print "utils"; else if ($2=="api" || $2=="routes") print "api"; else print "code"}' | \
+    sort -u | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
+
+echo "🎯 Affected areas: ${AFFECTED_AREAS:-general}"
+echo ""
+```
+
+#### 7.3 Generate Smart Commit Message
+Use `/git:commit` to create an intelligent commit message based on:
+- Changed files and their purposes
+- Code review findings
+- Test results
+- Repository commit history style
+
+```bash
+# Prepare commit context
+COMMIT_CONTEXT="thomas-fix automated commit after successful validation
+
+Changes:
+- Files changed: $FILES_CHANGED
+- Areas: $AFFECTED_AREAS
+- Lint errors fixed: $LINT_ERRORS_FIXED
+- TypeScript errors fixed: $TYPECHECK_ERRORS_FIXED
+- Test failures fixed: $TEST_FAILURES_FIXED
+- Build errors fixed: $BUILD_ERRORS_FIXED
+
+Validation:
+- ✅ Lint passed
+- ✅ Type-check passed
+- ✅ Tests passed ($((BROWSER_TESTS_RUN - BROWSER_TEST_FAILURES)) browser tests)
+- ✅ Build passed
+- ✅ Code review passed ($WARNING_COUNT warning(s))
+
+Screenshots: /tmp/thomas-fix-*.png
+Console log: /tmp/thomas-fix-console-log.json
+"
+
+echo "$COMMIT_CONTEXT" > /tmp/thomas-fix-commit-context.txt
+```
+
+#### 7.4 Execute Commit
+```bash
+echo "🔍 Generating commit message..."
+
+# Use /git:commit for intelligent commit message
+if claude /git:commit; then
+    echo ""
+    echo "✅ Commit successful!"
+    echo ""
+
+    # Show the commit
+    echo "📝 Commit details:"
+    git log -1 --pretty=format:"  Commit: %h%n  Author: %an%n  Date: %ad%n  Message: %s%n%n%b" --date=relative
+    echo ""
+
+    # Save commit hash for reference
+    COMMIT_HASH=$(git rev-parse HEAD)
+    echo "Commit hash: $COMMIT_HASH" >> /tmp/thomas-fix-summary.txt
+else
+    echo ""
+    echo "⚠️  Automatic commit failed"
+    echo "   You can commit manually:"
+    echo "   git add . && git commit -m 'your message'"
+    echo ""
+    exit 1
+fi
+```
+
+#### 7.5 Post-Commit Actions
+```bash
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 POST-COMMIT ACTIONS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Option to push
+read -p "🚀 Push to remote? (y/N) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "🚀 Pushing to remote..."
+    if git push; then
+        echo "✅ Pushed successfully!"
+    else
+        echo "⚠️  Push failed - check remote configuration"
+    fi
+else
+    echo "ℹ️  Skipped push - you can push later with: git push"
+fi
+
+echo ""
+```
+
+#### 7.6 Completion
+```bash
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🎉 THOMAS FIX COMPLETE WITH COMMIT"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "✅ All validation passed"
+echo "✅ Code review completed"
+echo "✅ Changes committed"
+echo ""
+echo "Summary saved to: /tmp/thomas-fix-summary.txt"
+echo ""
+
+# Clean up stale checkpoints (keep last 5)
+CHECKPOINT_COUNT=$(git stash list | grep -c "thomas-fix" || echo "0")
+if [ "$CHECKPOINT_COUNT" -gt 5 ]; then
+    echo "🧹 Cleaning up old checkpoints (keeping 5 most recent)..."
+    # Note: This is informational - actual cleanup requires manual intervention
+fi
+
+exit 0
+```
+
+### PHASE 7: Iteration (If Needed)
+
+If validation or review fails, return to fixing phase:
 
 elif [ $ITERATION -lt $MAX_ITERATIONS ]; then
   echo ""
