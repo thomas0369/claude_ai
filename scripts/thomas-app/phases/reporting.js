@@ -64,6 +64,12 @@ async function generate(orchestrator) {
     JSON.stringify(report, null, 2)
   );
 
+  // Create GitHub issues if enabled
+  if (config.github?.createIssues) {
+    const githubIntegration = require('./github-integration');
+    report.githubIssues = await githubIntegration.createIssues(results, config);
+  }
+
   // Print console summary
   printSummary(report);
 
@@ -526,8 +532,12 @@ async function detectVisualRegression(screenshots, outputDir) {
     // No baselines yet, save current screenshots as baseline
     fs.mkdirSync(baselinesDir, { recursive: true });
     screenshots.forEach(screenshot => {
-      const baselinePath = path.join(baselinesDir, path.basename(screenshot.path));
-      fs.copyFileSync(screenshot.path, baselinePath);
+      // Handle both string paths and objects with .path property
+      const screenshotPath = typeof screenshot === 'string' ? screenshot : screenshot.path;
+      if (screenshotPath && fs.existsSync(screenshotPath)) {
+        const baselinePath = path.join(baselinesDir, path.basename(screenshotPath));
+        fs.copyFileSync(screenshotPath, baselinePath);
+      }
     });
     return { baseline: true, differences: [] };
   }

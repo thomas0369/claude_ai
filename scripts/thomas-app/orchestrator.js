@@ -34,16 +34,30 @@ class ThomasAppOrchestrator {
     this.page = null;
   }
 
+  detectWSL() {
+    try {
+      // Check /proc/version for Microsoft/WSL identifiers
+      if (fs.existsSync('/proc/version')) {
+        const version = fs.readFileSync('/proc/version', 'utf8').toLowerCase();
+        return version.includes('microsoft') || version.includes('wsl');
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
+
   loadConfig() {
     // Default configuration
     const defaultConfig = {
       appType: null,  // Will be auto-detected
-      baseUrl: 'http://localhost:3000',
+      baseUrl: process.env.BASE_URL || 'http://localhost:3000',
       testSuites: {
         discovery: true,
         customerJourneys: true,
         visualAnalysis: true,
         interactions: true,
+        screenFlow: true,  // Comprehensive interaction testing + flow mapping
         gameAI: false,  // Auto-enabled if game detected
         performance: true,
         accessibility: true,
@@ -98,11 +112,29 @@ class ThomasAppOrchestrator {
       fs.mkdirSync(this.config.outputDir, { recursive: true });
     }
 
+    // Detect WSL2 environment
+    const isWSL = this.detectWSL();
+    if (isWSL) {
+      console.log('⚙️  WSL2 detected - applying compatibility flags');
+    }
+
+    // Build browser launch args with WSL2 compatibility
+    const launchArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage'
+    ];
+
+    if (isWSL) {
+      launchArgs.push('--disable-software-rasterizer');
+      launchArgs.push('--disable-gpu');
+    }
+
     // Launch browser
     console.log('🚀 Starting browser...');
     this.browser = await chromium.launch({
       headless: false,  // Run in headed mode to see tests
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: launchArgs
     });
 
     this.context = await this.browser.newContext({
@@ -191,6 +223,11 @@ class ThomasAppOrchestrator {
         await this.runPhase3VisualInteraction();
       }
 
+      // Phase 3.5: Screen Flow & Comprehensive Interaction Testing
+      if (this.isSuiteEnabled('screenFlow')) {
+        await this.runPhase3ScreenFlow();
+      }
+
       // Phase 4: Specialized Testing (context-aware)
       await this.runPhase4Specialized();
 
@@ -208,6 +245,9 @@ class ThomasAppOrchestrator {
       if (this.isSuiteEnabled('realWorld')) {
         await this.runPhase7RealWorld();
       }
+
+      // Phase 7.3: Code Quality Scanning
+      await this.runPhase7CodeQuality();
 
       // Phase 7.5: Agent Reviews (enabled by default)
       if (this.isSuiteEnabled('agentReviews')) {
@@ -293,6 +333,21 @@ class ThomasAppOrchestrator {
     console.log(`   Interaction Issues: ${this.results.phases.visualInteraction.interactionIssues.length}\n`);
   }
 
+  async runPhase3ScreenFlow() {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('PHASE 3.5: Screen Flow & Comprehensive Interaction Testing');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    const screenFlow = require('./phases/screen-flow');
+    this.results.phases.screenFlow = await screenFlow.run(this);
+
+    console.log(`\n✅ Phase 3.5 Complete`);
+    console.log(`   States Discovered: ${this.results.phases.screenFlow.coverage.states}`);
+    console.log(`   Transitions Tested: ${this.results.phases.screenFlow.coverage.transitions}`);
+    console.log(`   Total Interactions: ${this.results.phases.screenFlow.coverage.interactions}`);
+    console.log(`   Flow Map Formats: ${this.results.phases.screenFlow.flowMap.formats.join(', ')}\n`);
+  }
+
   async runPhase4Specialized() {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('PHASE 4: Specialized Testing');
@@ -363,6 +418,20 @@ class ThomasAppOrchestrator {
     console.log(`\n✅ Phase 7 Complete\n`);
   }
 
+  async runPhase7CodeQuality() {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('PHASE 7.3: Code Quality Scanning');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    const codeQuality = require('./phases/code-quality');
+    this.results.phases.codeQuality = await codeQuality.run(this);
+
+    const totalMarkers = this.results.phases.codeQuality.totalMarkers;
+
+    console.log(`\n✅ Phase 7.3 Complete`);
+    console.log(`   Code Markers Found: ${totalMarkers}\n`);
+  }
+
   async runPhase7AgentReviews() {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('PHASE 7.5: AI Agent Code Reviews');
@@ -400,29 +469,18 @@ class ThomasAppOrchestrator {
     const reporting = require('./phases/reporting');
     const finalReport = await reporting.generate(this);
 
-    // Save reports
+    // Save reports with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-
-    // JSON report
     const jsonPath = path.join(this.config.outputDir, `report-${timestamp}.json`);
     fs.writeFileSync(jsonPath, JSON.stringify(finalReport, null, 2));
     console.log(`📄 JSON Report: ${jsonPath}`);
-
-    // HTML report
-    const htmlPath = path.join(this.config.outputDir, `report-${timestamp}.html`);
-    const html = reporting.generateHTML(finalReport);
-    fs.writeFileSync(htmlPath, html);
-    console.log(`📄 HTML Report: ${htmlPath}`);
-
-    // Console summary
-    this.printSummary(finalReport);
 
     // Save to baseline if enabled
     if (this.config.baseline.enabled) {
       const baselinePath = path.join(this.config.baseline.path, 'latest.json');
       fs.mkdirSync(this.config.baseline.path, { recursive: true });
       fs.writeFileSync(baselinePath, JSON.stringify(finalReport, null, 2));
-      console.log(`\n💾 Baseline saved: ${baselinePath}`);
+      console.log(`💾 Baseline saved: ${baselinePath}`);
     }
   }
 

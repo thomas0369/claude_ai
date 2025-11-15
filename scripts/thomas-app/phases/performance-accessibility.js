@@ -7,6 +7,23 @@
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
+const fs = require('fs');
+
+/**
+ * Detect if running in WSL2 environment
+ */
+function detectWSL() {
+  try {
+    // Check /proc/version for Microsoft/WSL identifiers
+    if (fs.existsSync('/proc/version')) {
+      const version = fs.readFileSync('/proc/version', 'utf8').toLowerCase();
+      return version.includes('microsoft') || version.includes('wsl');
+    }
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
 
 async function run(orchestrator) {
   const { page, config } = orchestrator;
@@ -146,10 +163,28 @@ async function runLighthouse(url, outputDir) {
     const chromeLauncher = require('chrome-launcher');
     const fs = require('fs');
 
+    // Detect WSL2 environment
+    const isWSL = detectWSL();
+
+    if (isWSL) {
+      console.log(`    ⚙️  WSL2 detected - applying compatibility flags`);
+    }
+
+    // Build Chrome flags with WSL2 compatibility
+    const chromeFlags = [
+      '--headless',
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage'
+    ];
+
+    if (isWSL) {
+      chromeFlags.push('--disable-setuid-sandbox');
+      chromeFlags.push('--disable-software-rasterizer');
+    }
+
     console.log(`    Launching Chrome for Lighthouse...`);
-    const chrome = await chromeLauncher.launch({
-      chromeFlags: ['--headless', '--no-sandbox', '--disable-gpu']
-    });
+    const chrome = await chromeLauncher.launch({ chromeFlags });
 
     const options = {
       logLevel: 'error',

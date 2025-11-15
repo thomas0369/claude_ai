@@ -241,6 +241,87 @@ async function testJourney(page, journey, config) {
   return result;
 }
 
+/**
+ * Find similar selectors on the page to help debug selector issues
+ */
+async function findSimilarSelectors(page, failedSelector) {
+  try {
+    const similar = await page.evaluate((selector) => {
+      const suggestions = [];
+
+      // Extract patterns from the failed selector
+      const patterns = [];
+
+      // If it's a class selector, try variations
+      if (selector.includes('[class*=')) {
+        const match = selector.match(/\[class\*="([^"]+)"\]/);
+        if (match) {
+          const className = match[1];
+          patterns.push(`.${className}`);
+          patterns.push(`[class~="${className}"]`);
+          patterns.push(`[class^="${className}"]`);
+        }
+      }
+
+      // If it's a data attribute, try the plain attribute
+      if (selector.includes('[data-')) {
+        const match = selector.match(/\[data-([^\]]+)\]/);
+        if (match) {
+          patterns.push(`[data-${match[1]}]`);
+        }
+      }
+
+      // If it's multiple selectors separated by comma, try each
+      if (selector.includes(',')) {
+        patterns.push(...selector.split(',').map(s => s.trim()));
+      }
+
+      // Try each pattern
+      patterns.forEach(pattern => {
+        try {
+          const elements = document.querySelectorAll(pattern);
+          if (elements.length > 0) {
+            suggestions.push({
+              selector: pattern,
+              count: elements.length
+            });
+          }
+        } catch (e) {
+          // Invalid selector, skip
+        }
+      });
+
+      // Also check for common alternatives
+      const commonAlternatives = [
+        '.product', '.product-card', '[data-product]', '[data-item]',
+        '.cart', '.shopping-cart', '[data-cart]',
+        '.checkout', '.btn-checkout', '[data-checkout]',
+        'button', 'a', 'input[type="submit"]'
+      ];
+
+      commonAlternatives.forEach(alt => {
+        try {
+          const elements = document.querySelectorAll(alt);
+          if (elements.length > 0 && !suggestions.find(s => s.selector === alt)) {
+            suggestions.push({
+              selector: alt,
+              count: elements.length
+            });
+          }
+        } catch (e) {
+          // Skip
+        }
+      });
+
+      return suggestions.slice(0, 5); // Return top 5 suggestions
+    }, failedSelector);
+
+    return similar;
+  } catch (error) {
+    return [];
+  }
+}
+
 async function executeStep(page, step, config) {
   switch (step.action) {
     case 'goto':
@@ -277,7 +358,22 @@ async function executeStep(page, step, config) {
       break;
 
     case 'waitForSelector':
-      await page.waitForSelector(step.selector, { timeout: 10000 });
+      try {
+        await page.waitForSelector(step.selector, { timeout: 10000 });
+      } catch (error) {
+        // Find similar selectors and provide helpful error message
+        const suggestions = await findSimilarSelectors(page, step.selector);
+        const enhancedError = new Error(
+          `Selector timeout: "${step.selector}"\n` +
+          (suggestions.length > 0
+            ? `Found similar selectors:\n${suggestions.map(s => `  - ${s.selector} (${s.count} matches)`).join('\n')}\n` +
+              `Suggestion: Try one of these selectors or increase timeout`
+            : `No similar selectors found. Check if the element exists on the page.`)
+        );
+        enhancedError.selector = step.selector;
+        enhancedError.suggestions = suggestions;
+        throw enhancedError;
+      }
       break;
 
     case 'screenshot':

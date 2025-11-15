@@ -1,0 +1,103 @@
+{
+  "meta": {
+    "timestamp": "2025-11-15T15:24:42.131Z",
+    "duration": 90216,
+    "url": "http://localhost:5173",
+    "appType": "ecommerce"
+  },
+  "scores": {
+    "overall": 21,
+    "ux": 70,
+    "performance": 0,
+    "accessibility": 0,
+    "security": 0,
+    "seo": 0
+  },
+  "issues": [
+    {
+      "phase": "Customer Journeys",
+      "type": "journey-failure",
+      "severity": "critical",
+      "title": "Journey \"Browse to Purchase\" failed",
+      "description": "page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[class*=\"product\"], [data-product]') to be visible\u001b[22m\n",
+      "impact": "Users cannot complete critical flows",
+      "effort": "medium",
+      "priority": 20
+    },
+    {
+      "phase": "Customer Journeys",
+      "type": "journey-failure",
+      "severity": "critical",
+      "title": "Journey \"Product Search\" failed",
+      "description": "page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[class*=\"product\"], [data-product]') to be visible\u001b[22m\n",
+      "impact": "Users cannot complete critical flows",
+      "effort": "medium",
+      "priority": 20
+    }
+  ],
+  "recommendations": [
+    {
+      "category": "Customer Journeys",
+      "priority": "critical",
+      "action": "Fix the \"Journey \"Browse to Purchase\" failed\" flow to ensure users can complete it",
+      "reason": "Users cannot complete critical flows",
+      "roi": 20
+    },
+    {
+      "category": "Customer Journeys",
+      "priority": "critical",
+      "action": "Fix the \"Journey \"Product Search\" failed\" flow to ensure users can complete it",
+      "reason": "Users cannot complete critical flows",
+      "roi": 20
+    },
+    {
+      "category": "Security",
+      "priority": "critical",
+      "action": "Address security vulnerabilities",
+      "reason": "Security score is 0/100. This puts user data at risk.",
+      "roi": 10
+    },
+    {
+      "category": "Accessibility",
+      "priority": "high",
+      "action": "Fix accessibility violations",
+      "reason": "A11y score is 0/100. This excludes users with disabilities and creates legal risk.",
+      "roi": 9
+    },
+    {
+      "category": "Performance",
+      "priority": "high",
+      "action": "Optimize Core Web Vitals",
+      "reason": "Performance score is 0/100. This affects SEO rankings and user retention.",
+      "roi": 8
+    }
+  ],
+  "metrics": {
+    "journeys": {
+      "total": 2,
+      "successful": 0,
+      "failed": 2
+    },
+    "visual": {
+      "screenshotsTaken": 20,
+      "issuesFound": 0
+    }
+  },
+  "comparison": {
+    "scoreChanges": {
+      "overall": 0,
+      "ux": 0,
+      "performance": 0,
+      "accessibility": 0,
+      "security": 0,
+      "seo": 0
+    },
+    "newIssues": 1,
+    "metricChanges": {}
+  },
+  "visualRegression": {
+    "baseline": false,
+    "differences": [],
+    "note": "Visual regression detection requires manual comparison or additional image processing libraries"
+  }
+}

@@ -8,6 +8,7 @@ Thomas App is a comprehensive testing framework that goes beyond traditional tes
 
 - 🎯 **Customer Journey Testing**: Complete user flow validation from entry to goal
 - 👁️ **Visual Analysis**: Screen-by-screen validation with screenshot comparison
+- 🗺️ **Screen Flow Mapping**: Comprehensive interaction testing + automatic flow diagrams
 - 🎮 **Game AI Player**: Intelligent game testing with multiple strategies
 - 📊 **Performance Metrics**: Core Web Vitals, Lighthouse audits
 - ♿ **Accessibility**: WCAG compliance with axe-core
@@ -15,6 +16,8 @@ Thomas App is a comprehensive testing framework that goes beyond traditional tes
 - 🌍 **Real-World Conditions**: Network throttling, device emulation
 - 📝 **SEO Analysis**: Meta tags, Open Graph, structured data
 - 🛒 **E-commerce Flows**: Cart, checkout, product browsing
+- 🔍 **Code Quality Scanning**: TODO/FIXME/BUG marker detection and prioritization
+- 🐙 **GitHub Integration**: Automatic issue creation from critical findings
 - 🤖 **Intelligent Reporting**: ROI-based recommendations, baseline comparison
 
 ## Quick Start
@@ -34,6 +37,9 @@ Thomas App is a comprehensive testing framework that goes beyond traditional tes
 
 # E-commerce focused
 /thomas-app --ecommerce
+
+# Create GitHub issues from critical findings
+/thomas-app --create-issues
 
 # Specific test suites
 /thomas-app --suites=ux,performance,security
@@ -92,6 +98,16 @@ Total download size: ~150MB (Chromium browser)
 - Checks for layout issues
 - Tests all interactive elements (buttons, forms, links)
 
+#### Phase 3.5: Screen Flow & Comprehensive Interaction Testing
+- **Keyboard Testing**: Tab navigation, Enter, Arrows, Escape, Shortcuts (12 patterns)
+- **Mouse Testing**: Click, Hover, Drag, Context menu, Wheel (12 patterns)
+- **Touch Testing**: Tap, Swipe, Pinch, Rotate, Long-press (12 gestures)
+- **Scroll Testing**: Wheel, Trackpad, Touch, Keyboard, Programmatic (9 types)
+- **Zoom Testing**: Pinch, Browser zoom, 50%-200% levels (6 zoom levels)
+- **Form Testing**: Text, Number, Select, Checkbox, Radio, File (8 input types)
+- **Flow Mapping**: Automatic state machine generation with visual diagrams
+- **Coverage Metrics**: All-States, All-Transitions, All-Interactions tracking
+
 #### Phase 4: Specialized Testing (Context-Aware)
 
 **For Games:**
@@ -131,6 +147,13 @@ Total download size: ~150MB (Chromium browser)
 - Offline behavior testing
 - Load time under real conditions
 
+#### Phase 7.3: Code Quality Scanning
+- Scans source code for quality markers (TODO, FIXME, HACK, BUG, TEMPORARY)
+- Categorizes by severity (critical, high, medium, low)
+- Provides file location and context for each marker
+- Shows top 5 critical items requiring immediate attention
+- Includes scan statistics (files scanned, lines analyzed, duration)
+
 #### Phase 7.5: AI Agent Code Reviews (Deep Mode Only)
 - **code-review-expert**: Architecture, code quality, security, testing coverage
 - **accessibility-expert**: WCAG compliance and a11y pattern analysis
@@ -149,6 +172,7 @@ Total download size: ~150MB (Chromium browser)
 - Creates beautiful HTML report
 - Saves baseline for future comparisons
 - Detects visual regressions
+- **Optional GitHub integration**: Automatically creates issues for critical findings (customer journey failures, visual issues, accessibility violations, security problems, code quality markers)
 
 ## Configuration
 
@@ -177,7 +201,10 @@ Create `.thomas-app.json` in your project root:
   "viewports": [
     { "name": "Desktop", "width": 1920, "height": 1080 },
     { "name": "Mobile", "width": 375, "height": 667 }
-  ]
+  ],
+  "github": {
+    "createIssues": false
+  }
 }
 ```
 
@@ -269,6 +296,12 @@ After testing, Thomas App generates:
 - Journey step captures
 - Visual regression detection
 
+### Flow Maps (`flow-map-*.*)`)
+- **JSON State Machine**: Machine-readable state machine model
+- **Mermaid Diagram**: Human-readable flow chart (`.mmd` format)
+- **Interactive HTML**: D3.js visualization with screenshots and metrics
+- **Coverage Report**: All-States, All-Transitions, All-Interactions coverage
+
 ### Console Logs
 - All console messages
 - Error tracking
@@ -310,6 +343,82 @@ Issues are prioritized by ROI (Return on Investment):
 - **High + Low Effort** = High priority
 - **Medium + Low Effort** = Medium priority
 - **Low + High Effort** = Lowest priority (backlog)
+
+## GitHub Issue Integration
+
+Thomas App can automatically create GitHub issues for critical findings:
+
+### Setup
+
+1. **Install GitHub CLI**:
+   ```bash
+   # macOS
+   brew install gh
+
+   # Linux
+   sudo apt install gh
+
+   # Or download from: https://cli.github.com/
+   ```
+
+2. **Authenticate**:
+   ```bash
+   gh auth login
+   ```
+
+3. **Enable in config**:
+   ```json
+   {
+     "github": {
+       "createIssues": true
+     }
+   }
+   ```
+
+   Or use command line:
+   ```bash
+   /thomas-app --create-issues
+   ```
+
+### What Gets Created
+
+Issues are created for:
+- ❌ **Customer journey failures** (critical paths that don't complete)
+- 🎨 **Visual issues** (critical/high severity, like horizontal scroll)
+- ♿ **Accessibility violations** (critical/serious WCAG violations, top 5)
+- 🔒 **Security problems** (security score < 70)
+- 🐛 **Code quality markers** (BUG and FIXME comments, top 3)
+
+### Issue Format
+
+Each issue includes:
+- **Title**: `[Thomas-App] {issue description}`
+- **Labels**: `thomas-app`, `automated-qa`, severity, category
+- **Body**: Full context, impact, recommendations, screenshots
+- **Priority**: Sorted by impact (highest first)
+
+### Limits
+
+- Maximum 10 issues per run (prevents spam)
+- Only critical/high severity items
+- Deduplication across runs (future enhancement)
+
+### Example
+
+```bash
+# Run tests and create issues
+/thomas-app --create-issues
+
+# Output:
+# 🐙 Creating GitHub issues for critical findings...
+#   ✅ Created: Customer journey "Checkout" failed (#123)
+#   ✅ Created: Visual issue: Horizontal scroll on Mobile (#124)
+#   ✅ Created: Accessibility: Missing alt text (#125)
+#
+#   📊 GitHub Issues Summary:
+#     Created: 3
+#     Failed: 0
+```
 
 ## CI/CD Integration
 
@@ -376,6 +485,20 @@ export THOMAS_APP_TIMEOUT=60000
 
 ## Troubleshooting
 
+### WSL2 Browser Launch Failures
+Thomas App automatically detects WSL2 and applies compatibility flags:
+- Detects `/proc/version` for Microsoft/WSL markers
+- Applies `--no-sandbox`, `--disable-setuid-sandbox`, `--disable-dev-shm-usage`
+- Adds `--disable-software-rasterizer` and `--disable-gpu` for WSL2
+- Works seamlessly in both native Linux and WSL2 environments
+
+### Selector Timeout Errors
+Enhanced error messages now provide helpful suggestions:
+- Shows similar selectors found on the page
+- Lists element counts for each suggestion
+- Provides actionable recommendations
+- Example: "Selector timeout: `.product` → Found `.product-card` (5 matches), `[data-product]` (3 matches)"
+
 ### Tests are slow
 - Use `--quick` mode for faster results
 - Reduce number of viewports
@@ -407,15 +530,18 @@ thomas-app/
 ├── orchestrator.js           # Main coordinator
 ├── phases/
 │   ├── discovery.js          # App type & route detection
-│   ├── customer-journeys.js  # User flow testing
+│   ├── customer-journeys.js  # User flow testing (with selector suggestions)
 │   ├── visual-interaction.js # Screen & interaction testing
+│   ├── screen-flow.js        # Comprehensive interaction testing + flow mapping
 │   ├── game-ai.js            # Game AI player
 │   ├── ecommerce.js          # E-commerce flows
 │   ├── seo.js                # SEO analysis
-│   ├── performance-accessibility.js  # Metrics & a11y
+│   ├── performance-accessibility.js  # Metrics & a11y (WSL2 support)
 │   ├── security-analytics.js # Security & analytics
 │   ├── real-world.js         # Network & devices
+│   ├── code-quality.js       # Code quality marker scanning
 │   ├── agent-reviews.js      # AI agent orchestration (--deep)
+│   ├── github-integration.js # GitHub issue creation
 │   └── reporting.js          # Report generation
 ├── package.json
 ├── README.md
@@ -481,6 +607,40 @@ A: Yes, it's part of the Thomas CLI tools
 
 **Q: How do I contribute?**
 A: Submit PRs to improve phases, add new test types, or enhance reporting
+
+## Recent Improvements
+
+### ✅ Screen Flow & Comprehensive Interaction Testing (v3.2)
+- **71+ interaction patterns** tested across 7 categories
+- **Keyboard**: Tab, Enter, Arrows, Escape, Shortcuts
+- **Mouse**: Click, Hover, Drag, Context menu, Wheel
+- **Touch**: Tap, Swipe, Pinch, Rotate, Long-press
+- **Scroll**: Wheel, Trackpad, Touch, Keyboard
+- **Zoom**: 50%-200% browser zoom compatibility
+- **Forms**: All input types with validation
+- **Flow Maps**: JSON, Mermaid, Interactive HTML visualization
+- **Coverage**: All-States, All-Transitions, All-Interactions metrics
+
+### ✅ WSL2 Auto-Detection (v3.1)
+- Automatically detects WSL2 environment via `/proc/version`
+- Applies compatibility browser flags automatically
+- No manual configuration needed
+
+### ✅ Enhanced Selector Error Messages (v3.1)
+- Suggests similar selectors when timeouts occur
+- Shows element counts for each suggestion
+- Provides actionable debugging recommendations
+
+### ✅ Code Quality Scanning (v3.1)
+- Scans for TODO, FIXME, HACK, BUG, TEMPORARY markers
+- Categorizes by severity (critical → low)
+- Shows top 5 critical items with context
+
+### ✅ GitHub Issue Integration (v3.1)
+- Automatically creates issues for critical findings
+- Uses GitHub CLI (`gh`) for seamless integration
+- Limits to 10 issues per run to avoid spam
+- Applies appropriate labels and formatting
 
 ## Roadmap
 
