@@ -319,13 +319,18 @@ class ThomasAppOrchestrator {
     console.log('PHASE 1: Discovery & Context Analysis');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const discovery = require('./phases/discovery');
-    this.results.phases.discovery = await discovery.run(this);
+    try {
+      const discovery = require('./phases/discovery');
+      this.results.phases.discovery = await discovery.run(this);
 
-    console.log(`\n✅ Phase 1 Complete`);
-    console.log(`   App Type: ${this.results.phases.discovery.appType}`);
-    console.log(`   Routes Found: ${this.results.phases.discovery.routes.length}`);
-    console.log(`   Features Detected: ${this.results.phases.discovery.features.length}\n`);
+      console.log(`\n✅ Phase 1 Complete`);
+      console.log(`   App Type: ${this.results.phases.discovery.appType}`);
+      console.log(`   Routes Found: ${this.results.phases.discovery.routes.length}`);
+      console.log(`   Features Detected: ${this.results.phases.discovery.features.length}\n`);
+    } catch (error) {
+      console.log(`\n❌ Phase 1 Failed: ${error.message}`);
+      this.results.phases.discovery = { error: error.message, stack: error.stack };
+    }
   }
 
   async runPhase2CustomerJourneys() {
@@ -333,15 +338,20 @@ class ThomasAppOrchestrator {
     console.log('PHASE 2: Customer Journey Testing');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const journeys = require('./phases/customer-journeys');
-    this.results.phases.customerJourneys = await journeys.run(this);
+    try {
+      const journeys = require('./phases/customer-journeys');
+      this.results.phases.customerJourneys = await journeys.run(this);
 
-    const total = this.results.phases.customerJourneys.journeys.length;
-    const passed = this.results.phases.customerJourneys.journeys.filter(j => j.completed).length;
+      const total = this.results.phases.customerJourneys.journeys.length;
+      const passed = this.results.phases.customerJourneys.journeys.filter(j => j.completed).length;
 
-    console.log(`\n✅ Phase 2 Complete`);
-    console.log(`   Journeys: ${passed}/${total} passed (${Math.round(passed/total*100)}%)`);
-    console.log(`   Friction Points: ${this.results.phases.customerJourneys.totalFrictionPoints}\n`);
+      console.log(`\n✅ Phase 2 Complete`);
+      console.log(`   Journeys: ${passed}/${total} passed (${Math.round(passed/total*100)}%)`);
+      console.log(`   Friction Points: ${this.results.phases.customerJourneys.totalFrictionPoints}\n`);
+    } catch (error) {
+      console.log(`\n❌ Phase 2 Failed: ${error.message}`);
+      this.results.phases.customerJourneys = { error: error.message, stack: error.stack };
+    }
   }
 
   async runPhase3VisualInteraction() {
@@ -382,26 +392,41 @@ class ThomasAppOrchestrator {
 
     // Game AI Player (if game)
     if (appType === 'game' || this.isSuiteEnabled('gameAI')) {
-      console.log('🎮 Running Game AI Player...\n');
-      const gameAI = require('./phases/game-ai');
-      this.results.phases.gameAI = await gameAI.run(this);
-      console.log(`   ✅ Game AI Complete\n`);
+      try {
+        console.log('🎮 Running Game AI Player...\n');
+        const gameAI = require('./phases/game-ai');
+        this.results.phases.gameAI = await gameAI.run(this);
+        console.log(`   ✅ Game AI Complete\n`);
+      } catch (error) {
+        console.log(`   ❌ Game AI Failed: ${error.message}\n`);
+        this.results.phases.gameAI = { error: error.message, stack: error.stack };
+      }
     }
 
     // E-commerce specific tests
     if (appType === 'ecommerce') {
-      console.log('🛒 Running E-commerce Flow Tests...\n');
-      const ecommerce = require('./phases/ecommerce');
-      this.results.phases.ecommerce = await ecommerce.run(this);
-      console.log(`   ✅ E-commerce Tests Complete\n`);
+      try {
+        console.log('🛒 Running E-commerce Flow Tests...\n');
+        const ecommerce = require('./phases/ecommerce');
+        this.results.phases.ecommerce = await ecommerce.run(this);
+        console.log(`   ✅ E-commerce Tests Complete\n`);
+      } catch (error) {
+        console.log(`   ❌ E-commerce Tests Failed: ${error.message}\n`);
+        this.results.phases.ecommerce = { error: error.message, stack: error.stack };
+      }
     }
 
     // Content site SEO
     if (appType === 'content' && this.isSuiteEnabled('seo')) {
-      console.log('📝 Running SEO Analysis...\n');
-      const seo = require('./phases/seo');
-      this.results.phases.seo = await seo.run(this);
-      console.log(`   ✅ SEO Analysis Complete\n`);
+      try {
+        console.log('📝 Running SEO Analysis...\n');
+        const seo = require('./phases/seo');
+        this.results.phases.seo = await seo.run(this);
+        console.log(`   ✅ SEO Analysis Complete\n`);
+      } catch (error) {
+        console.log(`   ❌ SEO Analysis Failed: ${error.message}\n`);
+        this.results.phases.seo = { error: error.message, stack: error.stack };
+      }
     }
 
     console.log(`✅ Phase 4 Complete\n`);
