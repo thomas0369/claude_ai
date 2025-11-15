@@ -35,7 +35,7 @@ Test your application from every angle: user experience, performance, accessibil
 # Quick scan (critical tests only, ~2 minutes)
 /thomas-app --quick
 
-# Full deep scan (all tests, ~15 minutes)
+# Full deep scan (all tests + AI agent reviews, ~15-20 minutes)
 /thomas-app --deep
 
 # Game-focused testing (includes AI player)
@@ -116,6 +116,15 @@ Test your application from every angle: user experience, performance, accessibil
 │  ├─ Device emulation (mobile, tablet, desktop)          │
 │  ├─ Offline behavior testing                            │
 │  └─ Slow connection resilience                          │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  PHASE 7.5: AI Agent Code Reviews (--deep mode only)    │
+│  ├─ code-review-expert (always)                         │
+│  ├─ accessibility-expert (if a11y issues)               │
+│  ├─ react-performance-expert (if React detected)        │
+│  ├─ css-styling-expert (if visual issues)               │
+│  └─ typescript-expert (if TypeScript detected)          │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐

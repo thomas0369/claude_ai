@@ -49,7 +49,7 @@ npx playwright install --with-deps
 
 ## How It Works
 
-### 8-Phase Testing Architecture
+### 9-Phase Testing Architecture
 
 #### Phase 1: Discovery & Context Analysis
 - Detects app type (game, e-commerce, SaaS, content)
@@ -108,6 +108,16 @@ npx playwright install --with-deps
 - Offline behavior testing
 - Load time under real conditions
 
+#### Phase 7.5: AI Agent Code Reviews (Deep Mode Only)
+- **code-review-expert**: Architecture, code quality, security, testing coverage
+- **accessibility-expert**: WCAG compliance and a11y pattern analysis
+- **react-performance-expert**: React-specific performance optimization (if React detected)
+- **css-styling-expert**: CSS architecture and responsive design (if visual issues found)
+- **typescript-expert**: Type safety and best practices (if TypeScript detected)
+- Agents run in parallel for speed
+- Context-aware selection based on detected technologies
+- Expert-level recommendations merged with automated findings
+
 #### Phase 8: Intelligent Reporting
 - Aggregates results from all phases
 - Calculates scores (0-100 scale)
@@ -164,7 +174,8 @@ Create `.thomas-app.json` in your project root:
 - Complete accessibility scan
 - Network throttling tests
 - Device emulation
-- ~15 minutes
+- **AI Agent Code Reviews** (5 specialized agents)
+- ~15-20 minutes
 
 ### Default Mode
 - Standard customer journeys
@@ -381,6 +392,7 @@ thomas-app/
 │   ├── performance-accessibility.js  # Metrics & a11y
 │   ├── security-analytics.js # Security & analytics
 │   ├── real-world.js         # Network & devices
+│   ├── agent-reviews.js      # AI agent orchestration (--deep)
 │   └── reporting.js          # Report generation
 ├── package.json
 ├── README.md
@@ -411,13 +423,14 @@ Thomas App follows these principles:
 | Accessibility | ✅ axe-core | ⚠️ Manual | ⚠️ Manual | ✅ |
 | Security | ✅ Full scan | ❌ | ❌ | ⚠️ Basic |
 | Real-World Testing | ✅ Network + devices | ⚠️ Manual | ⚠️ Manual | ⚠️ Mobile only |
+| **AI Agent Code Review** | ✅ **5 specialized agents** | ❌ | ❌ | ❌ |
 | Intelligent Reports | ✅ ROI-based | ❌ | ❌ | ⚠️ Scores only |
 | Auto App Detection | ✅ | ❌ | ❌ | ❌ |
 
 ## FAQ
 
 **Q: How long does a full test take?**
-A: Quick mode ~2 min, default ~5-8 min, deep mode ~15 min
+A: Quick mode ~2 min, default ~5-8 min, deep mode ~15-20 min (includes AI agent reviews)
 
 **Q: Can I test production sites?**
 A: Yes, but be aware of rate limits and analytics impacts

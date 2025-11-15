@@ -51,7 +51,8 @@ class ThomasAppOrchestrator {
         seo: true,
         analytics: false,
         realWorld: true,
-        agentReviews: false  // Only enabled in --deep mode or explicit request
+        agentReviews: true,  // Always enabled by default (deep mode)
+        autofix: true  // Autonomous iterative bug fixing enabled by default
       },
       thresholds: {
         lcp: 2500,
@@ -208,9 +209,14 @@ class ThomasAppOrchestrator {
         await this.runPhase7RealWorld();
       }
 
-      // Phase 7.5: Agent Reviews (Deep mode only or explicit request)
-      if (this.options.deep || this.isSuiteEnabled('agentReviews')) {
+      // Phase 7.5: Agent Reviews (enabled by default)
+      if (this.isSuiteEnabled('agentReviews')) {
         await this.runPhase7AgentReviews();
+      }
+
+      // Phase 7.9: Autonomous Bug Fixing (enabled by default)
+      if (this.isSuiteEnabled('autofix')) {
+        await this.runPhase7AutonomousBugFixing();
       }
 
       // Phase 8: Generate Reports
@@ -369,6 +375,21 @@ class ThomasAppOrchestrator {
 
     console.log(`\n✅ Phase 7.5 Complete`);
     console.log(`   Agent Recommendations: ${totalRecommendations}\n`);
+  }
+
+  async runPhase7AutonomousBugFixing() {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('PHASE 7.9: Autonomous Bug Fixing');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    const autofix = require('./phases/autofix');
+    this.results.phases.autofix = await autofix.run(this);
+
+    const totalFixed = this.results.phases.autofix.fixed.length;
+    const totalAttempted = this.results.phases.autofix.attempted;
+
+    console.log(`\n✅ Phase 7.9 Complete`);
+    console.log(`   Bugs Fixed: ${totalFixed}/${totalAttempted}\n`);
   }
 
   async runPhase8Reporting() {
