@@ -162,7 +162,7 @@
 - ✅ `VERIFICATION-v3.1.md` (verification checklist)
 - ✅ `LEARNINGS-FROM-USAGE.md` (real-world analysis)
 
-**Total Documentation**: 1,800+ lines across 8 files
+**Total Documentation**: 2,400+ lines across 9 files
 
 ---
 

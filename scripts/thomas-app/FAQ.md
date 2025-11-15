@@ -146,6 +146,102 @@ Or via command line:
 /thomas-app --suites=discovery,customerJourneys,performance
 ```
 
+### Q: How do I debug autofix issues?
+
+**A:** Step-by-step debugging guide:
+
+**1. Verify autofix is enabled**
+```bash
+cat .thomas-app.json | grep autofix
+# Should show: "autofix": true (or not present, as true is default)
+```
+
+**2. Check /thomas-fix command exists**
+```bash
+which /thomas-fix
+# Should return: /home/user/.claude/commands/thomas-fix (or similar path)
+
+# If not found:
+ls ~/.claude/commands/thomas-fix.md
+# Should exist
+```
+
+**3. Test /thomas-fix manually**
+```bash
+# Navigate to a project with issues
+cd /path/to/project
+
+# Run thomas-fix
+/thomas-fix
+
+# Should run without "command not found" error
+```
+
+**4. Check autofix output in Phase 7.9**
+
+Look for these lines in console output:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 7.9: Autonomous Bug Fixing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 Starting autonomous bug fixing...
+
+  Found X fixable issues
+```
+
+**If you see:**
+- `⚠️ /thomas-fix command not found` → Install thomas-fix
+- `✅ No bugs to fix!` → No fixable issues were found
+- `❌ Failed: <reason>` → thomas-fix ran but couldn't fix the issue
+
+**5. Review console output for errors**
+
+Watch for:
+- `/thomas-fix` execution errors
+- Timeout messages (>5 minute timeout)
+- Permission errors
+- Network errors during fix attempts
+
+**6. Check autofix results in report**
+```bash
+cat /tmp/thomas-app/report.json | jq '.phases.autofix'
+# Shows: attempted, fixed, failed, skipped counts
+```
+
+**Example output:**
+```json
+{
+  "attempted": 5,
+  "fixed": [
+    {
+      "issue": {"title": "Console error: undefined", "severity": "critical"},
+      "iteration": 1,
+      "method": "/thomas-fix"
+    }
+  ],
+  "failed": [
+    {
+      "issue": {"title": "Journey failed: Checkout", "severity": "critical"},
+      "iteration": 2,
+      "reason": "thomas-fix did not resolve the issue"
+    }
+  ],
+  "skipped": [],
+  "iterations": [...]
+}
+```
+
+**7. Common issues and solutions**
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Command not found | /thomas-fix not installed | Install from ~/.claude/commands/ |
+| No bugs to fix | All tests passed | Nothing to fix! |
+| Fix failed | Issue too complex | Fix manually |
+| Timeout | thomas-fix taking >5min | Increase timeout in autofix.js |
+| Max iterations | 3 attempts exhausted | Review failed fixes, fix manually |
+
 ### Q: What's the difference between thomas-app autofix and /thomas-fix?
 
 **A:**

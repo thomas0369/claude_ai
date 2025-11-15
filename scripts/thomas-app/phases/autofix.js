@@ -21,6 +21,23 @@ async function run(orchestrator) {
 
   console.log(`🔧 Starting autonomous bug fixing...\n`);
 
+  // Verify /thomas-fix command is available
+  try {
+    await execAsync('which /thomas-fix || command -v /thomas-fix', { timeout: 5000 });
+  } catch (error) {
+    console.log(`  ⚠️  /thomas-fix command not found. Skipping autofix phase.`);
+    console.log(`     Install thomas-fix to enable autonomous bug fixing.`);
+    console.log(`     See: ~/.claude/commands/thomas-fix.md\n`);
+    return {
+      attempted: 0,
+      fixed: [],
+      failed: [],
+      skipped: [],
+      iterations: [],
+      error: 'thomas-fix command not available'
+    };
+  }
+
   const fixResults = {
     attempted: 0,
     fixed: [],

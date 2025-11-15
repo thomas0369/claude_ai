@@ -1,25 +1,46 @@
 {
   "meta": {
-    "timestamp": "2025-11-15T15:24:42.131Z",
-    "duration": 90216,
-    "url": "http://localhost:5173",
-    "appType": "ecommerce"
+    "timestamp": "2025-11-15T20:38:10.825Z",
+    "duration": 180225,
+    "url": "http://localhost:3000",
+    "appType": "game"
   },
   "scores": {
-    "overall": 21,
+    "overall": 70,
     "ux": 70,
-    "performance": 0,
-    "accessibility": 0,
-    "security": 0,
+    "performance": 100,
+    "accessibility": 80,
+    "security": 50,
     "seo": 0
   },
   "issues": [
     {
+      "phase": "Accessibility",
+      "type": "a11y-violation",
+      "severity": "high",
+      "title": "Elements must meet minimum color contrast ratio thresholds",
+      "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds (5 instances)",
+      "impact": "Blocks users with disabilities, potential legal issues",
+      "effort": "low",
+      "priority": 21,
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.7/color-contrast?application=axeAPI"
+    },
+    {
+      "phase": "Real-World",
+      "type": "responsive",
+      "severity": "high",
+      "title": "Layout broken on iPhone 12",
+      "description": "Horizontal scrolling detected on iPhone 12",
+      "impact": "Mobile users cannot use the app properly",
+      "effort": "low",
+      "priority": 21
+    },
+    {
       "phase": "Customer Journeys",
       "type": "journey-failure",
       "severity": "critical",
-      "title": "Journey \"Browse to Purchase\" failed",
-      "description": "page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[class*=\"product\"], [data-product]') to be visible\u001b[22m\n",
+      "title": "Journey \"New Player Onboarding\" failed",
+      "description": "Journey did not complete successfully",
       "impact": "Users cannot complete critical flows",
       "effort": "medium",
       "priority": 20
@@ -28,51 +49,167 @@
       "phase": "Customer Journeys",
       "type": "journey-failure",
       "severity": "critical",
-      "title": "Journey \"Product Search\" failed",
-      "description": "page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[class*=\"product\"], [data-product]') to be visible\u001b[22m\n",
+      "title": "Journey \"Gameplay Loop\" failed",
+      "description": "page.evaluate: ReferenceError: getGameScore is not defined\n    at eval (eval at evaluate (:290:30), <anonymous>:1:1)\n    at eval (<anonymous>)\n    at UtilityScript.evaluate (<anonymous>:290:30)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
       "impact": "Users cannot complete critical flows",
       "effort": "medium",
       "priority": 20
+    },
+    {
+      "phase": "Accessibility",
+      "type": "a11y-violation",
+      "severity": "medium",
+      "title": "Document should have one main landmark",
+      "description": "Ensures the document has a main landmark (1 instances)",
+      "impact": "Blocks users with disabilities, potential legal issues",
+      "effort": "low",
+      "priority": 12,
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.7/landmark-one-main?application=axeAPI"
+    },
+    {
+      "phase": "Accessibility",
+      "type": "a11y-violation",
+      "severity": "medium",
+      "title": "All page content should be contained by landmarks",
+      "description": "Ensures all page content is contained by landmarks (32 instances)",
+      "impact": "Blocks users with disabilities, potential legal issues",
+      "effort": "low",
+      "priority": 12,
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.7/region?application=axeAPI"
+    },
+    {
+      "phase": "Security",
+      "type": "security-header",
+      "severity": "medium",
+      "title": "Missing security header: content-security-policy",
+      "description": "Security header \"content-security-policy\" is not set",
+      "impact": "Increased vulnerability to attacks",
+      "effort": "low",
+      "priority": 12
+    },
+    {
+      "phase": "Security",
+      "type": "security-header",
+      "severity": "medium",
+      "title": "Missing security header: x-frame-options",
+      "description": "Security header \"x-frame-options\" is not set",
+      "impact": "Increased vulnerability to attacks",
+      "effort": "low",
+      "priority": 12
+    },
+    {
+      "phase": "Security",
+      "type": "security-header",
+      "severity": "medium",
+      "title": "Missing security header: x-content-type-options",
+      "description": "Security header \"x-content-type-options\" is not set",
+      "impact": "Increased vulnerability to attacks",
+      "effort": "low",
+      "priority": 12
+    },
+    {
+      "phase": "Security",
+      "type": "security-header",
+      "severity": "medium",
+      "title": "Missing security header: strict-transport-security",
+      "description": "Security header \"strict-transport-security\" is not set",
+      "impact": "Increased vulnerability to attacks",
+      "effort": "low",
+      "priority": 12
+    },
+    {
+      "phase": "Security",
+      "type": "security-header",
+      "severity": "medium",
+      "title": "Missing security header: referrer-policy",
+      "description": "Security header \"referrer-policy\" is not set",
+      "impact": "Increased vulnerability to attacks",
+      "effort": "low",
+      "priority": 12
     }
   ],
   "recommendations": [
     {
+      "category": "Accessibility",
+      "priority": "high",
+      "action": "Fix accessibility: Elements must meet minimum color contrast ratio thresholds",
+      "reason": "Blocks users with disabilities, potential legal issues",
+      "roi": 21
+    },
+    {
+      "category": "Real-World",
+      "priority": "high",
+      "action": "Fix responsive layout for mobile devices",
+      "reason": "Mobile users cannot use the app properly",
+      "roi": 21
+    },
+    {
       "category": "Customer Journeys",
       "priority": "critical",
-      "action": "Fix the \"Journey \"Browse to Purchase\" failed\" flow to ensure users can complete it",
+      "action": "Fix the \"Journey \"New Player Onboarding\" failed\" flow to ensure users can complete it",
       "reason": "Users cannot complete critical flows",
       "roi": 20
     },
     {
       "category": "Customer Journeys",
       "priority": "critical",
-      "action": "Fix the \"Journey \"Product Search\" failed\" flow to ensure users can complete it",
+      "action": "Fix the \"Journey \"Gameplay Loop\" failed\" flow to ensure users can complete it",
       "reason": "Users cannot complete critical flows",
       "roi": 20
+    },
+    {
+      "category": "Accessibility",
+      "priority": "medium",
+      "action": "Fix accessibility: Document should have one main landmark",
+      "reason": "Blocks users with disabilities, potential legal issues",
+      "roi": 12
+    },
+    {
+      "category": "Architecture",
+      "priority": "critical",
+      "action": "Fix failing user journeys",
+      "reason": "Broken journeys prevent users from achieving their goals",
+      "roi": 10,
+      "source": "AI Agent Review"
     },
     {
       "category": "Security",
       "priority": "critical",
       "action": "Address security vulnerabilities",
-      "reason": "Security score is 0/100. This puts user data at risk.",
+      "reason": "Security score is 50/100. This puts user data at risk.",
       "roi": 10
     },
     {
       "category": "Accessibility",
       "priority": "high",
-      "action": "Fix accessibility violations",
-      "reason": "A11y score is 0/100. This excludes users with disabilities and creates legal risk.",
-      "roi": 9
+      "action": "Fix color-contrast: Elements must meet minimum color contrast ratio thresholds",
+      "reason": "Required for WCAG compliance and inclusive user experience",
+      "roi": 8,
+      "source": "AI Agent Review"
     },
     {
-      "category": "Performance",
+      "category": "Accessibility",
       "priority": "high",
-      "action": "Optimize Core Web Vitals",
-      "reason": "Performance score is 0/100. This affects SEO rankings and user retention.",
-      "roi": 8
+      "action": "Fix landmark-one-main: Document should have one main landmark",
+      "reason": "Required for WCAG compliance and inclusive user experience",
+      "roi": 8,
+      "source": "AI Agent Review"
+    },
+    {
+      "category": "Accessibility",
+      "priority": "high",
+      "action": "Fix region: All page content should be contained by landmarks",
+      "reason": "Required for WCAG compliance and inclusive user experience",
+      "roi": 8,
+      "source": "AI Agent Review"
     }
   ],
   "metrics": {
+    "coreWebVitals": {
+      "lcp": 0,
+      "fid": null,
+      "cls": 0
+    },
     "journeys": {
       "total": 2,
       "successful": 0,
@@ -85,14 +222,14 @@
   },
   "comparison": {
     "scoreChanges": {
-      "overall": 0,
+      "overall": 49,
       "ux": 0,
-      "performance": 0,
-      "accessibility": 0,
-      "security": 0,
+      "performance": 100,
+      "accessibility": 80,
+      "security": 50,
       "seo": 0
     },
-    "newIssues": 1,
+    "newIssues": 9,
     "metricChanges": {}
   },
   "visualRegression": {

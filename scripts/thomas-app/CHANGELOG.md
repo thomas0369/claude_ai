@@ -5,6 +5,73 @@ All notable changes to Thomas-App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.1] - 2025-11-16
+
+### Added - Quality of Life Improvements 🛠️
+
+#### Enhanced Documentation
+- **FAQ.md**: Added comprehensive autofix debugging section (100+ lines)
+  - Step-by-step debugging guide with 7 steps
+  - Common issues table with solutions
+  - Example JSON output for verification
+  - Command-line troubleshooting examples
+- **README.md**: Enhanced Phase 7.9 documentation
+  - Complete autofix workflow explanation
+  - Example output showing iteration process
+  - Configuration options clearly documented
+- **Documentation count updated**: Now accurately reflects 2,400+ lines across 9 files
+
+#### Improved Resilience
+- **Phase 7.9 Autofix**: Added /thomas-fix availability check
+  - Gracefully handles missing /thomas-fix command
+  - Clear error message with installation instructions
+  - Prevents cryptic errors during Phase 7.9 execution
+  - Returns early with helpful guidance if command unavailable
+
+- **Orchestrator Error Handling**: Enhanced phases 1, 2, and 4
+  - Try-catch blocks prevent single phase failures from crashing entire run
+  - Failed phases log errors with stack traces
+  - Test execution continues with remaining phases
+  - Error details stored in results for comprehensive reporting
+
+#### Code Cleanup
+- Removed unused `utils/logger.js` (115 lines of dead code)
+  - Verified via codebase-wide grep (no imports found)
+  - Reduces repository bloat
+  - Maintains codebase cleanliness
+
+### Fixed
+- RELEASE-SUMMARY.md line count (was 1,800+, now correctly 2,400+)
+- Missing autofix debugging guidance in FAQ
+- Potential autofix crashes when /thomas-fix unavailable
+- Orchestrator crashes on phase failures
+
+### Changed
+- Phase 7.9 now provides clear feedback when /thomas-fix is missing
+- Phase failures no longer terminate entire test run
+- Documentation is now more comprehensive and accurate
+
+### Files Changed
+- Modified: `phases/autofix.js` (+18 lines) - /thomas-fix availability check
+- Modified: `orchestrator.js` (+50/-25 lines) - Error handling for phases 1, 2, 4
+- Modified: `FAQ.md` (+100 lines) - Autofix debugging section
+- Modified: `README.md` (+60 lines) - Phase 7.9 complete documentation
+- Modified: `RELEASE-SUMMARY.md` (line count correction)
+- Removed: `utils/logger.js` (-115 lines) - Unused code
+
+### Technical Details
+- Total changes: +228 insertions, -140 deletions
+- Net: +88 lines (after removing dead code)
+- Documentation improvements: +160 lines
+- Error handling improvements: +68 lines
+
+### Upgrade Notes
+- No breaking changes - fully backward compatible
+- Existing configurations work without modification
+- If /thomas-fix is missing, Phase 7.9 now skips gracefully instead of failing
+
+---
+
 ## [3.2.0] - 2025-11-15
 
 ### Added - Screen Flow & Comprehensive Interaction Testing 🗺️
@@ -192,6 +259,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **v3.2.1** (2025-11-16): Quality of Life - Documentation, Error Handling, Code Cleanup
 - **v3.2.0** (2025-11-15): Screen Flow & Comprehensive Interaction Testing
 - **v3.1.0** (2025-11-15): WSL2, Enhanced Errors, Code Quality, GitHub Integration
 - **v3.0.0** (2025-11-14): Initial Release
