@@ -1,0 +1,32 @@
+{
+  "name": "thomas-app",
+  "version": "1.0.0",
+  "description": "World-class autonomous application testing framework - tests your app from A to Z",
+  "main": "orchestrator.js",
+  "scripts": {
+    "test": "node orchestrator.js",
+    "test:quick": "node orchestrator.js --quick",
+    "test:deep": "node orchestrator.js --deep",
+    "test:game": "node orchestrator.js --game",
+    "test:ecommerce": "node orchestrator.js --ecommerce"
+  },
+  "keywords": [
+    "testing",
+    "e2e",
+    "playwright",
+    "accessibility",
+    "performance",
+    "game-testing",
+    "ai-testing",
+    "automation"
+  ],
+  "author": "Thomas",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
