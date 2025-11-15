@@ -32,6 +32,9 @@ class ThomasAppOrchestrator {
     this.browser = null;
     this.context = null;
     this.page = null;
+
+    // Setup cleanup handlers for graceful shutdown
+    this.setupProcessCleanup();
   }
 
   detectWSL() {
@@ -154,6 +157,8 @@ class ThomasAppOrchestrator {
   }
 
   setupConsoleMonitoring() {
+    const MAX_ENTRIES = 1000; // Limit to prevent memory issues
+
     this.consoleLog = {
       errors: [],
       warnings: [],
@@ -176,31 +181,51 @@ class ThomasAppOrchestrator {
 
       if (type === 'error') {
         this.consoleLog.errors.push(entry);
+        // Limit array size to prevent memory exhaustion
+        if (this.consoleLog.errors.length > MAX_ENTRIES) {
+          this.consoleLog.errors.shift();
+        }
       } else if (type === 'warning') {
         this.consoleLog.warnings.push(entry);
+        if (this.consoleLog.warnings.length > MAX_ENTRIES) {
+          this.consoleLog.warnings.shift();
+        }
       } else {
-        this.consoleLog.info.push(entry);
+        // Only keep recent info logs (they're less critical)
+        if (this.consoleLog.info.length < MAX_ENTRIES / 10) {
+          this.consoleLog.info.push(entry);
+        }
       }
     });
 
     this.page.on('pageerror', error => {
-      this.consoleLog.errors.push({
+      const entry = {
         type: 'uncaught-exception',
         text: error.message,
         stack: error.stack,
         timestamp: Date.now(),
         url: this.page.url()
-      });
+      };
+
+      this.consoleLog.errors.push(entry);
+      if (this.consoleLog.errors.length > MAX_ENTRIES) {
+        this.consoleLog.errors.shift();
+      }
     });
 
     this.page.on('requestfailed', request => {
-      this.consoleLog.network.push({
+      const entry = {
         type: 'failed-request',
         url: request.url(),
         method: request.method(),
         failure: request.failure(),
         timestamp: Date.now()
-      });
+      };
+
+      this.consoleLog.network.push(entry);
+      if (this.consoleLog.network.length > MAX_ENTRIES) {
+        this.consoleLog.network.shift();
+      }
     });
   }
 
@@ -513,15 +538,60 @@ class ThomasAppOrchestrator {
   async cleanup() {
     console.log('🧹 Cleaning up...');
 
-    if (this.context) {
-      await this.context.close();
-    }
+    try {
+      // Close page first
+      if (this.page && !this.page.isClosed()) {
+        await this.page.close().catch(e => console.warn('⚠️  Failed to close page:', e.message));
+      }
 
-    if (this.browser) {
-      await this.browser.close();
-    }
+      // Close context
+      if (this.context) {
+        await this.context.close().catch(e => console.warn('⚠️  Failed to close context:', e.message));
+      }
 
-    console.log('✅ Done!\n');
+      // Close browser
+      if (this.browser) {
+        await this.browser.close().catch(e => console.warn('⚠️  Failed to close browser:', e.message));
+      }
+
+      console.log('✅ Cleanup complete\n');
+    } catch (error) {
+      console.error('❌ Cleanup error:', error.message);
+
+      // Force kill browser process if still running
+      if (this.browser) {
+        try {
+          const pid = this.browser.process()?.pid;
+          if (pid) {
+            process.kill(pid, 'SIGKILL');
+            console.log('🔪 Force killed browser process');
+          }
+        } catch (e) {
+          // Process already dead
+        }
+      }
+    }
+  }
+
+  setupProcessCleanup() {
+    const cleanup = async () => {
+      console.log('\n⚠️  Interrupt received, cleaning up...');
+      await this.cleanup();
+      process.exit(0);
+    };
+
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+    process.on('uncaughtException', async (error) => {
+      console.error('💥 Uncaught exception:', error);
+      await this.cleanup();
+      process.exit(1);
+    });
+    process.on('unhandledRejection', async (reason, promise) => {
+      console.error('💥 Unhandled rejection at:', promise, 'reason:', reason);
+      await this.cleanup();
+      process.exit(1);
+    });
   }
 }
 

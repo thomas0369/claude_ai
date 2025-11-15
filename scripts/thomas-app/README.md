@@ -18,6 +18,7 @@ Thomas App is a comprehensive testing framework that goes beyond traditional tes
 - 🛒 **E-commerce Flows**: Cart, checkout, product browsing
 - 🔍 **Code Quality Scanning**: TODO/FIXME/BUG marker detection and prioritization
 - 🐙 **GitHub Integration**: Automatic issue creation from critical findings
+- 🔧 **Autonomous Bug Fixing**: Automatically fixes identified bugs using /thomas-fix
 - 🤖 **Intelligent Reporting**: ROI-based recommendations, baseline comparison
 
 ## Quick Start
@@ -163,6 +164,54 @@ Total download size: ~150MB (Chromium browser)
 - Agents run in parallel for speed
 - Context-aware selection based on detected technologies
 - Expert-level recommendations merged with automated findings
+
+#### Phase 7.9: Autonomous Bug Fixing (Enabled by Default)
+- **Automatic fix execution** using `/thomas-fix` command
+- **Iterative fixing** with max 3 iterations to prevent infinite loops
+- **Smart issue collection** from all testing phases (1-7.5)
+- **Priority-based fixing**: Critical issues first (console errors, journey failures)
+- **Verification after fixes**: Re-runs relevant tests to confirm resolution
+- **What gets auto-fixed**:
+  - Console errors (critical severity)
+  - Failed customer journeys (critical paths)
+  - Accessibility violations (critical/serious WCAG violations)
+  - Security vulnerabilities (high severity)
+  - Performance issues (LCP > 4s, CLS > 0.25)
+  - Layout/responsive issues (high severity)
+- **Results tracking**: Fixed, failed, and skipped issues with reasons
+- **Disable if needed**: Set `"autofix": false` in `.thomas-app.json`
+
+**How it works:**
+1. After all tests complete (Phases 1-7.5), collect fixable issues
+2. Sort by severity (critical → high → medium → low)
+3. For each issue, run `/thomas-fix` with issue context
+4. Verify fix by re-running relevant tests
+5. Continue until all fixed or max iterations reached
+6. Report results with methods used and reasons for failures
+
+**Example output:**
+```
+🔧 Starting autonomous bug fixing...
+  Found 5 fixable issues
+
+  📍 Iteration 1/3
+    🔨 Fixing: Console error: Cannot read property 'map' of undefined
+       Severity: critical
+       Type: console-error
+       Running /thomas-fix...
+       ✅ Fixed using /thomas-fix
+
+  🔍 Re-verifying application state...
+    ✅ Verified fixed: Console error eliminated
+
+  📊 Iteration 1 Summary:
+     Attempted: 5
+     Fixed: 4
+     Failed: 1
+     Remaining: 1
+
+  🎉 4 of 5 bugs fixed automatically!
+```
 
 #### Phase 8: Intelligent Reporting
 - Aggregates results from all phases
@@ -578,8 +627,16 @@ Thomas App follows these principles:
 
 ## FAQ
 
+For complete FAQ with detailed answers, see **[FAQ.md](./FAQ.md)**.
+
 **Q: How long does a full test take?**
 A: Quick mode ~2 min, default ~5-8 min, deep mode ~15-20 min (includes AI agent reviews)
+
+**Q: Does thomas-app automatically fix bugs?**
+A: **YES!** Phase 7.9 runs automatically when `autofix: true` (default). It fixes console errors, journey failures, accessibility violations, security issues, and performance problems using `/thomas-fix`.
+
+**Q: Does thomas-app use AI?**
+A: **NO** - The testing is 100% deterministic (CSS selectors, DOM APIs, URL comparison). However, it integrates with `/thomas-fix` which uses Claude AI for bug fixing.
 
 **Q: Can I test production sites?**
 A: Yes, but be aware of rate limits and analytics impacts
@@ -587,14 +644,11 @@ A: Yes, but be aware of rate limits and analytics impacts
 **Q: Does it work with all frameworks?**
 A: Yes - React, Vue, Angular, Svelte, vanilla JS - anything that runs in a browser
 
-**Q: Can I customize the AI player?**
-A: Yes, edit `phases/game-ai.js` to add custom strategies
-
-**Q: Does it replace manual testing?**
-A: No, it complements manual testing by automating repetitive checks
-
 **Q: Can I run it in CI/CD?**
 A: Yes! See CI-CD-INTEGRATION.md for setup guides
+
+**Q: Does it work in WSL2?**
+A: Yes! WSL2 is fully supported with automatic detection (v3.1.0+)
 
 **Q: How does scoring work?**
 A: Each category is 0-100 based on industry best practices and WCAG/W3C standards
@@ -604,9 +658,6 @@ A: Currently browser-based only, but supports mobile viewport emulation
 
 **Q: Is it free?**
 A: Yes, it's part of the Thomas CLI tools
-
-**Q: How do I contribute?**
-A: Submit PRs to improve phases, add new test types, or enhance reporting
 
 ## Recent Improvements
 

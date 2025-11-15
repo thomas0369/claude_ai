@@ -142,42 +142,161 @@ Test your application from every angle: user experience, performance, accessibil
 
 ## Implementation
 
-When this command runs:
+When this command runs, it executes the Thomas App orchestrator to perform comprehensive application testing.
 
-1. **Initialize orchestrator**
-   - Load configuration from `.thomas-app.json` (if exists)
-   - Create metrics tracking
-   - Set up Playwright browser context
+### Step 1: Verify Prerequisites
 
-2. **Discover app context**
-   - Analyze package.json for tech stack
-   - Detect app type from routes and features
-   - Build test suite selection strategy
+```bash
+# Check if orchestrator is installed
+if [ ! -f ~/.claude/scripts/thomas-app/orchestrator.js ]; then
+  echo "❌ ERROR: Thomas App orchestrator not found"
+  echo "Installing orchestrator..."
+  cd ~/.claude/scripts/thomas-app && npm install
+  if [ $? -ne 0 ]; then
+    echo "Failed to install dependencies"
+    exit 1
+  fi
+fi
 
-3. **Run test phases** (in parallel where possible)
-   - Customer journey testing agent
-   - Visual analysis agent
-   - Performance testing agent
-   - Accessibility testing agent
-   - Security scanning agent
-   - Game AI player agent (if game)
-   - SEO analysis agent (if content site)
+# Check if we're in a valid project directory
+if [ ! -f package.json ]; then
+  echo "❌ ERROR: No package.json found. Please run from project root."
+  exit 1
+fi
+```
 
-4. **Aggregate and analyze**
-   - Collect all test results
-   - Calculate overall scores
-   - Prioritize issues by ROI (impact/effort)
-   - Generate recommendations
+### Step 2: Detect and Start Dev Server
 
-5. **Generate reports**
-   - Console summary (quick overview)
-   - JSON report (machine-readable)
-   - HTML report (beautiful, shareable)
-   - Screenshots directory
+```bash
+# Check for running dev server on common ports
+echo "🔍 Checking for dev server..."
+DEV_PORT=""
+SERVER_PID=""
 
-6. **Save baseline** (for future comparisons)
-   - Store metrics in `.thomas-app/baseline/`
-   - Track trends over time
+for port in 3000 5173 8080 4200; do
+  if lsof -ti:$port > /dev/null 2>&1; then
+    echo "✅ Found dev server on port $port"
+    DEV_PORT=$port
+    break
+  fi
+done
+
+# If no server running, start one
+if [ -z "$DEV_PORT" ]; then
+  echo "🚀 Starting dev server..."
+
+  # Detect start script
+  if grep -q '"dev":' package.json; then
+    npm run dev > /tmp/thomas-app-server.log 2>&1 &
+    SERVER_PID=$!
+    DEV_PORT=3000  # Assume default
+  elif grep -q '"start":' package.json; then
+    npm start > /tmp/thomas-app-server.log 2>&1 &
+    SERVER_PID=$!
+    DEV_PORT=3000
+  else
+    echo "⚠️  No dev/start script found in package.json"
+    echo "Please start your dev server manually and re-run /thomas-app"
+    exit 1
+  fi
+
+  # Wait for server to be ready (max 30 seconds)
+  echo "⏳ Waiting for server to start..."
+  for i in {1..30}; do
+    if curl -s http://localhost:$DEV_PORT > /dev/null 2>&1; then
+      echo "✅ Server ready on port $DEV_PORT"
+      break
+    fi
+    sleep 1
+  done
+
+  if ! curl -s http://localhost:$DEV_PORT > /dev/null 2>&1; then
+    echo "❌ Server failed to start. Check /tmp/thomas-app-server.log"
+    [ -n "$SERVER_PID" ] && kill $SERVER_PID 2>/dev/null
+    exit 1
+  fi
+fi
+```
+
+### Step 3: Run the Orchestrator
+
+```bash
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📱 THOMAS APP - COMPLETE APPLICATION TESTING"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+cd ~/.claude/scripts/thomas-app
+
+# Extract command arguments (--quick, --deep, etc.)
+ARGS="$@"
+
+# Run orchestrator
+node orchestrator.js $ARGS
+
+# Capture exit code
+EXIT_CODE=$?
+```
+
+### Step 4: Cleanup
+
+```bash
+# Kill dev server if we started it
+if [ -n "$SERVER_PID" ]; then
+  echo ""
+  echo "🧹 Stopping dev server (PID: $SERVER_PID)..."
+  kill $SERVER_PID 2>/dev/null
+  wait $SERVER_PID 2>/dev/null
+fi
+```
+
+### Step 5: Display Results Summary
+
+```bash
+if [ $EXIT_CODE -eq 0 ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "✅ TESTING COMPLETE"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "📊 View Reports:"
+  echo "  JSON: ls -lt /tmp/thomas-app/report-*.json | head -1"
+  echo "  HTML: ls -lt /tmp/thomas-app/report-*.html | head -1"
+  echo "  Screenshots: ls /tmp/thomas-app/screenshots/"
+  echo ""
+  echo "🎯 Next Steps:"
+  echo "  1. Review priority actions in the report"
+  echo "  2. Fix critical/high issues"
+  echo "  3. Run /thomas-app again to verify improvements"
+  echo "  4. Consider running /thomas-fix for code validation"
+  echo ""
+  exit 0
+else
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "❌ TESTING FAILED"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "Check output above for errors"
+  echo "Server log: /tmp/thomas-app-server.log"
+  echo ""
+  exit $EXIT_CODE
+fi
+```
+
+**What the orchestrator does:**
+
+1. **Phase 1: Discovery** - Detects app type, routes, and features
+2. **Phase 2: Customer Journeys** - Tests critical user flows
+3. **Phase 3: Visual & Interaction** - Multi-viewport testing
+4. **Phase 4: Specialized** - Context-aware tests (game AI, e-commerce, etc.)
+5. **Phase 5: Performance & Accessibility** - Core Web Vitals, a11y scans
+6. **Phase 6: Security & Analytics** - Security headers, XSS checks
+7. **Phase 7: Real-World** - Network throttling, device emulation
+8. **Phase 7.5: Agent Reviews** - AI code review (if --deep)
+9. **Phase 7.9: Autofix** - Autonomous bug fixing
+10. **Phase 8: Reporting** - Generate JSON, HTML, screenshots
 
 ## Detailed Phases
 
