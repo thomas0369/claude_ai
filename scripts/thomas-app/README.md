@@ -41,11 +41,34 @@ Thomas App is a comprehensive testing framework that goes beyond traditional tes
 
 ## Installation
 
+### Quick Install (Recommended)
+
+```bash
+~/.claude/scripts/thomas-app/install.sh
+```
+
+This will:
+- Check Node.js version (18+ required)
+- Install all dependencies (Playwright, Lighthouse, axe-core)
+- Download Chromium browser for testing
+- Verify installation
+
+### Manual Install
+
 ```bash
 cd ~/.claude/scripts/thomas-app
 npm install
-npx playwright install --with-deps
+npx playwright install chromium --with-deps
 ```
+
+### Dependencies Installed
+
+- **Playwright** (1.40.0) - Browser automation for visual/interaction testing
+- **Lighthouse** (11.4.0) - Performance and SEO auditing
+- **axe-core** (4.8.0) - Accessibility compliance testing
+- **chrome-launcher** (1.1.0) - Chrome process management
+
+Total download size: ~150MB (Chromium browser)
 
 ## How It Works
 

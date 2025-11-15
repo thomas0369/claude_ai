@@ -141,21 +141,58 @@ function calculateA11yScore(results) {
 
 async function runLighthouse(url, outputDir) {
   try {
-    const { stdout } = await execAsync(
-      `npx lighthouse ${url} --output json --output-path ${outputDir}/lighthouse.json --chrome-flags="--headless" --only-categories=performance,accessibility,seo,best-practices --quiet`
+    // Use lighthouse programmatically instead of CLI for better control
+    const lighthouse = require('lighthouse');
+    const chromeLauncher = require('chrome-launcher');
+    const fs = require('fs');
+
+    console.log(`    Launching Chrome for Lighthouse...`);
+    const chrome = await chromeLauncher.launch({
+      chromeFlags: ['--headless', '--no-sandbox', '--disable-gpu']
+    });
+
+    const options = {
+      logLevel: 'error',
+      output: ['json', 'html'],
+      onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
+      port: chrome.port
+    };
+
+    console.log(`    Running Lighthouse audit...`);
+    const runnerResult = await lighthouse(url, options);
+
+    // Save reports
+    fs.writeFileSync(
+      `${outputDir}/lighthouse.json`,
+      runnerResult.report[0]
+    );
+    fs.writeFileSync(
+      `${outputDir}/lighthouse.html`,
+      runnerResult.report[1]
     );
 
-    const fs = require('fs');
-    const report = JSON.parse(fs.readFileSync(`${outputDir}/lighthouse.json`, 'utf8'));
+    await chrome.kill();
+
+    const report = runnerResult.lhr;
 
     return {
       performance: Math.round(report.categories.performance.score * 100),
       accessibility: Math.round(report.categories.accessibility.score * 100),
       seo: Math.round(report.categories.seo.score * 100),
-      bestPractices: Math.round(report.categories['best-practices'].score * 100)
+      bestPractices: Math.round(report.categories['best-practices'].score * 100),
+      metrics: {
+        firstContentfulPaint: report.audits['first-contentful-paint'].numericValue,
+        speedIndex: report.audits['speed-index'].numericValue,
+        largestContentfulPaint: report.audits['largest-contentful-paint'].numericValue,
+        timeToInteractive: report.audits['interactive'].numericValue,
+        totalBlockingTime: report.audits['total-blocking-time'].numericValue,
+        cumulativeLayoutShift: report.audits['cumulative-layout-shift'].numericValue
+      },
+      opportunities: report.audits['diagnostics']?.details?.items || []
     };
   } catch (error) {
-    throw new Error(`Lighthouse failed: ${error.message}`);
+    console.log(`      ⚠️  Lighthouse error: ${error.message}`);
+    return null;
   }
 }
 
