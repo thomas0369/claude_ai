@@ -50,7 +50,8 @@ class ThomasAppOrchestrator {
         security: true,
         seo: true,
         analytics: false,
-        realWorld: true
+        realWorld: true,
+        agentReviews: false  // Only enabled in --deep mode or explicit request
       },
       thresholds: {
         lcp: 2500,
@@ -207,6 +208,11 @@ class ThomasAppOrchestrator {
         await this.runPhase7RealWorld();
       }
 
+      // Phase 7.5: Agent Reviews (Deep mode only or explicit request)
+      if (this.options.deep || this.isSuiteEnabled('agentReviews')) {
+        await this.runPhase7AgentReviews();
+      }
+
       // Phase 8: Generate Reports
       await this.runPhase8Reporting();
 
@@ -349,6 +355,20 @@ class ThomasAppOrchestrator {
     this.results.phases.realWorld = await realWorld.run(this);
 
     console.log(`\n✅ Phase 7 Complete\n`);
+  }
+
+  async runPhase7AgentReviews() {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('PHASE 7.5: AI Agent Code Reviews');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    const agentReviews = require('./phases/agent-reviews');
+    this.results.phases.agentReviews = await agentReviews.run(this);
+
+    const totalRecommendations = this.results.phases.agentReviews.recommendations.length;
+
+    console.log(`\n✅ Phase 7.5 Complete`);
+    console.log(`   Agent Recommendations: ${totalRecommendations}\n`);
   }
 
   async runPhase8Reporting() {

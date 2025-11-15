@@ -35,8 +35,8 @@ async function generate(orchestrator) {
   // Sort by priority (impact/effort)
   report.issues.sort((a, b) => b.priority - a.priority);
 
-  // Generate intelligent recommendations
-  report.recommendations = generateRecommendations(report);
+  // Generate intelligent recommendations (pass results for agent reviews)
+  report.recommendations = generateRecommendations(report, results);
 
   // Collect metrics
   report.metrics = collectMetrics(results);
@@ -374,8 +374,22 @@ function getEffortEstimate(type) {
   return efforts[type] || 'medium';
 }
 
-function generateRecommendations(report) {
+function generateRecommendations(report, results) {
   const recommendations = [];
+
+  // Include agent review recommendations first (highest priority)
+  if (results?.phases?.agentReviews?.recommendations) {
+    results.phases.agentReviews.recommendations.forEach(rec => {
+      recommendations.push({
+        category: rec.category || 'Code Review',
+        priority: rec.priority,
+        action: rec.action,
+        reason: rec.reason,
+        roi: rec.priority === 'critical' ? 10 : rec.priority === 'high' ? 8 : 6,
+        source: 'AI Agent Review'
+      });
+    });
+  }
 
   // Top 5 priority issues
   const topIssues = report.issues.slice(0, 5);
