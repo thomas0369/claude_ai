@@ -4,8 +4,8 @@
  * Aggregates results, generates recommendations, creates reports
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 async function generate(orchestrator) {
   const { results, config, page } = orchestrator;
@@ -894,4 +894,4 @@ function formatChange(value) {
   return `${emoji} ${sign}${value}`;
 }
 
-module.exports = { generate };
+export { generate };

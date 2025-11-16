@@ -12,8 +12,8 @@
  * Generates complete flow map of application with state machine model.
  */
 
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
 
 async function run(orchestrator) {
   const { page, config, results } = orchestrator;
@@ -1011,4 +1011,4 @@ function generateHTMLMap(flowResults, config) {
 </html>`;
 }
 
-module.exports = { run };
+export default { run };

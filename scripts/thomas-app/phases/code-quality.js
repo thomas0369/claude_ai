@@ -4,8 +4,8 @@
  * Scan codebase for TODO, FIXME, HACK, and other code markers
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 async function run(orchestrator) {
   const { config } = orchestrator;
@@ -199,4 +199,4 @@ function getContext(lines, index, contextLines = 2) {
   return lines.slice(start, end).join('\n');
 }
 
-module.exports = { run };
+export default { run };

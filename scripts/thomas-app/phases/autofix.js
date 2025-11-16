@@ -10,10 +10,10 @@
  * - Layout/responsive issues
  */
 
-const { exec } = require('child_process');
-const { promisify } = require('util');
-const fs = require('fs');
-const path = require('path');
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
 const execAsync = promisify(exec);
 
 async function run(orchestrator) {
@@ -504,4 +504,4 @@ async function quickVerification(orchestrator, issues) {
   return { stillPresent };
 }
 
-module.exports = { run };
+export default { run };

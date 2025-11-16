@@ -50,4 +50,4 @@ async function run(orchestrator) {
   return { seo, issues };
 }
 
-module.exports = { run };
+export default { run };

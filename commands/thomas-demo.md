@@ -16,7 +16,7 @@ Workflow:
 ## Usage
 
 ```bash
-# Demo test results from default location (/tmp/thomas-app/report.json)
+# Demo test results from default location (.thomas-app/report.json in project)
 node ~/.claude/scripts/thomas-app/thomas-demo.mjs
 
 # Demo test results from custom location

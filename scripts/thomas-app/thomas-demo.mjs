@@ -14,7 +14,8 @@ import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getJourneysForAppType } from './phases/customer-journeys.js';
+import customerJourneys from './phases/customer-journeys.js';
+const { getJourneysForAppType } = customerJourneys;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,7 +40,7 @@ const DEMO_CONFIG = {
 class ThomasDemoVisualizer {
   constructor(options = {}) {
     this.options = {
-      resultsPath: options.resultsPath || '/tmp/thomas-app/report.json',
+      resultsPath: options.resultsPath || '.thomas-app/report.json',  // Read from project directory
       journey: options.journey || null, // Filter to specific journey
       speed: options.speed || 1.0,
       ...options

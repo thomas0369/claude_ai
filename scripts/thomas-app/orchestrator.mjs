@@ -136,7 +136,7 @@ class ThomasAppOrchestrator {
         enabled: true,
         path: '.thomas-app/baseline'
       },
-      outputDir: '/tmp/thomas-app'
+      outputDir: '.thomas-app'  // Save results in project directory
     };
 
     // Load user config if exists
@@ -530,7 +530,7 @@ class ThomasAppOrchestrator {
 
     try {
       const journeys = await import('./phases/customer-journeys.js');
-      this.results.phases.customerJourneys = await journeys.run(this);
+      this.results.phases.customerJourneys = await journeys.default.run(this);
 
       const total = this.results.phases.customerJourneys.journeys.length;
       const passed = this.results.phases.customerJourneys.journeys.filter(j => j.completed).length;
@@ -550,7 +550,7 @@ class ThomasAppOrchestrator {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const visual = await import('./phases/visual-interaction.js');
-    this.results.phases.visualInteraction = await visual.run(this);
+    this.results.phases.visualInteraction = await visual.default.run(this);
 
     console.log(`\n✅ Phase 3 Complete`);
     console.log(`   Screens Tested: ${this.results.phases.visualInteraction.screensTested}`);
@@ -564,7 +564,7 @@ class ThomasAppOrchestrator {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const screenFlow = await import('./phases/screen-flow.js');
-    this.results.phases.screenFlow = await screenFlow.run(this);
+    this.results.phases.screenFlow = await screenFlow.default.run(this);
 
     console.log(`\n✅ Phase 3.5 Complete`);
     console.log(`   States Discovered: ${this.results.phases.screenFlow.coverage.states}`);
@@ -585,7 +585,7 @@ class ThomasAppOrchestrator {
       try {
         console.log('🎮 Running Game AI Player...\n');
         const gameAI = await import('./phases/game-ai.js');
-        this.results.phases.gameAI = await gameAI.run(this);
+        this.results.phases.gameAI = await gameAI.default.run(this);
         console.log(`   ✅ Game AI Complete\n`);
       } catch (error) {
         console.log(`   ❌ Game AI Failed: ${error.message}\n`);
@@ -598,7 +598,7 @@ class ThomasAppOrchestrator {
       try {
         console.log('🛒 Running E-commerce Flow Tests...\n');
         const ecommerce = await import('./phases/ecommerce.js');
-        this.results.phases.ecommerce = await ecommerce.run(this);
+        this.results.phases.ecommerce = await ecommerce.default.run(this);
         console.log(`   ✅ E-commerce Tests Complete\n`);
       } catch (error) {
         console.log(`   ❌ E-commerce Tests Failed: ${error.message}\n`);
@@ -611,7 +611,7 @@ class ThomasAppOrchestrator {
       try {
         console.log('📝 Running SEO Analysis...\n');
         const seo = await import('./phases/seo.js');
-        this.results.phases.seo = await seo.run(this);
+        this.results.phases.seo = await seo.default.run(this);
         console.log(`   ✅ SEO Analysis Complete\n`);
       } catch (error) {
         console.log(`   ❌ SEO Analysis Failed: ${error.message}\n`);
@@ -628,7 +628,7 @@ class ThomasAppOrchestrator {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const perfA11y = await import('./phases/performance-accessibility.js');
-    this.results.phases.performanceAccessibility = await perfA11y.run(this);
+    this.results.phases.performanceAccessibility = await perfA11y.default.run(this);
 
     console.log(`\n✅ Phase 5 Complete`);
     console.log(`   Performance Score: ${this.results.phases.performanceAccessibility.performanceScore}/100`);
@@ -641,7 +641,7 @@ class ThomasAppOrchestrator {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const security = await import('./phases/security-analytics.js');
-    this.results.phases.securityAnalytics = await security.run(this);
+    this.results.phases.securityAnalytics = await security.default.run(this);
 
     console.log(`\n✅ Phase 6 Complete`);
     console.log(`   Security Score: ${this.results.phases.securityAnalytics.securityScore}/100\n`);
@@ -653,7 +653,7 @@ class ThomasAppOrchestrator {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const realWorld = await import('./phases/real-world.js');
-    this.results.phases.realWorld = await realWorld.run(this);
+    this.results.phases.realWorld = await realWorld.default.run(this);
 
     console.log(`\n✅ Phase 7 Complete\n`);
   }
@@ -664,7 +664,7 @@ class ThomasAppOrchestrator {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const codeQuality = await import('./phases/code-quality.js');
-    this.results.phases.codeQuality = await codeQuality.run(this);
+    this.results.phases.codeQuality = await codeQuality.default.run(this);
 
     const totalMarkers = this.results.phases.codeQuality.totalMarkers;
 
@@ -678,7 +678,7 @@ class ThomasAppOrchestrator {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const agentReviews = await import('./phases/agent-reviews.js');
-    this.results.phases.agentReviews = await agentReviews.run(this);
+    this.results.phases.agentReviews = await agentReviews.default.run(this);
 
     const totalRecommendations = this.results.phases.agentReviews.recommendations.length;
 
@@ -709,16 +709,21 @@ class ThomasAppOrchestrator {
     const reporting = await import('./phases/reporting.js');
     const finalReport = await reporting.generate(this);
 
-    // Save reports with timestamp
+    // Save latest report (for thomas-demo)
+    const latestPath = path.join(this.config.outputDir, 'report.json');
+    fs.writeFileSync(latestPath, JSON.stringify(finalReport, null, 2));
+    console.log(`📄 Latest Report: ${latestPath}`);
+
+    // Save report with timestamp (for history)
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const jsonPath = path.join(this.config.outputDir, `report-${timestamp}.json`);
     fs.writeFileSync(jsonPath, JSON.stringify(finalReport, null, 2));
-    console.log(`📄 JSON Report: ${jsonPath}`);
+    console.log(`📄 Archived Report: ${jsonPath}`);
 
     // Save to baseline if enabled
     if (this.config.baseline.enabled) {
       const baselinePath = path.join(this.config.baseline.path, 'latest.json');
-      fs.mkdirSync(this.config.baseline.path, { recursive: true });
+      fs.mkdirSync(this.config.baseline.path, { recursive: true});
       fs.writeFileSync(baselinePath, JSON.stringify(finalReport, null, 2));
       console.log(`💾 Baseline saved: ${baselinePath}`);
     }

@@ -4,8 +4,8 @@
  * Detect app type, discover routes, identify features
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 async function run(orchestrator) {
   const { page, config } = orchestrator;
@@ -238,4 +238,4 @@ function analyzeTechStack() {
   return techStack;
 }
 
-module.exports = { run };
+export default { run };

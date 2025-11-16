@@ -4,8 +4,8 @@
  * Automatically create GitHub issues from critical findings
  */
 
-const { exec } = require('child_process');
-const { promisify } = require('util');
+import { exec } from 'child_process';
+import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 async function createIssues(results, config) {
@@ -345,4 +345,4 @@ function getFileName(filePath) {
   return filePath.split('/').pop();
 }
 
-module.exports = { createIssues };
+export { createIssues };

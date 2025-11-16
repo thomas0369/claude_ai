@@ -272,4 +272,4 @@ function generateGameSuggestions(results) {
   return suggestions;
 }
 
-module.exports = { run };
+export default { run };

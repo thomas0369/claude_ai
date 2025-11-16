@@ -105,4 +105,4 @@ async function checkAnalytics(page) {
   });
 }
 
-module.exports = { run };
+export default { run };

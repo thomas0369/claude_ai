@@ -73,4 +73,4 @@ async function run(orchestrator) {
   return results;
 }
 
-module.exports = { run };
+export default { run };

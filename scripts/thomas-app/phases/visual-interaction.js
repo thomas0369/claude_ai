@@ -4,7 +4,7 @@
  * Screen-by-screen visual checks and interaction testing
  */
 
-const path = require('path');
+import path from 'path';
 
 async function run(orchestrator) {
   const { page, config, results } = orchestrator;
@@ -234,4 +234,4 @@ async function testInteractions(page) {
   return results;
 }
 
-module.exports = { run };
+export default { run };

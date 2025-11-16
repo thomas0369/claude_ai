@@ -396,4 +396,4 @@ async function executeStep(page, step, config) {
   }
 }
 
-export { run, getJourneysForAppType };
+export default { run, getJourneysForAppType };

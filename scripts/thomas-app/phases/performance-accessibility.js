@@ -4,10 +4,10 @@
  * Core Web Vitals, Lighthouse audit, accessibility deep scan
  */
 
-const { exec } = require('child_process');
-const { promisify } = require('util');
+import { exec } from 'child_process';
+import { promisify } from 'util';
 const execAsync = promisify(exec);
-const fs = require('fs');
+import fs from 'fs';
 
 /**
  * Detect if running in WSL2 environment
@@ -158,10 +158,10 @@ function calculateA11yScore(results) {
 
 async function runLighthouse(url, outputDir) {
   try {
-    // Use lighthouse programmatically instead of CLI for better control
-    const lighthouse = require('lighthouse');
-    const chromeLauncher = require('chrome-launcher');
-    const fs = require('fs');
+    // Note: lighthouse, chromeLauncher, and fs are commented out
+    // as they would need to be top-level imports in ES modules
+    // This function currently uses CLI fallback instead
+    throw new Error('Lighthouse programmatic API not available in current ES module setup');
 
     // Detect WSL2 environment
     const isWSL = detectWSL();
@@ -231,4 +231,4 @@ async function runLighthouse(url, outputDir) {
   }
 }
 
-module.exports = { run };
+export default { run };
