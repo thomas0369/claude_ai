@@ -20,6 +20,45 @@ vi.mock('fs', () => {
 describe('Discovery Phase', () => {
   let discovery;
 
+  // Helper to create page.evaluate mock that handles multiple function calls
+  function createEvaluateMock(detection = {}, links = [], features = {}) {
+    return vi.fn(async (fn) => {
+      const fnString = fn.toString();
+
+      // Detection function - first call
+      if (fnString.includes('indicators')) {
+        return {
+          game: detection.game || false,
+          ecommerce: detection.ecommerce || false,
+          content: detection.content || false,
+          saas: detection.saas || false
+        };
+      }
+
+      // Route discovery function - second call
+      if (fnString.includes('querySelectorAll')) {
+        return links;
+      }
+
+      // Feature detection - third call
+      if (fnString.includes('hasAuth')) {
+        return {
+          hasAuth: features.hasAuth || false,
+          hasForms: features.hasForms || false,
+          hasSearch: features.hasSearch || false,
+          hasPayments: features.hasPayments || false,
+          hasChat: features.hasChat || false,
+          hasVideo: features.hasVideo || false,
+          hasCanvas: features.hasCanvas || false,
+          hasWebGL: features.hasWebGL || false,
+          hasSocial: features.hasSocial || false
+        };
+      }
+
+      return null;
+    });
+  }
+
   beforeEach(async () => {
     mockFS.reset();
     vi.clearAllMocks();
@@ -36,12 +75,7 @@ describe('Discovery Phase', () => {
   describe('run', () => {
     test('should successfully analyze app', async () => {
       const page = new MockPage();
-      page.setEvaluateResult('detectAppType', {
-        game: false,
-        ecommerce: true,
-        content: false,
-        saas: false
-      });
+      page.evaluate = createEvaluateMock({ ecommerce: true });
 
       const orchestrator = {
         page,
@@ -70,17 +104,7 @@ describe('Discovery Phase', () => {
 
     test('should detect game app type', async () => {
       const page = new MockPage();
-
-      // Mock evaluation results for game detection
-      page.evaluate = vi.fn(async (fn) => {
-        // Simulate game indicators
-        return {
-          game: true,
-          ecommerce: false,
-          content: false,
-          saas: false
-        };
-      });
+      page.evaluate = createEvaluateMock({ game: true });
 
       const orchestrator = {
         page,
@@ -95,15 +119,7 @@ describe('Discovery Phase', () => {
 
     test('should detect ecommerce app type', async () => {
       const page = new MockPage();
-
-      page.evaluate = vi.fn(async (fn) => {
-        return {
-          game: false,
-          ecommerce: true,
-          content: false,
-          saas: false
-        };
-      });
+      page.evaluate = createEvaluateMock({ ecommerce: true });
 
       const orchestrator = {
         page,
@@ -119,15 +135,7 @@ describe('Discovery Phase', () => {
 
     test('should detect content app type', async () => {
       const page = new MockPage();
-
-      page.evaluate = vi.fn(async (fn) => {
-        return {
-          game: false,
-          ecommerce: false,
-          content: true,
-          saas: false
-        };
-      });
+      page.evaluate = createEvaluateMock({ content: true });
 
       const orchestrator = {
         page,
@@ -142,15 +150,7 @@ describe('Discovery Phase', () => {
 
     test('should detect saas app type', async () => {
       const page = new MockPage();
-
-      page.evaluate = vi.fn(async (fn) => {
-        return {
-          game: false,
-          ecommerce: false,
-          content: false,
-          saas: true
-        };
-      });
+      page.evaluate = createEvaluateMock({ saas: true });
 
       const orchestrator = {
         page,
@@ -165,15 +165,7 @@ describe('Discovery Phase', () => {
 
     test('should fallback to website type', async () => {
       const page = new MockPage();
-
-      page.evaluate = vi.fn(async (fn) => {
-        return {
-          game: false,
-          ecommerce: false,
-          content: false,
-          saas: false
-        };
-      });
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
@@ -240,30 +232,16 @@ describe('Discovery Phase', () => {
 
     test('should identify features correctly', async () => {
       const page = new MockPage();
-
-      page.evaluate = vi.fn(async (fn) => {
-        const fnString = fn.toString();
-
-        if (fnString.includes('hasAuth')) {
-          return {
-            hasAuth: true,
-            hasForms: true,
-            hasSearch: true,
-            hasPayments: true,
-            hasChat: true,
-            hasVideo: true,
-            hasCanvas: true,
-            hasWebGL: true,
-            hasSocial: true
-          };
-        }
-
-        return {
-          game: false,
-          ecommerce: false,
-          content: false,
-          saas: false
-        };
+      page.evaluate = createEvaluateMock({}, [], {
+        hasAuth: true,
+        hasForms: true,
+        hasSearch: true,
+        hasPayments: true,
+        hasChat: true,
+        hasVideo: true,
+        hasCanvas: true,
+        hasWebGL: true,
+        hasSocial: true
       });
 
       const orchestrator = {
@@ -286,31 +264,7 @@ describe('Discovery Phase', () => {
 
     test('should not include features that are not present', async () => {
       const page = new MockPage();
-
-      page.evaluate = vi.fn(async (fn) => {
-        const fnString = fn.toString();
-
-        if (fnString.includes('hasAuth')) {
-          return {
-            hasAuth: false,
-            hasForms: false,
-            hasSearch: false,
-            hasPayments: false,
-            hasChat: false,
-            hasVideo: false,
-            hasCanvas: false,
-            hasWebGL: false,
-            hasSocial: false
-          };
-        }
-
-        return {
-          game: false,
-          ecommerce: false,
-          content: false,
-          saas: false
-        };
-      });
+      page.evaluate = createEvaluateMock({}, [], {});
 
       const orchestrator = {
         page,
@@ -335,15 +289,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: false,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
@@ -366,15 +315,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: false,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
@@ -393,15 +337,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: false,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
@@ -420,15 +359,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: false,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
@@ -447,15 +381,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: true,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({ game: true });
 
       const orchestrator = {
         page,
@@ -474,15 +403,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: true,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({ game: true });
 
       const orchestrator = {
         page,
@@ -501,15 +425,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: true,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({ game: true });
 
       const orchestrator = {
         page,
@@ -523,12 +442,7 @@ describe('Discovery Phase', () => {
 
     test('should handle missing package.json gracefully', async () => {
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: false,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
@@ -547,15 +461,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: false,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
@@ -574,15 +483,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: false,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
@@ -601,15 +505,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: false,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
@@ -628,15 +527,10 @@ describe('Discovery Phase', () => {
         }
       };
 
-      mockFS.addFile('/home/test/project/package.json', JSON.stringify(packageJson));
+      mockFS.addFile('/home/thoma/.claude/scripts/thomas-app/package.json', JSON.stringify(packageJson));
 
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: false,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
@@ -685,12 +579,7 @@ describe('Discovery Phase', () => {
 
     test('should mark homepage as visited', async () => {
       const page = new MockPage();
-      page.evaluate = vi.fn(async () => ({
-        game: false,
-        ecommerce: false,
-        content: false,
-        saas: false
-      }));
+      page.evaluate = createEvaluateMock({});
 
       const orchestrator = {
         page,
