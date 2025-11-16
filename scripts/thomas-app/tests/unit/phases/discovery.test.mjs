@@ -234,23 +234,46 @@ describe('Discovery Phase', () => {
       expect(result.routes.every(r => typeof r.critical === 'boolean')).toBe(true);
     });
 
-    test.skip('should identify features correctly', async () => {
-      // SKIP: Mock evaluate function not returning expected feature values
-      // The createEvaluateMock helper returns {hasAuth: true, ...} but identifyFeatures()
-      // receives empty features. This is a mock implementation detail, not core functionality.
-      // 23/24 tests passing proves core functionality works.
-
+    test('should identify features correctly', async () => {
       const page = new MockPage();
-      page.evaluate = createEvaluateMock({}, [], {
-        hasAuth: true,
-        hasForms: true,
-        hasSearch: true,
-        hasPayments: true,
-        hasChat: true,
-        hasVideo: true,
-        hasCanvas: true,
-        hasWebGL: true,
-        hasSocial: true
+
+      // Need to handle all three evaluate calls in sequence
+      let evaluateCallCount = 0;
+      page.evaluate = vi.fn(async (fn) => {
+        const fnString = fn.toString();
+        evaluateCallCount++;
+
+        // First call: detectAppType - check for 'indicators'
+        if (fnString.includes('indicators')) {
+          return {
+            game: false,
+            ecommerce: false,
+            content: false,
+            saas: false
+          };
+        }
+
+        // Second call: discoverRoutes - check for 'querySelectorAll'
+        if (fnString.includes('querySelectorAll') && fnString.includes('a[href]')) {
+          return [];
+        }
+
+        // Third call: identifyFeatures - check for 'hasAuth'
+        if (fnString.includes('hasAuth')) {
+          return {
+            hasAuth: true,
+            hasForms: true,
+            hasSearch: true,
+            hasPayments: true,
+            hasChat: true,
+            hasVideo: true,
+            hasCanvas: true,
+            hasWebGL: true,
+            hasSocial: true
+          };
+        }
+
+        return null;
       });
 
       const orchestrator = {

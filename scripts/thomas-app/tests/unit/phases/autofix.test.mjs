@@ -21,8 +21,6 @@ describe('Autofix Phase', () => {
   let originalSetTimeout;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-
     // Mock exec/execAsync
     mockExecAsync = createMockExecAsync();
 
@@ -40,7 +38,8 @@ describe('Autofix Phase', () => {
       return originalSetTimeout(fn, delay);
     };
 
-    // Load autofix module (ESM)
+    // Clear module cache and reload autofix module (ESM)
+    vi.resetModules();
     const autofixModule = await import('/home/thoma/.claude/scripts/thomas-app/phases/autofix.mjs');
     autofix = autofixModule;
   });
@@ -72,13 +71,13 @@ describe('Autofix Phase', () => {
       consoleLogSpy.mockRestore();
     });
 
-    test.skip('should return early if no fixable issues', async () => {
-      // SKIP: Mock spy call counting issue
-      // Test expects 0 fixes attempted but mock tracking shows 1
-      // Core functionality works (other tests pass), this is a mock artifact
-
+    test('should return early if no fixable issues', async () => {
+      // Create clean results with no issues
       const orchestrator = {
-        results: createMockResults(),
+        results: {
+          phases: {},
+          consoleLog: { errors: [], warnings: [], info: [], network: [] }
+        },
         config: createMockConfig()
       };
 
@@ -365,19 +364,7 @@ describe('Autofix Phase', () => {
       consoleLogSpy.mockRestore();
     });
 
-    test.skip('should handle fix failures', async () => {
-      // SKIP: Mock implementation override not working as expected
-      // Core error handling works (proven by other tests)
-
-      mockExecAsync.mockImplementation(async (command) => {
-        if (command.includes('which /thomas-fix')) {
-          return { stdout: '/thomas-fix', stderr: '' };
-        }
-        if (command.includes('/thomas-fix')) {
-          throw new Error('Fix failed');
-        }
-      });
-
+    test('should handle fix failures', async () => {
       const orchestrator = {
         results: {
           ...createMockResults(),
@@ -390,6 +377,11 @@ describe('Autofix Phase', () => {
         consoleLog: { errors: [], warnings: [], info: [], network: [] }
       };
 
+      // Override just the /thomas-fix call to throw
+      mockExecAsync
+        .mockResolvedValueOnce({ stdout: '/thomas-fix', stderr: '' }) // which check
+        .mockRejectedValueOnce(new Error('Fix failed')); // thomas-fix execution
+
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       const result = await autofix.run(orchestrator);
@@ -400,8 +392,7 @@ describe('Autofix Phase', () => {
       consoleLogSpy.mockRestore();
     });
 
-    test.skip('should limit to max 3 iterations', async () => {
-      // SKIP: Mock implementation complexity issue
+    test('should limit to max 3 iterations', async () => {
       const orchestrator = {
         results: {
           ...createMockResults(),
@@ -419,19 +410,22 @@ describe('Autofix Phase', () => {
         consoleLog: { errors: [] }
       };
 
+      // Mock reload to always succeed
       orchestrator.page.reload = vi.fn(async () => {
-        // Always reload successfully
+        // Reload sets errors back (simulating persistent bugs)
+        orchestrator.consoleLog.errors = [
+          { text: 'Error 1', location: {}, url: '/' },
+          { text: 'Error 2', location: {}, url: '/' },
+          { text: 'Error 3', location: {}, url: '/' },
+          { text: 'Error 4', location: {}, url: '/' }
+        ];
         return {};
       });
 
-      // Make fixes not resolve issues (simulate persistent bugs)
-      mockExecAsync.mockImplementation(async (command) => {
-        if (command.includes('which /thomas-fix')) {
-          return { stdout: '/thomas-fix', stderr: '' };
-        }
-        // thomas-fix succeeds but issues persist
-        return { stdout: '✅ All checks passed', stderr: '' };
-      });
+      // Mock which check and multiple /thomas-fix calls (one per error per iteration)
+      mockExecAsync
+        .mockResolvedValueOnce({ stdout: '/thomas-fix', stderr: '' }) // which check
+        .mockResolvedValue({ stdout: '✅ All checks passed', stderr: '' }); // all thomas-fix calls
 
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -615,8 +609,7 @@ describe('Autofix Phase', () => {
   });
 
   describe('attemptFix', () => {
-    test.skip('should use thomas-fix for console errors', async () => {
-      // SKIP: Mock spy assertion not tracking calls correctly
+    test('should use thomas-fix for console errors', async () => {
       const orchestrator = {
         results: {
           ...createMockResults(),
@@ -633,10 +626,12 @@ describe('Autofix Phase', () => {
 
       const result = await autofix.run(orchestrator);
 
-      expect(mockExecAsync).toHaveBeenCalledWith(
-        '/thomas-fix',
-        expect.objectContaining({ timeout: 300000 })
+      // Check that mockExecAsync was called with thomas-fix command
+      const thomasFixCalls = mockExecAsync.mock.calls.filter(call =>
+        call[0] && typeof call[0] === 'string' && call[0].includes('/thomas-fix') && !call[0].includes('which')
       );
+      expect(thomasFixCalls.length).toBeGreaterThan(0);
+      expect(thomasFixCalls[0][1]).toMatchObject({ timeout: 300000 });
 
       consoleLogSpy.mockRestore();
     });
@@ -683,18 +678,7 @@ describe('Autofix Phase', () => {
       consoleLogSpy.mockRestore();
     });
 
-    test.skip('should handle thomas-fix timeout', async () => {
-      // SKIP: Mock implementation override not working
-      mockExecAsync.mockImplementation(async (command) => {
-        if (command.includes('which /thomas-fix')) {
-          return { stdout: '/thomas-fix', stderr: '' };
-        }
-        if (command.includes('/thomas-fix')) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          throw new Error('Command timeout');
-        }
-      });
-
+    test('should handle thomas-fix timeout', async () => {
       const orchestrator = {
         results: {
           ...createMockResults(),
@@ -706,6 +690,11 @@ describe('Autofix Phase', () => {
         page: new MockPage(),
         consoleLog: { errors: [] }
       };
+
+      // Mock which check success, then timeout on thomas-fix
+      mockExecAsync
+        .mockResolvedValueOnce({ stdout: '/thomas-fix', stderr: '' }) // which check
+        .mockRejectedValueOnce(new Error('Command timeout')); // thomas-fix execution
 
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -717,18 +706,7 @@ describe('Autofix Phase', () => {
       consoleLogSpy.mockRestore();
     });
 
-    test.skip('should handle thomas-fix partial success', async () => {
-      // SKIP: Mock implementation override not working
-      mockExecAsync.mockImplementation(async (command) => {
-        if (command.includes('which /thomas-fix')) {
-          return { stdout: '/thomas-fix', stderr: '' };
-        }
-        if (command.includes('/thomas-fix')) {
-          // Success output but without checkmark
-          return { stdout: 'Running tests...', stderr: '' };
-        }
-      });
-
+    test('should handle thomas-fix partial success', async () => {
       const orchestrator = {
         results: {
           ...createMockResults(),
@@ -740,6 +718,11 @@ describe('Autofix Phase', () => {
         page: new MockPage(),
         consoleLog: { errors: [] }
       };
+
+      // Mock which check success, then partial success (no checkmark) on thomas-fix
+      mockExecAsync
+        .mockResolvedValueOnce({ stdout: '/thomas-fix', stderr: '' }) // which check
+        .mockResolvedValueOnce({ stdout: 'Running tests...', stderr: '' }); // thomas-fix without checkmark
 
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
