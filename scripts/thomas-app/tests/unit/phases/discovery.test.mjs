@@ -9,25 +9,24 @@ import { MockPage } from '../../helpers/mock-browser.mjs';
 import { mockFS } from '../../helpers/mock-fs.mjs';
 import { createMockConfig } from '../../helpers/test-utils.mjs';
 
+// Mock fs at module level
+vi.mock('fs', () => {
+  return {
+    existsSync: vi.fn((path) => mockFS.hasFile(path) || mockFS.hasDir(path)),
+    readFileSync: vi.fn((path, encoding) => mockFS.readFileSync(path, encoding))
+  };
+});
+
 describe('Discovery Phase', () => {
   let discovery;
-  let mockFs;
 
-  beforeEach(() => {
-    vi.resetModules();
+  beforeEach(async () => {
     mockFS.reset();
+    vi.clearAllMocks();
 
-    // Mock fs
-    mockFs = {
-      existsSync: vi.fn((...args) => mockFS.existsSync(...args)),
-      readFileSync: vi.fn((...args) => mockFS.readFileSync(...args))
-    };
-
-    vi.doMock('fs', () => mockFs);
-    vi.doMock('path', () => require('path'));
-
-    // Load discovery module
-    discovery = require('/home/thoma/.claude/scripts/thomas-app/phases/discovery');
+    // Dynamically import discovery module
+    const discoveryModule = await import('/home/thoma/.claude/scripts/thomas-app/phases/discovery.js');
+    discovery = discoveryModule;
   });
 
   afterEach(() => {
