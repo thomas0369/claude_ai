@@ -108,3 +108,4 @@ For each project, create:
 - `<project>/TROUBLESHOOTING.md` - Common issues & solutions
 
 Template: `~/.claude/templates/PROJECT-CLAUDE-TEMPLATE.md`
+- yes, for sure! Continue

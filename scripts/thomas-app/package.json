@@ -4,11 +4,17 @@
   "description": "World-class autonomous application testing framework - tests your app from A to Z",
   "main": "orchestrator.js",
   "scripts": {
-    "test": "node orchestrator.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "test:quick": "node orchestrator.js --quick",
     "test:deep": "node orchestrator.js --deep",
     "test:game": "node orchestrator.js --game",
-    "test:ecommerce": "node orchestrator.js --ecommerce"
+    "test:ecommerce": "node orchestrator.js --ecommerce",
+    "thomas-app": "node orchestrator.js",
+    "thomas-app:quick": "node orchestrator.js --quick",
+    "thomas-app:deep": "node orchestrator.js --deep"
   },
   "keywords": [
     "testing",
@@ -34,5 +40,9 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.9",
+    "vitest": "^4.0.9"
+  }
 }
