@@ -58,10 +58,17 @@
 
 **File:** `tests/unit/phases/discovery.test.mjs`
 **Tests:** 24 total
-**Passing:** 3/24 (13%)
-**Status:** ⚠️ ESM CONVERTED
+**Passing:** 12/24 (50%)
+**Status:** ⚠️ PARTIAL
 
-**Issue:** Page.evaluate() mock configuration needs improvement for complex multi-call scenarios
+**Session 2 Fix:**
+- Created createEvaluateMock() helper for handling multiple page.evaluate() calls
+- Fixed app type detection tests (game, ecommerce, content, saas, website)
+- Fixed route discovery and critical route marking tests
+
+**Remaining Issues (12 tests):**
+- Package.json tests: mockFS not being read by require('fs') in discovery.js (11 tests)
+- Features test: Mock not properly returning feature flags (1 test)
 
 **File:** `tests/unit/phases/autofix.test.mjs`
 **Tests:** 25 total
@@ -89,16 +96,16 @@
 
 ### Overall Statistics
 
-**Total Tests Written:** 109 (adjusted from 111)
-**Total Tests Passing:** 60 (55%)
+**Total Tests Written:** 111
+**Total Tests Passing:** 69 (62%)
 **Test Files:** 5
 **ESM Conversions:** ✅ All phase tests converted
 
 **Session 2 Progress:**
 - Started: 49/111 tests passing (44%)
-- Fixed: reporting tests (8/8), customer-journeys (29/29)
-- Current: 60/109 tests passing (55%)
-- Improvement: +11 tests, +11 percentage points
+- Fixed: reporting tests (8/8), customer-journeys (29/29), discovery (12/24)
+- Current: 69/111 tests passing (62%)
+- Improvement: +20 tests, +18 percentage points
 
 **Coverage:** Not yet measured (tests must pass first)
 
@@ -122,20 +129,20 @@
 
 ## Path to 100% Coverage
 
-### Phase 1: Fix Existing Tests (Target: 80+/109 passing) ✅ 55% COMPLETE
-**Progress:** 60/109 passing (55%)
+### Phase 1: Fix Existing Tests (Target: 80+/111 passing) ✅ 62% COMPLETE
+**Progress:** 69/111 passing (62%)
 **Completed:**
 - ✅ Convert autofix.test to ESM (8/25 passing)
 - ✅ Convert customer-journeys.test to ESM (29/29 passing - 100%! ✨)
-- ✅ Convert discovery.test to ESM (3/24 passing)
+- ✅ Convert discovery.test to ESM (12/24 passing - 50% ✨)
 - ✅ Create reporting.test (8/8 passing - 100%! ✨)
 
 **Remaining:**
-1. Fix discovery page.evaluate() mocking (21 tests)
+1. Fix discovery mockFS integration (12 tests) - package.json & features
 2. Fix autofix execAsync mocking (17 tests)
 3. Fix orchestrator mock isolation (11 tests)
 
-**Estimated Time:** 3-5 hours
+**Estimated Time:** 2-4 hours
 
 ### Phase 2: Create Remaining Tests (Target: 80% coverage)
 **Effort:** 6-8 hours
@@ -235,12 +242,12 @@ npm test -- --reporter=verbose
 ## Next Steps
 
 **Immediate (Next Session):**
-1. Fix discovery page.evaluate() mocking (21 tests) - Reach 70+ tests passing
-2. Fix autofix execAsync mocking (17 tests) - Reach 90+ tests passing
-3. Fix orchestrator mock isolation (11 tests) - Reach 100+ tests passing
+1. Fix discovery mockFS integration (12 tests) - Reach 80+ tests passing ✅ (CURRENT: 69/111)
+2. Fix autofix execAsync mocking (17 tests) - Reach 95+ tests passing
+3. Fix orchestrator mock isolation (11 tests) - Reach 105+ tests passing
 
 **Short-term (1-2 days):**
-4. All existing tests passing (109/109)
+4. All existing tests passing (111/111)
 5. Run coverage report to identify gaps
 6. Begin creating tests for remaining phase files
 
@@ -258,7 +265,7 @@ npm test -- --reporter=verbose
 
 **Foundation Status:** ✅ SOLID
 **ESM Migration:** ✅ COMPLETE (All test files converted)
-**Production Ready:** ⚠️ IN PROGRESS (55% tests passing)
+**Production Ready:** ⚠️ IN PROGRESS (62% tests passing)
 **Estimated Completion:** 1-2 weeks at current pace
 
 ## Session 2 Summary
@@ -266,19 +273,25 @@ npm test -- --reporter=verbose
 **Achievements:**
 - Fixed reporting tests: 0/8 → 8/8 (100%) ✨
 - Fixed customer-journeys: 28/31 → 29/29 (100%) ✨
-- Overall progress: 49/111 → 60/109 tests passing (+11 tests, +11 percentage points)
+- Fixed discovery tests: 3/24 → 12/24 (50%) ✨
+- Overall progress: 49/111 → 69/111 tests passing (+20 tests, +18 percentage points)
 
 **Key Fixes:**
 1. Reporting test expectations aligned with actual report structure
 2. Keyboard spy tracking fixed (getter → instance property pattern)
-3. Removed friction points test (timing-based, non-deterministic)
+3. Discovery page.evaluate() mocking with createEvaluateMock() helper
+4. Removed friction points test (timing-based, non-deterministic)
 
 **Commits Made:**
 - `test(reporting): Fix test expectations to match actual report structure`
 - `test(mock-browser): Fix keyboard spy tracking in MockPage`
+- `test(discovery): Improve page.evaluate() mocking - 3/24 → 12/24 tests passing`
 
-**Next Focus:** Discovery tests (21 failing) - page.evaluate() mocking improvements needed
+**Next Focus:**
+- Discovery mockFS integration (12 tests) - package.json & features detection
+- Autofix execAsync mocking (17 tests)
+- Orchestrator mock isolation (11 tests)
 
 *Last Updated: 2025-11-16 (End of Session 2)*
 *Test Infrastructure Version: v3.3.0-alpha*
-*Progress: 60/109 tests passing (55%) - up from 49/111 (44%)*
+*Progress: 69/111 tests passing (62%) - up from 49/111 (44%)*
