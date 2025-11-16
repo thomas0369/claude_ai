@@ -1,65 +1,61 @@
 ---
-description: Visual demonstration of customer journeys in Chromium with UI overlay, element highlighting, and step-by-step progress
+description: Visual demonstration of thomas-app test results - replay customer journeys in Chromium with UI overlay
 category: workflow
 allowed-tools: Bash, Task, TodoWrite, Read, Glob, Grep
 ---
 
-# Thomas Demo - Visual Journey Demonstration
+# Thomas Demo - Visual Journey Results Demonstration
 
-Show all customer journeys from thomas-app running visually in Chromium with:
-- Floating UI overlay showing progress
-- Element highlighting before each action
-- Step-by-step descriptions
-- Real-time progress tracking
-- Interactive results summary
+**IMPORTANT**: This command READS and VISUALLY REPLAYS test results from thomas-app.
+It does NOT run tests - it shows you what was already tested.
+
+Workflow:
+1. Run `thomas-app` to test your application
+2. Run `thomas-demo` to see a visual replay of the test results
 
 ## Usage
 
 ```bash
-# Demo all journeys for detected app type
+# Demo test results from default location (/tmp/thomas-app/report.json)
 node ~/.claude/scripts/thomas-app/thomas-demo.mjs
 
-# Demo specific app type
-node ~/.claude/scripts/thomas-app/thomas-demo.mjs --app-type ecommerce
+# Demo test results from custom location
+node ~/.claude/scripts/thomas-app/thomas-demo.mjs --results /path/to/report.json
 
-# Demo specific journey
-node ~/.claude/scripts/thomas-app/thomas-demo.mjs --app-type saas --journey "Sign Up Flow"
+# Demo specific journey only
+node ~/.claude/scripts/thomas-app/thomas-demo.mjs --journey "Browse to Purchase"
 
-# Custom base URL
-node ~/.claude/scripts/thomas-app/thomas-demo.mjs --base-url http://localhost:5173
-
-# Adjust speed (0.5 = slower, 2.0 = faster)
+# Adjust replay speed (0.5 = slower, 2.0 = faster)
 node ~/.claude/scripts/thomas-app/thomas-demo.mjs --speed 0.5
 ```
 
 ## Features
 
 ### Visual UI Overlay
-- Floating panel in top-right corner
-- Shows current journey and progress
-- Lists all steps with status indicators (✅ ▶️ ⏸ ❌)
+- Floating panel showing test results
+- Current journey and step progress
+- Step status indicators (✅ ▶️ ⏸ ❌)
 - Progress bar with percentage
-- Beautiful gradient design
+- Beautiful purple gradient design
 
 ### Element Highlighting
-- Red outline highlights elements before interaction
-- Elements scroll into view automatically
-- Tooltip shows step description
+- Red outlines show what was tested
+- Elements scroll into view
+- Tooltips show step descriptions
 - Smooth animations
 
-### Slow Motion Execution
-- 1.2s delay before each step
-- 0.8s delay after each step
-- 0.6s element highlighting
-- 2.5s pause between journeys
-- Adjustable with --speed parameter
+### Results Display
+- Shows which journeys passed/failed
+- Displays friction points detected
+- Step-by-step replay of test execution
+- Final summary with scores
+- All from the thomas-app test results
 
-### Results Summary
-- Pass/fail for each journey
-- Total steps executed
-- Duration tracking
-- Screenshot locations
-- Visual summary screen
+### Replay Speed Control
+- Default: Normal viewing speed
+- --speed 0.5: Slower for presentations
+- --speed 2.0: Faster for quick reviews
+- Delays scale proportionally
 
 ## Supported App Types
 
@@ -126,13 +122,13 @@ Press Ctrl+C to exit...
 
 | Feature | thomas-app | thomas-demo |
 |---------|------------|-------------|
-| Purpose | Comprehensive testing | Visual demonstration |
-| Speed | Fast (test speed) | Slow (viewable) |
-| UI Overlay | None | Floating progress panel |
-| Element Highlighting | No | Yes (red outlines) |
-| Step Tooltips | No | Yes (shows descriptions) |
-| Progress Bar | Console only | Visual progress bar |
-| Results | Report files | Interactive summary screen |
+| Purpose | Run tests and analyze app | Replay and visualize test results |
+| Execution | Actually tests the app | Reads existing test results |
+| Speed | Test speed (fast) | Replay speed (slow, viewable) |
+| Output | JSON/HTML reports | Visual browser demonstration |
+| UI Overlay | None | Floating results panel |
+| Element Highlighting | No | Yes (shows what was tested) |
+| Use Case | CI/CD, automated testing | Stakeholder demos, understanding flows |
 
 ## Tips
 
