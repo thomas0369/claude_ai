@@ -6,9 +6,13 @@
  * Main orchestrator that coordinates all testing phases
  */
 
-const { chromium } = require('playwright');
-const fs = require('fs');
-const path = require('path');
+import { chromium } from 'playwright';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class ThomasAppOrchestrator {
   constructor(options = {}) {
@@ -54,7 +58,7 @@ class ThomasAppOrchestrator {
     // Default configuration
     const defaultConfig = {
       appType: null,  // Will be auto-detected
-      baseUrl: process.env.BASE_URL || 'http://localhost:3000',
+      baseUrl: this.options.baseUrl || process.env.BASE_URL || 'http://localhost:3000',
       testSuites: {
         discovery: true,
         customerJourneys: true,
@@ -320,7 +324,7 @@ class ThomasAppOrchestrator {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     try {
-      const discovery = require('./phases/discovery');
+      const { default: discovery } = await import('./phases/discovery.js');
       this.results.phases.discovery = await discovery.run(this);
 
       console.log(`\n✅ Phase 1 Complete`);
@@ -339,7 +343,7 @@ class ThomasAppOrchestrator {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     try {
-      const journeys = require('./phases/customer-journeys');
+      const { default: journeys } = await import('./phases/customer-journeys.js');
       this.results.phases.customerJourneys = await journeys.run(this);
 
       const total = this.results.phases.customerJourneys.journeys.length;
@@ -359,7 +363,7 @@ class ThomasAppOrchestrator {
     console.log('PHASE 3: Visual & Interaction Analysis');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const visual = require('./phases/visual-interaction');
+    const { default: visual } = await import('./phases/visual-interaction.js');
     this.results.phases.visualInteraction = await visual.run(this);
 
     console.log(`\n✅ Phase 3 Complete`);
@@ -373,7 +377,7 @@ class ThomasAppOrchestrator {
     console.log('PHASE 3.5: Screen Flow & Comprehensive Interaction Testing');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const screenFlow = require('./phases/screen-flow');
+    const { default: screenFlow } = await import('./phases/screen-flow.js');
     this.results.phases.screenFlow = await screenFlow.run(this);
 
     console.log(`\n✅ Phase 3.5 Complete`);
@@ -394,7 +398,7 @@ class ThomasAppOrchestrator {
     if (appType === 'game' || this.isSuiteEnabled('gameAI')) {
       try {
         console.log('🎮 Running Game AI Player...\n');
-        const gameAI = require('./phases/game-ai');
+        const { default: gameAI } = await import('./phases/game-ai.js');
         this.results.phases.gameAI = await gameAI.run(this);
         console.log(`   ✅ Game AI Complete\n`);
       } catch (error) {
@@ -407,7 +411,7 @@ class ThomasAppOrchestrator {
     if (appType === 'ecommerce') {
       try {
         console.log('🛒 Running E-commerce Flow Tests...\n');
-        const ecommerce = require('./phases/ecommerce');
+        const { default: ecommerce } = await import('./phases/ecommerce.js');
         this.results.phases.ecommerce = await ecommerce.run(this);
         console.log(`   ✅ E-commerce Tests Complete\n`);
       } catch (error) {
@@ -420,7 +424,7 @@ class ThomasAppOrchestrator {
     if (appType === 'content' && this.isSuiteEnabled('seo')) {
       try {
         console.log('📝 Running SEO Analysis...\n');
-        const seo = require('./phases/seo');
+        const { default: seo } = await import('./phases/seo.js');
         this.results.phases.seo = await seo.run(this);
         console.log(`   ✅ SEO Analysis Complete\n`);
       } catch (error) {
@@ -437,7 +441,7 @@ class ThomasAppOrchestrator {
     console.log('PHASE 5: Performance & Accessibility');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const perfA11y = require('./phases/performance-accessibility');
+    const { default: perfA11y } = await import('./phases/performance-accessibility.js');
     this.results.phases.performanceAccessibility = await perfA11y.run(this);
 
     console.log(`\n✅ Phase 5 Complete`);
@@ -450,7 +454,7 @@ class ThomasAppOrchestrator {
     console.log('PHASE 6: Security & Analytics');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const security = require('./phases/security-analytics');
+    const { default: security } = await import('./phases/security-analytics.js');
     this.results.phases.securityAnalytics = await security.run(this);
 
     console.log(`\n✅ Phase 6 Complete`);
@@ -462,7 +466,7 @@ class ThomasAppOrchestrator {
     console.log('PHASE 7: Real-World Conditions');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const realWorld = require('./phases/real-world');
+    const { default: realWorld } = await import('./phases/real-world.js');
     this.results.phases.realWorld = await realWorld.run(this);
 
     console.log(`\n✅ Phase 7 Complete\n`);
@@ -473,7 +477,7 @@ class ThomasAppOrchestrator {
     console.log('PHASE 7.3: Code Quality Scanning');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const codeQuality = require('./phases/code-quality');
+    const { default: codeQuality } = await import('./phases/code-quality.js');
     this.results.phases.codeQuality = await codeQuality.run(this);
 
     const totalMarkers = this.results.phases.codeQuality.totalMarkers;
@@ -487,7 +491,7 @@ class ThomasAppOrchestrator {
     console.log('PHASE 7.5: AI Agent Code Reviews');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const agentReviews = require('./phases/agent-reviews');
+    const { default: agentReviews } = await import('./phases/agent-reviews.js');
     this.results.phases.agentReviews = await agentReviews.run(this);
 
     const totalRecommendations = this.results.phases.agentReviews.recommendations.length;
@@ -501,7 +505,7 @@ class ThomasAppOrchestrator {
     console.log('PHASE 7.9: Autonomous Bug Fixing');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const autofix = require('./phases/autofix');
+    const { default: autofix } = await import('./phases/autofix.js');
     this.results.phases.autofix = await autofix.run(this);
 
     const totalFixed = this.results.phases.autofix.fixed.length;
@@ -516,7 +520,7 @@ class ThomasAppOrchestrator {
     console.log('PHASE 8: Generating Reports');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    const reporting = require('./phases/reporting');
+    const { default: reporting } = await import('./phases/reporting.js');
     const finalReport = await reporting.generate(this);
 
     // Save reports with timestamp
@@ -621,15 +625,20 @@ class ThomasAppOrchestrator {
 }
 
 // CLI interface
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
+
+  // Parse --url parameter
+  const urlArg = args.find(arg => arg.startsWith('--url='));
+  const baseUrl = urlArg ? urlArg.split('=')[1] : undefined;
 
   const options = {
     quick: args.includes('--quick'),
     deep: args.includes('--deep'),
     game: args.includes('--game'),
     ecommerce: args.includes('--ecommerce'),
-    suites: args.find(arg => arg.startsWith('--suites='))?.split('=')[1]
+    suites: args.find(arg => arg.startsWith('--suites='))?.split('=')[1],
+    baseUrl  // Override config baseUrl with CLI arg
   };
 
   const orchestrator = new ThomasAppOrchestrator(options);
@@ -642,4 +651,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = ThomasAppOrchestrator;
+export default ThomasAppOrchestrator;

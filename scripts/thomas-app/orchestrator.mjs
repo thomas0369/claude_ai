@@ -10,6 +10,10 @@ import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getDebugConfig, getOverhead, parseDebugArgs } from './config/debug-config.js';
+import { ActionLogger } from './lib/debug/action-logger.js';
+import { ArtifactManager } from './lib/debug/artifact-manager.js';
+import { PerformanceMonitor } from './lib/debug/performance-monitor.js';
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -23,10 +27,17 @@ class ThomasAppOrchestrator {
       suites: options.suites || null,
       appType: options.appType || null,
       configPath: options.configPath || '.thomas-app.json',
+      debugLevel: options.debugLevel || 'off',
+      debugDir: options.debugDir || null,
+      debugRetention: options.debugRetention || null,
       ...options
     };
 
     this.config = this.loadConfig();
+
+    // Initialize debug configuration
+    this.debugConfig = this.initializeDebugMode();
+
     this.results = {
       phases: {},
       issues: [],
@@ -37,9 +48,41 @@ class ThomasAppOrchestrator {
     this.browser = null;
     this.context = null;
     this.page = null;
+    this.actionLogger = null;
+    this.artifactManager = null;
+    this.performanceMonitor = null;
 
     // Setup cleanup handlers for graceful shutdown
     this.setupProcessCleanup();
+  }
+
+  initializeDebugMode() {
+    // Get base debug config
+    let debugConfig = getDebugConfig(this.options.debugLevel);
+
+    // Override output directory if specified
+    if (this.options.debugDir) {
+      debugConfig = { ...debugConfig, outputDir: this.options.debugDir };
+    }
+
+    // Override retention if specified
+    if (this.options.debugRetention) {
+      debugConfig = { ...debugConfig, retention: this.options.debugRetention };
+    }
+
+    if (debugConfig.enabled) {
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🐛 DEBUG MODE ENABLED');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(`[DEBUG] Level: ${this.options.debugLevel}`);
+      console.log(`[DEBUG] Output directory: ${debugConfig.outputDir}`);
+      console.log(`[DEBUG] Estimated overhead: ${getOverhead(this.options.debugLevel)}`);
+      console.log(`[DEBUG] Retention: ${debugConfig.retention}`);
+      console.log(`[DEBUG] Max size: ${debugConfig.maxSize}`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    }
+
+    return debugConfig;
   }
 
   detectWSL() {
@@ -120,6 +163,14 @@ class ThomasAppOrchestrator {
       fs.mkdirSync(this.config.outputDir, { recursive: true });
     }
 
+    // Initialize artifact manager and cleanup old artifacts
+    if (this.debugConfig.enabled) {
+      this.artifactManager = new ArtifactManager(this.debugConfig);
+      await this.artifactManager.cleanup();
+      await this.artifactManager.printStats();
+      console.log('');
+    }
+
     // Detect WSL2 environment
     const isWSL = this.detectWSL();
     if (isWSL) {
@@ -138,6 +189,12 @@ class ThomasAppOrchestrator {
       launchArgs.push('--disable-gpu');
     }
 
+    // Add debug-specific args
+    if (this.debugConfig.enabled) {
+      launchArgs.push('--enable-logging');
+      launchArgs.push('--v=1');
+    }
+
     // Launch browser
     console.log('🚀 Starting browser...');
     this.browser = await chromium.launch({
@@ -145,18 +202,74 @@ class ThomasAppOrchestrator {
       args: launchArgs
     });
 
-    this.context = await this.browser.newContext({
-      viewport: this.config.viewports[0],  // Start with desktop
-      recordVideo: {
+    // Build context options
+    const contextOptions = {
+      viewport: this.config.viewports[0]  // Start with desktop
+    };
+
+    // Add video recording (either from debug config or default)
+    if (this.debugConfig.video?.enabled) {
+      contextOptions.recordVideo = {
+        dir: this.debugConfig.video.dir,
+        size: this.debugConfig.video.size
+      };
+    } else if (!this.debugConfig.enabled) {
+      // Default video recording when not in debug mode
+      contextOptions.recordVideo = {
         dir: path.join(this.config.outputDir, 'videos'),
         size: { width: 1920, height: 1080 }
-      }
-    });
+      };
+    }
 
+    // Add HAR recording (full debug mode only)
+    if (this.debugConfig.har?.enabled) {
+      contextOptions.recordHar = {
+        path: this.debugConfig.har.path,
+        mode: 'full'
+      };
+    }
+
+    this.context = await this.browser.newContext(contextOptions);
     this.page = await this.context.newPage();
+
+    // Initialize action logger (wraps all Playwright actions)
+    if (this.debugConfig.enabled) {
+      this.actionLogger = new ActionLogger(
+        this.page,
+        this.debugConfig,
+        this.debugConfig.outputDir
+      );
+      console.log('[DEBUG] Action logger initialized\n');
+    }
+
+    // Enable tracing if configured
+    if (this.debugConfig.trace?.enabled) {
+      await this.context.tracing.start({
+        screenshots: this.debugConfig.trace.screenshots,
+        snapshots: this.debugConfig.trace.snapshots,
+        sources: this.debugConfig.trace.sources
+      });
+      console.log('[DEBUG] Trace recording started\n');
+    }
+
+    // Initialize performance monitor
+    if (this.debugConfig.performance?.enabled) {
+      this.performanceMonitor = new PerformanceMonitor(
+        this.page,
+        this.debugConfig,
+        this.debugConfig.outputDir
+      );
+      await this.performanceMonitor.start();
+      console.log('[DEBUG] Performance monitoring started\n');
+    }
 
     // Set up console monitoring
     this.setupConsoleMonitoring();
+
+    // Set up network monitoring (if debug mode enabled)
+    if (this.debugConfig.networkLog?.enabled) {
+      this.setupNetworkMonitoring();
+    }
 
     console.log('✅ Browser ready\n');
   }
@@ -232,6 +345,78 @@ class ThomasAppOrchestrator {
         this.consoleLog.network.shift();
       }
     });
+  }
+
+  setupNetworkMonitoring() {
+    // Request monitoring
+    this.page.on('request', request => {
+      if (!this.debugConfig.networkLog.enabled) return;
+
+      const logEntry = {
+        type: 'network-request',
+        method: request.method(),
+        url: request.url(),
+        timestamp: Date.now()
+      };
+
+      console.log(`[DEBUG] NETWORK REQUEST: ${request.method()} ${request.url()}`);
+
+      if (this.debugConfig.networkLog.captureHeaders) {
+        logEntry.headers = request.headers();
+        console.log(`  ├─ Headers: ${Object.keys(request.headers()).length} headers`);
+      }
+
+      // Write to action logger
+      if (this.actionLogger) {
+        this.actionLogger.writeLog(logEntry);
+      }
+    });
+
+    // Response monitoring
+    this.page.on('response', async response => {
+      if (!this.debugConfig.networkLog.enabled) return;
+
+      // Skip if only logging failed requests
+      if (this.debugConfig.networkLog.onlyFailed && response.ok()) {
+        return;
+      }
+
+      const logEntry = {
+        type: 'network-response',
+        method: response.request().method(),
+        url: response.url(),
+        status: response.status(),
+        timestamp: Date.now()
+      };
+
+      const statusEmoji = response.ok() ? '✅' : '❌';
+      console.log(`[DEBUG] NETWORK RESPONSE: ${statusEmoji} ${response.status()} ${response.url()}`);
+
+      if (this.debugConfig.networkLog.captureHeaders) {
+        logEntry.headers = response.headers();
+        console.log(`  ├─ Headers: ${Object.keys(response.headers()).length} headers`);
+      }
+
+      if (this.debugConfig.networkLog.captureBody) {
+        try {
+          const contentType = response.headers()['content-type'] || '';
+          if (contentType.includes('application/json') || contentType.includes('text/')) {
+            const body = await response.text();
+            logEntry.body = body.substring(0, 500); // Limit body size
+            console.log(`  └─ Body: ${body.substring(0, 100)}${body.length > 100 ? '...' : ''}`);
+          }
+        } catch (err) {
+          // Body may not be available
+        }
+      }
+
+      // Write to action logger
+      if (this.actionLogger) {
+        this.actionLogger.writeLog(logEntry);
+      }
+    });
+
+    console.log('[DEBUG] Network monitoring initialized\n');
   }
 
   async run() {
@@ -569,6 +754,34 @@ class ThomasAppOrchestrator {
     console.log('🧹 Cleaning up...');
 
     try {
+      // Stop performance monitoring
+      if (this.performanceMonitor) {
+        await this.performanceMonitor.stop();
+        console.log('[DEBUG] Performance monitoring stopped');
+      }
+
+      // Stop tracing and save
+      if (this.debugConfig.trace?.enabled && this.context) {
+        try {
+          const tracePath = path.join(this.debugConfig.outputDir, 'trace.zip');
+          await this.context.tracing.stop({ path: tracePath });
+          console.log(`[DEBUG] Trace saved: ${tracePath}`);
+        } catch (error) {
+          console.warn('[DEBUG] Failed to save trace:', error.message);
+        }
+      }
+
+      // Close action logger
+      if (this.actionLogger) {
+        await this.actionLogger.close();
+        console.log('[DEBUG] Action logger closed');
+      }
+
+      // Generate debug summary
+      if (this.debugConfig.enabled) {
+        await this.generateDebugSummary();
+      }
+
       // Close page first
       if (this.page && !this.page.isClosed()) {
         await this.page.close().catch(e => console.warn('⚠️  Failed to close page:', e.message));
@@ -603,6 +816,58 @@ class ThomasAppOrchestrator {
     }
   }
 
+  async generateDebugSummary() {
+    const summaryPath = path.join(this.debugConfig.outputDir, 'summary.json');
+
+    // Count screenshots
+    let screenshotCount = 0;
+    const screenshotsDir = path.join(this.debugConfig.outputDir, 'screenshots');
+    if (fs.existsSync(screenshotsDir)) {
+      screenshotCount = fs.readdirSync(screenshotsDir).length;
+    }
+
+    const summary = {
+      timestamp: new Date().toISOString(),
+      debugLevel: this.options.debugLevel,
+      totalActions: this.actionLogger?.actionCount || 0,
+      consoleErrors: this.consoleLog.errors.length,
+      consoleWarnings: this.consoleLog.warnings.length,
+      networkFailures: this.consoleLog.network.filter(n => n.type === 'failed-request').length,
+      artifacts: {
+        screenshots: screenshotCount,
+        actionLog: path.join(this.debugConfig.outputDir, 'actions.jsonl'),
+        consoleLog: path.join(this.config.outputDir, 'console-log.json')
+      }
+    };
+
+    if (this.debugConfig.trace?.enabled) {
+      summary.artifacts.trace = path.join(this.debugConfig.outputDir, 'trace.zip');
+    }
+
+    if (this.debugConfig.har?.enabled) {
+      summary.artifacts.har = this.debugConfig.har.path;
+    }
+
+    if (this.debugConfig.video?.enabled) {
+      summary.artifacts.video = this.debugConfig.video.dir;
+    }
+
+    fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
+
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('[DEBUG] Debug Summary');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`[DEBUG] Summary saved: ${summaryPath}`);
+    console.log(`[DEBUG] Total actions: ${summary.totalActions}`);
+    console.log(`[DEBUG] Console errors: ${summary.consoleErrors}`);
+    console.log(`[DEBUG] Console warnings: ${summary.consoleWarnings}`);
+    console.log(`[DEBUG] Screenshots: ${summary.artifacts.screenshots}`);
+    if (summary.artifacts.trace) {
+      console.log(`[DEBUG] Trace: ${summary.artifacts.trace}`);
+    }
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  }
+
   setupProcessCleanup() {
     const cleanup = async () => {
       console.log('\n⚠️  Interrupt received, cleaning up...');
@@ -631,12 +896,18 @@ const isMainModule = import.meta.url === `file://${process.argv[1]}`;
 if (isMainModule) {
   const args = process.argv.slice(2);
 
+  // Parse debug arguments
+  const debugArgs = parseDebugArgs(args);
+
   const options = {
     quick: args.includes('--quick'),
     deep: args.includes('--deep'),
     game: args.includes('--game'),
     ecommerce: args.includes('--ecommerce'),
-    suites: args.find(arg => arg.startsWith('--suites='))?.split('=')[1]
+    suites: args.find(arg => arg.startsWith('--suites='))?.split('=')[1],
+    debugLevel: debugArgs.level,
+    debugDir: debugArgs.dir,
+    debugRetention: debugArgs.retention
   };
 
   const orchestrator = new ThomasAppOrchestrator(options);

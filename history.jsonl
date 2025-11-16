@@ -3606,3 +3606,641 @@
 {"display":"/thomas-app with production https://elliott-wave-trading-bot.vercel.app/","pastedContents":{},"timestamp":1763296647695,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
 {"display":"/thomas-app with production https://elliott-wave-trading-bot.vercel.app/","pastedContents":{},"timestamp":1763296647701,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
 {"display":"One question, are you optiming thomas-app command or for what are all these tests?","pastedContents":{},"timestamp":1763296675797,"project":"/home/thoma/.claude"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1763297362524,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1763297362557,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"sounds amazing, continue","pastedContents":{},"timestamp":1763297401704,"project":"/home/thoma/.claude"}
+{"display":"you need to imrove the chart testing. When there is a long signal, then the signal dreieck should be green and under the candles. When there is a short signal, then there is a red dreieck that is above the candle and shows to the bottom","pastedContents":{},"timestamp":1763297728377,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"next step","pastedContents":{},"timestamp":1763297772716,"project":"/home/thoma/.claude"}
+{"display":"continue","pastedContents":{},"timestamp":1763298084363,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"So thomas-app has user and project tests. is this right? because this test is only for this project and not for all projects of the user","pastedContents":{},"timestamp":1763298379137,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"is this test applied when I use thomas-app command?","pastedContents":{},"timestamp":1763298379157,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"use code review expert","pastedContents":{},"timestamp":1763298458078,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/thomas-app with production https://block-puzzle-hero.vercel.app/","pastedContents":{},"timestamp":1763299087824,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/thomas-app with production https://block-puzzle-hero.vercel.app/","pastedContents":{},"timestamp":1763299087842,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"next step","pastedContents":{},"timestamp":1763299485896,"project":"/home/thoma/.claude"}
+{"display":"have you used the test in the production environment with playwritght and chromium? I see that dreiecke are wstill not right","pastedContents":{},"timestamp":1763300271508,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1763301540236,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1763301540256,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"Test timeout of 30000ms exceeded.\nError: locator.textContent: Test timeout of 30000ms exceeded.\nCall log:\n  - waiting for locator('.signal-row').first().locator('.score-badge')\n\n\n  18 |     const symbol = await signal.locator('.col-symbol').textContent();\n  19 |     const direction = (await signal.locator('.direction-badge').textContent()).trim().toLowerCase();\n> 20 |     const score = await signal.locator('.score-badge').textContent();\n     |                                                        ^\n  21 |\n  22 |     console.log(`\\n📊 Testing: ${symbol} ${direction.toUpperCase()} (Score: ${score})`);\n  23 |\n    at /mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot/tests/verify-production-fix.spec.js:20:56","pastedContents":{},"timestamp":1763301694878,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"next step","pastedContents":{},"timestamp":1763302052734,"project":"/home/thoma/.claude"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1763302107523,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1763302107638,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1763302225508,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1763302225542,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"inverted triangles (▼) in short and triangles in long","pastedContents":{},"timestamp":1763302377778,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"now, inverse triangle is gone for short. \ninverte triangle: Short, red color, above the candle\ntriangle: Long, green color, under the candle","pastedContents":{},"timestamp":1763302509219,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1763302657166,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/thomas-fix ","pastedContents":{},"timestamp":1763302657174,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"next#","pastedContents":{},"timestamp":1763303003850,"project":"/home/thoma/.claude"}
+{"display":"1","pastedContents":{},"timestamp":1763303317761,"project":"/home/thoma/.claude"}
+{"display":"both are red and inverse. Create a debug mode where the direction and color of the signal is shown in console. Do it with all chart properties in order to identify issues","pastedContents":{},"timestamp":1763303488085,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"[Pasted text #1 +125 lines]\n\ntriangle-up für long\ntriangle-down für short","pastedContents":{},"timestamp":1763303760244,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"have your really test all szenarios with playwright? Importing is not working: Errors occurred during import:\n\nEROFS: read-only file system, open '/var/task/benchmark-app/public/data/zerez/products.json'","pastedContents":{},"timestamp":1763304367306,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"now its good. update the test with latest changes in order to secure that it will work in futre","pastedContents":{},"timestamp":1763304392410,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"why you use puppeteer and not playwright by using thomas-app or thomas-fix?","pastedContents":{},"timestamp":1763304563767,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"have you logged in and tested the full app? I have the impression your tests makes no sense","pastedContents":{},"timestamp":1763304778742,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"go","pastedContents":{},"timestamp":1763304858890,"project":"/home/thoma/.claude"}
+{"display":"you are my trading agent specialist now. You have 30 years experience of trading in front of charts with symbols, sign etc.\nI need your support: define for me what makes a good trading chart. I want to have the most professional solution by using the current chart js lib.","pastedContents":{},"timestamp":1763305200853,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"bring it to 100% in ESM","pastedContents":{},"timestamp":1763306012010,"project":"/home/thoma/.claude"}
+{"display":"all, next steps","pastedContents":{},"timestamp":1763307440380,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"amazing!","pastedContents":{},"timestamp":1763307585266,"project":"/home/thoma/.claude"}
+{"display":"^sounds good: Implement it and prepare a project test for thomas-app and thomas-fix commands","pastedContents":{},"timestamp":1763307701418,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"ok, next steps nopw","pastedContents":{},"timestamp":1763307765856,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"yes, clean up, update memory-bank and push it to github","pastedContents":{},"timestamp":1763308008261,"project":"/home/thoma/.claude"}
+{"display":"next steps","pastedContents":{},"timestamp":1763308179365,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"The current implementation works but looks not as a commercial successfull version. I did a lot of specification: Can you find it in order to implement it now?","pastedContents":{},"timestamp":1763308577028,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"finalize it so that I can use it as specified","pastedContents":{},"timestamp":1763308711018,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"Option A has been selected","pastedContents":{},"timestamp":1763309208165,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"A","pastedContents":{},"timestamp":1763309352846,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"1, 2","pastedContents":{},"timestamp":1763309779594,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"When thomas-app command has been used, we have a good overview about the test. In order to improve it, I want that we integrate an debug mode for playwright and chromium. When a button or something is applied (e.g. pressed, type in , selected) then it is shown in the console. Analyze what it needed to make the perfect debug mode in order to identify each small bug.","pastedContents":{},"timestamp":1763309830871,"project":"/home/thoma/.claude"}
+{"display":"modify spec to current codebase","pastedContents":{},"timestamp":1763310026727,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"yes","pastedContents":{},"timestamp":1763310182811,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"2","pastedContents":{},"timestamp":1763310291642,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"fix all warnings and erros","pastedContents":{},"timestamp":1763310647013,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"1: Supabase OK\n2: Handcash V2\n3: Use Konva\n4: Use Handcash for Auth.\n5: 6 weeks full launch","pastedContents":{},"timestamp":1763310709184,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"1,2,3","pastedContents":{},"timestamp":1763310936081,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"A","pastedContents":{},"timestamp":1763311414718,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"ja, implement it now","pastedContents":{},"timestamp":1763311585849,"project":"/home/thoma/.claude"}
+{"display":"Next steps","pastedContents":{},"timestamp":1763312454298,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"do i need to pay for blob?","pastedContents":{},"timestamp":1763312585987,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"Iam","pastedContents":{},"timestamp":1763312883119,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"proceed","pastedContents":{},"timestamp":1763312980124,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"A, B, C, D","pastedContents":{},"timestamp":1763313462148,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"next steps","pastedContents":{},"timestamp":1763314572413,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"yes, demonstrate","pastedContents":{},"timestamp":1763314584057,"project":"/home/thoma/.claude"}
+{"display":"Yes, ready","pastedContents":{},"timestamp":1763314707055,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190862,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190883,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190889,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190895,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190901,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190907,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190912,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190917,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190939,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190945,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190951,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190957,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190962,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190968,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190973,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190978,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190983,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190988,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190993,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315190999,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191018,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191024,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191029,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191035,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191041,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191046,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191052,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191058,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191064,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191070,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191077,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191083,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191099,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191104,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191109,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191115,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191120,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191126,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191132,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191139,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191144,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191150,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191156,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191161,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191177,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191183,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191188,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191192,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191197,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191203,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191208,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191214,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191220,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191225,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191231,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191237,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191254,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191259,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191264,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191269,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191275,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191280,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191286,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191291,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191297,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191302,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191308,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191314,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191331,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191336,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191341,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191347,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191352,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191358,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191363,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191368,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191373,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191378,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191384,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191389,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191409,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191414,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191419,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191425,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191430,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191435,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191441,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191447,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191454,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191462,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191470,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191478,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191496,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191501,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191506,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191511,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191517,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191523,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191530,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191536,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191542,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191548,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191553,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191557,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191575,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191581,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191586,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191591,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191596,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191602,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191607,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191612,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191617,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191622,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191627,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191632,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191649,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191653,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191658,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191663,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191671,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191676,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191681,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191685,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191692,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191700,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191705,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191710,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191729,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191734,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191739,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191744,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191749,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191754,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191759,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191764,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191769,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191774,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191779,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191784,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191800,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191805,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191810,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191815,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191821,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191826,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191830,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191836,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191842,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191847,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191852,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191857,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191875,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191880,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191886,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191891,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191896,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191901,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191906,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191911,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191916,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191921,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191926,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191931,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191951,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191959,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191967,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315191978,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192001,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192009,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192017,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192025,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192033,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192039,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192045,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192051,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192072,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192078,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192084,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192090,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192097,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192105,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192114,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192123,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192132,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192141,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192152,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192164,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192199,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192212,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192225,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192234,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192242,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192251,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192260,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192267,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192273,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192280,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192287,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192294,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192319,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192326,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192332,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192339,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192345,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192351,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192357,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192362,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192367,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192372,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192377,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192383,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192399,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192405,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192410,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192415,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192421,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192427,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192432,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192438,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192443,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192450,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192455,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192461,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192478,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192483,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192488,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192494,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192499,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192505,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192511,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192516,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192523,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192528,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192534,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192539,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192557,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192563,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192568,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192574,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192579,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192585,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192591,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192596,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192600,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192606,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192611,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192617,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192633,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192639,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192645,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192652,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192657,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192663,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192668,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192673,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192678,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192683,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192688,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192694,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192711,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192717,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192722,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192727,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192732,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192737,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192742,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192747,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192752,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192761,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192769,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192776,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192794,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192799,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192804,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192809,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192814,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192819,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192823,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192828,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192833,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192838,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192843,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192848,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192866,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192871,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192877,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192883,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192889,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192894,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192900,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192905,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192910,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192915,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192920,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192925,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192941,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192946,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192951,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192957,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192963,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192969,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192975,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192981,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192986,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192992,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315192998,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193003,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193022,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193027,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193032,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193037,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193042,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193048,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193053,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193059,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193065,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193070,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193075,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193080,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193097,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193103,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193108,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193113,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193118,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193122,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193127,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193132,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193137,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193142,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193147,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193152,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193168,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193174,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193179,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193184,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193189,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193194,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193199,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193204,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193210,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193216,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193221,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193226,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193247,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193255,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193263,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193270,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193275,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193280,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193285,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193291,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193297,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193303,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193309,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193314,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193331,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193337,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193341,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193346,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193351,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193357,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193362,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193368,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193373,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193378,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193383,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193390,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193407,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193414,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193420,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193426,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193432,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193438,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193444,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193450,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193455,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193461,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193467,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193473,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193492,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193498,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193504,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193510,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193515,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193520,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193525,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193531,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193537,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193543,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193548,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193554,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193570,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193576,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193581,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193587,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193592,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193599,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193604,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193610,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193615,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193620,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193625,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193631,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193648,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193653,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193658,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193663,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193669,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193674,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193680,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193686,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193692,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193697,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193703,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193708,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193726,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193731,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193737,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193742,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193748,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193754,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193760,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193765,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193771,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193777,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193783,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193789,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193805,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193810,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193816,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193821,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193827,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193833,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193839,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193844,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193853,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193859,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193864,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193870,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193888,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193893,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193898,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193904,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193910,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193915,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193921,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193927,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193932,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193937,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193942,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193947,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193964,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193969,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193974,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193979,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193985,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193990,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315193995,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194000,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194006,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194012,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194017,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194023,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194042,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194047,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194053,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194059,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194064,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194070,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194075,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194081,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194087,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194092,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194097,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194102,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194120,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194125,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194131,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194136,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194141,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194146,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194151,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194156,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194161,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194165,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194170,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194175,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194191,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194196,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194201,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194206,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194211,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194217,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194224,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194230,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194235,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194240,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194245,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194251,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194269,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194275,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194281,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194287,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194292,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194298,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194303,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194309,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194315,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194321,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194326,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194332,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194348,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194353,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194358,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194364,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194369,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194373,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194379,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194384,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194389,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194394,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194400,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194405,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194421,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194425,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194430,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194435,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194440,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194445,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194450,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194455,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194460,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194464,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194470,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194475,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194490,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194495,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194500,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194508,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194515,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194524,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194532,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194542,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194559,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194571,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"do it now and dont asked after every step","pastedContents":{},"timestamp":1763315194582,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"I have already to many supabase projects for the free version. do we need or is there an alternative for short term?","pastedContents":{},"timestamp":1763315456608,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"OPTION 2 we should go","pastedContents":{},"timestamp":1763316390062,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"D","pastedContents":{},"timestamp":1763316688411,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"next steps","pastedContents":{},"timestamp":1763316747873,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"next step","pastedContents":{},"timestamp":1763316891968,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"client:745  WebSocket connection to 'ws://localhost:3001/?token=a16Q6EfHKaVS' failed: \ncreateConnection @ client:745\nclient:755  WebSocket connection to 'ws://localhost:3000/?token=a16Q6EfHKaVS' failed: \ncreateConnection @ client:755\nclient:765  [vite] failed to connect to websocket.\nyour current setup:\n  (browser) localhost:3001/ <--[HTTP]--> localhost:3000/ (server)\n  (browser) localhost:3001/ <--[WebSocket (failing)]--> localhost:3000/ (server)\nCheck out your Vite / network configuration and https://vite.dev/config/server-options.html#server-hmr .\nconnect @ client:765\n:3001/src/App.tsx:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n:3001/src/i18n/index.ts:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n:3001/src/stores/authStore.ts:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n:3001/src/router.ts:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n:3001/src/stores/gameStore.ts:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n:3001/node_modules/.vite/deps/preact_jsx-dev-runtime.js?v=1bb90059:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n:3001/src/styles/globals.css:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n:3001/node_modules/.vite/deps/preact.js?v=1bb90059:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n:3001/src/preact-react-reconciler-patch.ts:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n:3001/favicon.svg:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n:3001/node_modules/.vite/deps/preact_debug.js?v=1bb90059:1   Failed to load resource: net::ERR_EMPTY_RESPONSE\n","pastedContents":{},"timestamp":1763317257281,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"next steps","pastedContents":{},"timestamp":1763317257317,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"[Pasted text #1 +19 lines]","pastedContents":{},"timestamp":1763317552009,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"Next step","pastedContents":{},"timestamp":1763317977286,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"blob is created","pastedContents":{},"timestamp":1763318014686,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"next step","pastedContents":{},"timestamp":1763318049671,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"2, 3, 4","pastedContents":{},"timestamp":1763318250921,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"[Pasted text #1 +17 lines]","pastedContents":{"1":{"id":1,"type":"text","content":"19:10:46.802 Running build in Washington, D.C., USA (East) – iad1\n19:10:46.804 Build machine configuration: 2 cores, 8 GB\n19:10:47.456 Cloning github.com/thomas0369/c-i-competition-analysis (Branch: main, Commit: a419bfa)\n19:10:47.458 Previous build caches not available.\n19:10:48.341 Cloning completed: 884.000ms\n19:10:48.417 Found .vercelignore (repository root)\n19:10:48.454 Removed 133 ignored files defined in .vercelignore\n19:10:48.455   /__tests__/lib/deepseek/client.test.ts\n19:10:48.455   /.claude/memory-bank/zerez-import-implementation.md\n19:10:48.455   /.git/config\n19:10:48.456   /.git/description\n19:10:48.456   /.git/FETCH_HEAD\n19:10:48.456   /.git/HEAD\n19:10:48.456   /.git/hooks/applypatch-msg.sample\n19:10:48.456   /.git/hooks/commit-msg.sample\n19:10:48.457   /.git/hooks/fsmonitor-watchman.sample\n19:10:48.457   /.git/hooks/post-update.sample\n19:10:48.475 The specified Root Directory \"benchmark-app\" does not exist. Please update your Project Settings."}},"timestamp":1763318472846,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"[Pasted text #1 +27 lines]","pastedContents":{},"timestamp":1763318854205,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"next step","pastedContents":{},"timestamp":1763319362846,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"Next steps","pastedContents":{},"timestamp":1763319473975,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"next steps","pastedContents":{},"timestamp":1763319526253,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"clean-up project, update memory-bank and push to github","pastedContents":{},"timestamp":1763320062963,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-app ","pastedContents":{},"timestamp":1763320857138,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/thomas-app ","pastedContents":{},"timestamp":1763320857165,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"next step","pastedContents":{},"timestamp":1763320897607,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-app ","pastedContents":{},"timestamp":1763320969907,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-app ","pastedContents":{},"timestamp":1763320969930,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"yes","pastedContents":{},"timestamp":1763321097627,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"sounds good and use https://hantel-hero-app.vercel.app/auth","pastedContents":{},"timestamp":1763321507272,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"Next step","pastedContents":{},"timestamp":1763321822100,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"Have you also tested a training mit Kurzhantel?","pastedContents":{},"timestamp":1763322542752,"project":"/mnt/c/Workspace/hantel-hero-app"}

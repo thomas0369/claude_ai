@@ -4,8 +4,8 @@
  * Test complete user flows from entry to goal completion
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 async function run(orchestrator) {
   const { page, config, results } = orchestrator;
@@ -396,4 +396,4 @@ async function executeStep(page, step, config) {
   }
 }
 
-module.exports = { run };
+export { run, getJourneysForAppType };
