@@ -4,31 +4,32 @@
  * Target: 100% coverage
  */
 
-const { describe, test, expect, vi, beforeEach, afterEach } = require('vitest');
-const { MockPage } = require('../../helpers/mock-browser');
-const { createMockConfig, createMockResults } = require('../../helpers/test-utils');
-const { mockFS } = require('../../helpers/mock-fs');
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { MockPage } from '../../helpers/mock-browser.mjs';
+import { createMockConfig, createMockResults } from '../../helpers/test-utils.mjs';
+import { mockFS } from '../../helpers/mock-fs.mjs';
+
+// Mock fs at file level
+vi.mock('fs', () => ({
+  existsSync: vi.fn((path) => mockFS.hasFile(path) || mockFS.hasDir(path)),
+  readFileSync: vi.fn((path, encoding) => mockFS.readFileSync(path, encoding)),
+  writeFileSync: vi.fn((path, content) => mockFS.writeFileSync(path, content))
+}));
 
 describe('Customer Journeys Phase', () => {
   let customerJourneys;
-  let mockFs;
+  let fs;
 
-  beforeEach(() => {
-    vi.resetModules();
+  beforeEach(async () => {
     mockFS.reset();
+    vi.clearAllMocks();
 
-    // Mock fs
-    mockFs = {
-      existsSync: vi.fn((...args) => mockFS.existsSync(...args)),
-      readFileSync: vi.fn((...args) => mockFS.readFileSync(...args)),
-      writeFileSync: vi.fn((...args) => mockFS.writeFileSync(...args))
-    };
-
-    vi.doMock('fs', () => mockFs);
-    vi.doMock('path', () => require('path'));
+    // Import mocked fs module
+    fs = await import('fs');
 
     // Load customer-journeys module
-    customerJourneys = require('/home/thoma/.claude/scripts/thomas-app/phases/customer-journeys');
+    const customerJourneysModule = await import('/home/thoma/.claude/scripts/thomas-app/phases/customer-journeys.js');
+    customerJourneys = customerJourneysModule;
   });
 
   afterEach(() => {

@@ -4,31 +4,32 @@
  * Target: 100% coverage
  */
 
-const { describe, test, expect, vi, beforeEach, afterEach } = require('vitest');
-const { MockPage } = require('../../helpers/mock-browser');
-const { createMockExecAsync, createMockConfig, createMockResults } = require('../../helpers/test-utils');
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { MockPage } from '../../helpers/mock-browser.mjs';
+import { createMockExecAsync, createMockConfig, createMockResults } from '../../helpers/test-utils.mjs';
+
+// Mock modules at file level
+vi.mock('child_process', () => ({
+  exec: vi.fn()
+}));
+
+vi.mock('fs', () => ({}));
 
 describe('Autofix Phase', () => {
   let autofix;
   let mockExecAsync;
   let originalSetTimeout;
 
-  beforeEach(() => {
-    vi.resetModules();
+  beforeEach(async () => {
+    vi.clearAllMocks();
 
     // Mock exec/execAsync
     mockExecAsync = createMockExecAsync();
 
-    vi.doMock('child_process', () => ({
-      exec: vi.fn()
-    }));
-
+    // Mock util.promisify to return mockExecAsync
     vi.doMock('util', () => ({
       promisify: () => mockExecAsync
     }));
-
-    vi.doMock('fs', () => ({}));
-    vi.doMock('path', () => require('path'));
 
     // Speed up setTimeout for tests
     originalSetTimeout = global.setTimeout;
@@ -40,7 +41,8 @@ describe('Autofix Phase', () => {
     };
 
     // Load autofix module
-    autofix = require('/home/thoma/.claude/scripts/thomas-app/phases/autofix');
+    const autofixModule = await import('/home/thoma/.claude/scripts/thomas-app/phases/autofix.js');
+    autofix = autofixModule;
   });
 
   afterEach(() => {
