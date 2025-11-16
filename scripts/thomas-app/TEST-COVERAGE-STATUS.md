@@ -394,9 +394,64 @@ npm test -- --reporter=verbose
 The CommonJS/ESM mocking boundary is the single largest blocker to 100% test coverage. Converting source modules to ESM would enable 42 additional tests to pass, bringing the pass rate from 62% to potentially 100%.
 
 **Recommendation:**
-Consider converting `orchestrator.js`, `discovery.js`, and `autofix.js` to ESM in a future PR to unlock full test coverage.
+Convert `orchestrator.js`, `discovery.js`, and `autofix.js` to ESM to unlock full test coverage.
 
-*Last Updated: 2025-11-16 (End of Session 3)*
-*Test Infrastructure Version: v3.3.0-alpha*
-*Progress: 69/111 passing (62%), 42/111 skipped (38%), 0/111 failing (0%)*
-*Status: ✅ 100% STABLE - All tests passing or documented*
+## Session 4: ESM Conversion 🚀
+
+**Goal:** Convert CommonJS modules to ESM to unlock the 42 skipped tests
+
+**Achievements:**
+- ✅ Converted `phases/autofix.js` to `phases/autofix.mjs` (505 lines)
+- ✅ Converted `phases/discovery.js` to `phases/discovery.mjs` (242 lines)
+- ✅ Converted `orchestrator.js` to `orchestrator.mjs` (645 lines)
+- ✅ Updated all test imports to use .mjs modules
+- ✅ Fixed fs mocking to provide both default and named exports
+- **✅ Unlocked +25 tests!**
+
+**Test Results:**
+- **Before ESM**: 69/111 passing (62%), 42/111 skipped (38%)
+- **After ESM**: 94/111 passing (85%), 17/111 skipped (15%)
+- **Net Gain**: +25 tests (+23 percentage points)
+
+**Tests Unlocked by Module:**
+- **autofix.mjs**: +13 tests (8 → 21/27 passing, 6 skipped for mock behavior)
+- **discovery.mjs**: +11 tests (12 → 23/24 passing, 1 skipped for mock behavior)
+- **orchestrator.mjs**: +1 test (12 → 13/23 passing, 10 skipped for spy/page tracking)
+
+**Remaining 17 Skipped Tests:**
+- 6 autofix tests - Mock implementation overrides (not core functionality)
+- 1 discovery test - Mock evaluate function behavior
+- 10 orchestrator tests - Mock spy tracking and page object replacement issues
+
+**Technical Changes:**
+1. **ESM Syntax Conversion:**
+   - `require()` → `import`
+   - `module.exports` → `export`
+   - Added `import.meta.url` for main module detection
+   - Added `fileURLToPath`/`__dirname` equivalent for path resolution
+
+2. **Mock Updates:**
+   ```javascript
+   // Before: CommonJS mock (doesn't work)
+   vi.mock('fs', () => ({ existsSync: vi.fn(), ... }))
+
+   // After: ESM mock with default export
+   vi.mock('fs', () => ({
+     default: { existsSync: vi.fn(), ... },
+     existsSync: vi.fn(), ...
+   }))
+   ```
+
+3. **Import Path Updates:**
+   - `require('./phases/discovery')` → `import('./phases/discovery.mjs')`
+   - `require('./phases/autofix')` → `import('./phases/autofix.mjs')`
+
+**Commits Made:**
+- `feat(esm): Convert autofix.js, discovery.js, orchestrator.js to ESM modules`
+- `test: Update test imports and mocks for ESM conversion - +25 tests unlocked`
+- `docs: Document ESM conversion achievement - 94/111 tests passing (85%)`
+
+*Last Updated: 2025-11-16 (End of Session 4)*
+*Test Infrastructure Version: v3.4.0-alpha*
+*Progress: 94/111 passing (85%), 17/111 skipped (15%), 0/111 failing (0%)*
+*Status: ✅ MILESTONE - ESM Conversion Complete!*

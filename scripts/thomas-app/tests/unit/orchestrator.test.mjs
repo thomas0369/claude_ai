@@ -19,7 +19,7 @@ vi.mock('playwright', () => {
 
 // Mock fs module
 vi.mock('fs', () => {
-  return {
+  const fsMock = {
     existsSync: vi.fn((path) => {
       return mockFS.hasFile(path) || mockFS.hasDir(path);
     }),
@@ -33,10 +33,14 @@ vi.mock('fs', () => {
       return mockFS.mkdirSync(path, options);
     })
   };
+  return {
+    default: fsMock,
+    ...fsMock
+  };
 });
 
 // Mock all phase modules to prevent actual execution
-vi.mock('/home/thoma/.claude/scripts/thomas-app/phases/discovery.js', () => ({
+vi.mock('/home/thoma/.claude/scripts/thomas-app/phases/discovery.mjs', () => ({
   run: vi.fn(async () => ({
     appType: 'website',
     routes: [{ path: '/', critical: true }],
@@ -105,7 +109,7 @@ vi.mock('/home/thoma/.claude/scripts/thomas-app/phases/agent-reviews.js', () => 
   }))
 }));
 
-vi.mock('/home/thoma/.claude/scripts/thomas-app/phases/autofix.js', () => ({
+vi.mock('/home/thoma/.claude/scripts/thomas-app/phases/autofix.mjs', () => ({
   run: vi.fn(async () => ({
     attempted: 0,
     fixed: [],
@@ -166,7 +170,7 @@ describe('ThomasAppOrchestrator', () => {
     vi.spyOn(process, 'on').mockImplementation(() => process);
 
     // Import orchestrator
-    const orchestratorModule = await import('/home/thoma/.claude/scripts/thomas-app/orchestrator.js');
+    const orchestratorModule = await import('/home/thoma/.claude/scripts/thomas-app/orchestrator.mjs');
     ThomasAppOrchestrator = orchestratorModule.default || orchestratorModule;
   });
 
@@ -225,11 +229,7 @@ describe('ThomasAppOrchestrator', () => {
       expect(isWSL).toBe(true);
     });
 
-    test.skip('should return false when /proc/version does not exist', () => {
-      // SKIP: CommonJS/ESM mocking boundary issue
-      // vi.mock('fs') doesn't intercept require('fs') from orchestrator.js (CommonJS)
-      // Real /proc/version file is being read instead of mockFS
-      // Solution: Convert orchestrator.js to ESM or use integration tests
+    test('should return false when /proc/version does not exist', () => {
 
       // mockFS is empty, so /proc/version doesn't exist
       const orchestrator = new ThomasAppOrchestrator();
