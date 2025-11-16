@@ -12,6 +12,13 @@ class MockPage {
     this._content = '';
     this._screenshots = [];
     this._evaluateResults = {};
+
+    // Create keyboard object once so spies work correctly
+    this.keyboard = {
+      press: async (key) => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+    };
   }
 
   // Navigation
@@ -181,15 +188,6 @@ class MockPage {
   async addScriptTag(options) {
     // Mock script injection
     return { src: options.url };
-  }
-
-  // Keyboard
-  get keyboard() {
-    return {
-      press: async (key) => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-    };
   }
 
   // Lifecycle
