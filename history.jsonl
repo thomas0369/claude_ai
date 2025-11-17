@@ -4276,3 +4276,31 @@
 {"display":"next step","pastedContents":{},"timestamp":1763334422716,"project":"/mnt/c/Workspace/hantel-hero-app"}
 {"display":"Yes, proceed and it is very important that this game is made for mobile phones display's","pastedContents":{},"timestamp":1763334699880,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
 {"display":"continue","pastedContents":{},"timestamp":1763334773205,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"thomas-app needs to save the results in the project and not for the user. And the thomas-demo should read it only from project folder","pastedContents":{},"timestamp":1763336895823,"project":"/home/thoma/.claude"}
+{"display":"bring it to an Overall Score: 100/100","pastedContents":{},"timestamp":1763337484695,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"yes, proceed","pastedContents":{},"timestamp":1763337910609,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"Check again the UX Design. The header is showing all languages and is too big/long. Bottom (3 boxes) fits not to the design style of the mobile games style. Maybe, define the mobile games design and check each design element against this.","pastedContents":{},"timestamp":1763338023164,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"Free Trial games should be done without login","pastedContents":{},"timestamp":1763338343423,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"sounds wunderbar","pastedContents":{},"timestamp":1763338413639,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"Is it already deployed","pastedContents":{},"timestamp":1763338479856,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"Ok, next step","pastedContents":{},"timestamp":1763338525178,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"yes, verify it","pastedContents":{},"timestamp":1763338784672,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"deploy it","pastedContents":{},"timestamp":1763339014582,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"/thomas-app ","pastedContents":{},"timestamp":1763339021386,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/thomas-app ","pastedContents":{},"timestamp":1763339021401,"project":"/mnt/c/Workspace/C&I BESS"}
+{"display":"/thomas-app ","pastedContents":{},"timestamp":1763339038818,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"/thomas-app ","pastedContents":{},"timestamp":1763339038834,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"yes, proceed","pastedContents":{},"timestamp":1763339245419,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"have you played one game?","pastedContents":{},"timestamp":1763339414931,"project":"/mnt/c/App-Ideas-Workspace/block-puzzle-hero"}
+{"display":"[Pasted text #1 +74 lines]","pastedContents":{},"timestamp":1763339566509,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"yes for, and also play all hantlehero \"games\" at minimum one time","pastedContents":{},"timestamp":1763340193661,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"index.html:1167  Uncaught SyntaxError: Identifier 'isMobile' has already been declared (at index.html:1167:23)\nindex.html:1  The resource https://cdn.plot.ly/plotly-2.27.0.min.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.\n","pastedContents":{},"timestamp":1763340295404,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1763340375856,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-setup ","pastedContents":{},"timestamp":1763340375872,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-demo ","pastedContents":{},"timestamp":1763340456883,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-demo ","pastedContents":{},"timestamp":1763340456901,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"use https://hantel-hero-app.vercel.app/ instead of localhost:3000","pastedContents":{},"timestamp":1763340525408,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"/thomas-demo ","pastedContents":{},"timestamp":1763340742350,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"/thomas-demo ","pastedContents":{},"timestamp":1763340742374,"project":"/mnt/c/App-Ideas-Workspace/elliott-wave-trading-bot"}
+{"display":"again! IT IS MANDATORY TO USE VERCEL for testing!!!! https://hantel-hero-app.vercel.app/","pastedContents":{},"timestamp":1763341011156,"project":"/mnt/c/Workspace/hantel-hero-app"}
+{"display":"you need to optimize /thomas-app Always when you create a test in a project, then it is mandatory that the files are saved in the project. When you save it for user, then another app could use it. But the test is optimized for project","pastedContents":{},"timestamp":1763341058604,"project":"/home/thoma/.claude"}
